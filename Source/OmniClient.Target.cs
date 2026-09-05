@@ -3,13 +3,13 @@
 using UnrealBuildTool;
 using System.Collections.Generic;
 
-public class OmniEditorTarget : TargetRules
+public class OmniClientTarget : TargetRules
 {
-	public OmniEditorTarget(TargetInfo Target) : base(Target)
+	public OmniClientTarget(TargetInfo Target) : base(Target)
 	{
-		Type = TargetType.Editor;
+		Type = TargetType.Client;
 		DefaultBuildSettings = BuildSettingsVersion.Latest;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
-		ExtraModuleNames.AddRange(new string[] { "OmniGame", "OmniEditor" });
+		ExtraModuleNames.AddRange(new string[] { "OmniGame" });
 	}
 }

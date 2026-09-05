@@ -2,15 +2,26 @@
 
 using UnrealBuildTool;
 
-public class Omni : ModuleRules
+public class OmniGame : ModuleRules
 {
-	public Omni(ReadOnlyTargetRules Target) : base(Target)
+	public OmniGame(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
+		// Modules whose headers are exposed through Public/
+		PublicDependencyModuleNames.AddRange(new string[]
+		{
+			"Core",
+			"CoreUObject",
+			"Engine"
+		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		// Modules only used by implementation files in Private/
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"InputCore",
+			"EnhancedInput"
+		});
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
