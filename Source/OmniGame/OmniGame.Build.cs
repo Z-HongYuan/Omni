@@ -12,7 +12,8 @@ public class OmniGame : ModuleRules
 		{
 			"Core",
 			"CoreUObject",
-			"Engine"
+			"Engine",
+			"CommonUI"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
