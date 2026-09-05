@@ -1,0 +1,23 @@
+﻿{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0",
+  "FriendlyName": "LoadingScreen",
+  "Description": "加载界面, 支持自动/手动显示(检测 GS 和 PC 及其 Component)",
+  "Category": "ZHY|BasicExpand",
+  "CreatedBy": "张鸿源",
+  "CreatedByURL": "OwnerToZhy@Gmail.com",
+  "DocsURL": "",
+  "MarketplaceURL": "",
+  "CanContainContent": false,
+  "IsBetaVersion": true,
+  "IsExperimentalVersion": true,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "LoadingScreen",
+      "Type": "RuntimeNoCommandlet",
+      "LoadingPhase": "Default"
+    }
+  ]
+}

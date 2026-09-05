@@ -1,0 +1,23 @@
+﻿{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0",
+  "FriendlyName": "StartupLoadingScreen",
+  "Description": "引擎启动界面, 此插件将会和启动影片冲突",
+  "Category": "ZHY|BasicExpand",
+  "CreatedBy": "张鸿源",
+  "CreatedByURL": "OwnerToZhy@Gmail.com",
+  "DocsURL": "",
+  "MarketplaceURL": "",
+  "CanContainContent": false,
+  "IsBetaVersion": true,
+  "IsExperimentalVersion": true,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "StartupLoadingScreen",
+      "Type": "RuntimeNoCommandlet",
+      "LoadingPhase": "PreEarlyLoadingScreen"
+    }
+  ]
+}

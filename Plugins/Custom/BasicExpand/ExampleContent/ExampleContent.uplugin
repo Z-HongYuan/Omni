@@ -1,0 +1,17 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0",
+  "FriendlyName": "ExampleContent",
+  "Description": "保存各种资源和示例的插件",
+  "Category": "ZHY|BasicExpand",
+  "CreatedBy": "张鸿源",
+  "CreatedByURL": "OwnerToZhy@Gmail.com",
+  "DocsURL": "",
+  "MarketplaceURL": "",
+  "SupportURL": "",
+  "CanContainContent": true,
+  "IsBetaVersion": true,
+  "IsExperimentalVersion": true,
+  "Installed": false
+}

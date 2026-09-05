@@ -1,0 +1,23 @@
+﻿{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0",
+  "FriendlyName": "AsyncLoadMixin",
+  "Description": "一个用于串行异步加载的工具,能依次加载和回调",
+  "Category": "ZHY|BasicExpand",
+  "CreatedBy": "张鸿源",
+  "CreatedByURL": "OwnerToZhy@Gmail.com",
+  "DocsURL": "",
+  "MarketplaceURL": "",
+  "CanContainContent": false,
+  "IsBetaVersion": true,
+  "IsExperimentalVersion": true,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "AsyncLoadMixin",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}

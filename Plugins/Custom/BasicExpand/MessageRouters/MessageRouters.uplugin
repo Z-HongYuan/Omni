@@ -1,0 +1,28 @@
+﻿{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0",
+  "FriendlyName": "MessageRouters",
+  "Description": "消息路由器, 用于在双方之间进行消息通信(解耦), 使用 Tag 和结构体进行通信",
+  "Category": "ZHY|BasicExpand",
+  "CreatedBy": "张鸿源",
+  "CreatedByURL": "OwnerToZhy@Gmail.com",
+  "DocsURL": "",
+  "MarketplaceURL": "",
+  "CanContainContent": false,
+  "IsBetaVersion": true,
+  "IsExperimentalVersion": true,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "MessageRouters",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    },
+    {
+      "Name": "MessageRouterNodes",
+      "Type": "UncookedOnly",
+      "LoadingPhase": "Default"
+    }
+  ]
+}

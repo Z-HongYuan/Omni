@@ -1,0 +1,31 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+#include "Components/PanelSlot.h"
+#include "SGameResponsivePanel.h"
+
+#include "GameResponsivePanelSlot.generated.h"
+
+class UObject;
+
+UCLASS()
+class UGameResponsivePanelSlot : public UPanelSlot
+{
+	GENERATED_UCLASS_BODY()
+
+public:
+
+
+public:
+	void BuildSlot(TSharedRef<SGameResponsivePanel> GameResponsivePanel);
+
+	// UPanelSlot 接口
+	virtual void SynchronizeProperties() override;
+	// 结束 UPanelSlot 接口
+
+	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+
+private:
+	SGameResponsivePanel::FSlot* Slot;
+};
