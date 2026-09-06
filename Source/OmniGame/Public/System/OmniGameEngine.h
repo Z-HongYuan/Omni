@@ -9,7 +9,7 @@
 
 /**
  * 项目使用的引擎类
- * 展示没有做任何事情
+ * 暂时没有做任何事情
  */
 UCLASS(MinimalAPI)
 class UOmniGameEngine : public UGameEngine

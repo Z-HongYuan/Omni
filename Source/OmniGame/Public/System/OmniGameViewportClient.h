@@ -9,6 +9,7 @@
 
 /**
  * 项目使用的视口客户端类
+ * 暂时没有做任何事情
  */
 UCLASS(MinimalAPI)
 class UOmniGameViewportClient : public UCommonGameViewportClient
