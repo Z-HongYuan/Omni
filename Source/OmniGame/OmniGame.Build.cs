@@ -13,8 +13,9 @@ public class OmniGame : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
-			"CommonUI", 
-			"GameCoreExtension"
+			"CommonUI",
+			"GameCoreExtension",
+			"ExperienceSystem"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
