@@ -57,7 +57,7 @@ public:
 	UE_API void CallOrRegister_AbilitySystemInitialized(FSimpleMulticastDelegate::FDelegate Delegate);
 	// 注册委托到 ASC 事件中
 	UE_API void Register_AbilitySystemUninitialized(FSimpleMulticastDelegate::FDelegate Delegate);
-	// 注册 ASC
+	// 注册 ASC, 需要在双端内调用
 	UE_API void InitializeAbilitySystem(UCustomAbilitySystemComponent* InASC, AActor* InOwnerActor);
 	// 注销 ASC
 	UE_API void UninitializeAbilitySystem();
