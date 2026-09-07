@@ -5,10 +5,12 @@
 
 #include "Components/ExperienceManagerComponent.h"
 #include "Components/ExperiencePawnExtensionComponent.h"
+#include "Components/ExperiencePlayerSpawningManagerComponent.h"
 #include "Data/ExperienceDefinition.h"
 #include "Data/ExperiencePawnData.h"
 #include "Engine/AssetManager.h"
 #include "GameFramework/GameStateBase.h"
+#include "Gameplay/ExperienceAIController.h"
 #include "Gameplay/ExperienceGameState.h"
 #include "Gameplay/ExperiencePlayerState.h"
 #include "Helper/ExperienceSystemSettings.h"
@@ -21,6 +23,10 @@
 AExperienceGameMode::AExperienceGameMode(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	// 插件层只负责提供流程骨架，因此这里只设置体验系统强依赖的两个类
+	// 新项目的 GameMode 子类需要自行设置以下类（参考 Lyra）：
+	//   PlayerControllerClass / HUDClass / DefaultPawnClass / GameSessionClass / ReplaySpectatorPlayerControllerClass
+	// 其中 DefaultPawnClass 只是「体验没配 PawnData 时的兜底」，正常由 UExperiencePawnData::PawnClass 决定
 	GameStateClass = AExperienceGameState::StaticClass();
 	PlayerStateClass = AExperiencePlayerState::StaticClass();
 }
@@ -168,12 +174,13 @@ bool AExperienceGameMode::UpdatePlayerStartSpot(AController* Player, const FStri
 
 AActor* AExperienceGameMode::ChoosePlayerStart_Implementation(AController* Player)
 {
-	// 委托到 生成管理器里面接管
-	// if (ULyraPlayerSpawningManagerComponent* PlayerSpawningComponent = GameState->FindComponentByClass<ULyraPlayerSpawningManagerComponent>())
-	// {
-	// 	return PlayerSpawningComponent->ChoosePlayerStart(Player);
-	// }
+	// 委托到 生成管理器里面接管,这样每个体验都可以自定义自己的选点规则
+	if (UExperiencePlayerSpawningManagerComponent* PlayerSpawningComponent = GameState->FindComponentByClass<UExperiencePlayerSpawningManagerComponent>())
+	{
+		return PlayerSpawningComponent->ChoosePlayerStart(Player);
+	}
 
+	// 没有挂载生成管理组件时，退回引擎原生选点
 	return Super::ChoosePlayerStart_Implementation(Player);
 }
 
@@ -192,7 +199,7 @@ bool AExperienceGameMode::ControllerCanRestart(AController* Controller)
 			return false;
 		}
 	}
-	else
+	else // AIController
 	{
 		// 用于机器人的 Super::PlayerCanRestart_Implementation 重生判定
 		if ((Controller == nullptr) || Controller->IsPendingKillPending())
@@ -201,22 +208,23 @@ bool AExperienceGameMode::ControllerCanRestart(AController* Controller)
 		}
 	}
 
-	// 同时会在 生成管理器里面判断是否可以重生
-	// if (ULyraPlayerSpawningManagerComponent* PlayerSpawningComponent = GameState->FindComponentByClass<ULyraPlayerSpawningManagerComponent>())
-	// {
-	// 	return PlayerSpawningComponent->ControllerCanRestart(Controller);
-	// }
+	// 同时会在 生成管理器里面判断是否可以重生,项目层可在组件里接入复活冷却、回合制等规则
+	if (UExperiencePlayerSpawningManagerComponent* PlayerSpawningComponent = GameState->FindComponentByClass<UExperiencePlayerSpawningManagerComponent>())
+	{
+		return PlayerSpawningComponent->ControllerCanRestart(Controller);
+	}
 
 	return true;
 }
 
 void AExperienceGameMode::FinishRestartPlayer(AController* NewPlayer, const FRotator& StartRotation)
 {
-	// 委托到 生成管理器里面接管,管理器里面提各种钩子用于处理重生时的逻辑
-	// if (ULyraPlayerSpawningManagerComponent* PlayerSpawningComponent = GameState->FindComponentByClass<ULyraPlayerSpawningManagerComponent>())
-	// {
-	// 	PlayerSpawningComponent->FinishRestartPlayer(NewPlayer, StartRotation);
-	// }
+	// 委托到 生成管理器里面接管,管理器里面提供各种钩子用于处理重生时的逻辑
+	if (UExperiencePlayerSpawningManagerComponent* PlayerSpawningComponent = GameState->FindComponentByClass<UExperiencePlayerSpawningManagerComponent>())
+	{
+		PlayerSpawningComponent->FinishRestartPlayer(NewPlayer, StartRotation);
+	}
+
 	Super::FinishRestartPlayer(NewPlayer, StartRotation);
 }
 
@@ -267,12 +275,11 @@ void AExperienceGameMode::RequestPlayerRestartNextFrame(AController* Controller,
 	{
 		GetWorldTimerManager().SetTimerForNextTick(PC, &APlayerController::ServerRestartPlayer_Implementation);
 	}
-
-	// 如果是 AI控制器,则调用 AI控制器的重生函数
-	// if (AExperienceAIController* BotController = Cast<AExperienceAIController>(Controller))
-	// {
-	// 	GetWorldTimerManager().SetTimerForNextTick(BotController, &AExperienceAIController::ServerRestartController);
-	// }
+	// 如果是 AI控制器,则调用 AI控制器的重生函数,内部会再次走一遍 ControllerCanRestart 判定
+	if (AExperienceAIController* BotController = Cast<AExperienceAIController>(Controller))
+	{
+		GetWorldTimerManager().SetTimerForNextTick(BotController, &AExperienceAIController::ServerRestartController);
+	}
 }
 
 void AExperienceGameMode::MatchExperience()
@@ -339,22 +346,38 @@ void AExperienceGameMode::MatchExperience()
 		ExperienceId = FPrimaryAssetId();
 	}
 
-	// 如果还有没有的话,直接回退到默认流程
-	// if (!ExperienceId.IsValid())
-	// {
-	// 	if (@TODO TryDedicatedServerLogin())
-	// 	{
-	// 		//这将开始作为专用服务器托管
-	// 		return;
-	// 	}
-	//
-	// 	//@TODO: Pull this from a config setting or something
-	// 	ExperienceId = FPrimaryAssetId(FPrimaryAssetType("ExperienceDefinition"), FName("B_DefaultExperience"));
-	// 	ExperienceIdSource = TEXT("Default");
-	// }
+	// 所有来源都识别不出来时：先给专用服务器一个接管的机会，再回退到项目层提供的兜底体验
+	if (!ExperienceId.IsValid())
+	{
+		if (TryDedicatedServerLogin())
+		{
+			// 专用服务器会自己重新开一场并换图，这里不再往下走
+			return;
+		}
+
+		ExperienceId = GetFallbackExperienceId();
+		ExperienceIdSource = TEXT("Fallback");
+	}
 
 	// 最后开始整个体验
 	MatchExperienceComplete(ExperienceId, ExperienceIdSource);
+}
+
+FPrimaryAssetId AExperienceGameMode::GetFallbackExperienceId() const
+{
+	// 框架层不预设任何资产名，由项目层 override 决定
+	return FPrimaryAssetId();
+}
+
+bool AExperienceGameMode::TryDedicatedServerLogin()
+{
+	// 框架层不依赖在线子系统，默认视为「不是专用服务器」
+	return false;
+}
+
+void AExperienceGameMode::HostDedicatedServerMatch()
+{
+	// 框架层不依赖在线子系统，由项目层 override 实现
 }
 
 void AExperienceGameMode::MatchExperienceComplete(const FPrimaryAssetId& ExperienceId, const FString& ExperienceIdSource)
@@ -370,7 +393,8 @@ void AExperienceGameMode::MatchExperienceComplete(const FPrimaryAssetId& Experie
 	}
 	else
 	{
-		UE_LOG(LogExperienceSystem, Error, TEXT("Failed to identify experience, loading screen will stay up forever"));
+		UE_LOG(LogExperienceSystem, Error, TEXT("Failed to identify experience, loading screen will stay up forever. ")
+			TEXT("请在世界设置里配置 DefaultGameplayExperience，或在项目层重载 AExperienceGameMode::GetFallbackExperienceId() 提供兜底体验。"));
 	}
 }
 

@@ -3,5 +3,10 @@
 
 #include "LogExperienceSystem.h"
 
+DEFINE_LOG_CATEGORY(LogExperienceSystemTeam);
+
 DEFINE_LOG_CATEGORY(LogExperienceSystemPawnData);
+
 DEFINE_LOG_CATEGORY(LogExperienceSystem);
+
+DEFINE_LOG_CATEGORY(LogExperienceSpawning);
