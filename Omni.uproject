@@ -52,6 +52,10 @@
       "Enabled": true,
       "MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/f5f9d4ce7bac4dd5beec9cf98238a49a",
       "Optional": true
+    },
+    {
+      "Name": "CommonUI",
+      "Enabled": true
     }
   ]
 }

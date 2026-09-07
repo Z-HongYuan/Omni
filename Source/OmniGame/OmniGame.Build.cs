@@ -15,7 +15,8 @@ public class OmniGame : ModuleRules
 			"Engine",
 			"CommonUI",
 			"GameCoreExtension",
-			"ModularGameplayActors", "ExperienceSystem"
+			"ModularGameplayActors", "ExperienceSystem",
+			"AIModule",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
