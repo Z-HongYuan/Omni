@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+﻿// Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -15,8 +15,11 @@ public class OmniGame : ModuleRules
 			"Engine",
 			"CommonUI",
 			"GameCoreExtension",
-			"ModularGameplayActors", "ExperienceSystem",
-			"AIModule",
+			"ModularGameplayActors", "ExperienceSystem", "AIModule",
+			"GameplayAbilities", "GameplayTags", "GameplayTasks", "CustomAbilitySystem", //角色需要转发 ASC 与实现 IAbilitySystemInterface
+			"CustomInputSystem", //输入组件
+			"GameplayCameras", //相机系统
+			"ModularGameplay", "GameFeatures"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
