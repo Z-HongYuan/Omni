@@ -2,12 +2,12 @@
 
 #pragma once
 
-#include "Core/CameraAssetReference.h"
 #include "Engine/DataAsset.h"
 #include "ExperiencePawnData.generated.h"
 
 #define UE_API EXPERIENCESYSTEM_API
 
+class UCameraAsset;
 class UCustomInputConfig;
 class UCustomAbilityTagRelationshipMapping;
 class UCustomAbilitySet;
