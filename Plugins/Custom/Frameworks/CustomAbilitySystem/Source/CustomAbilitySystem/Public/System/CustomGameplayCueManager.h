@@ -29,7 +29,8 @@ class UCustomGameplayCueManager : public UGameplayCueManager
 
 public:
 	UCustomGameplayCueManager() { ; }
-	static UCustomGameplayCueManager* Get();
+
+	static UE_API UCustomGameplayCueManager* Get();
 
 	//~UGameplayCueManager interface
 	virtual void OnCreated() override;
@@ -43,8 +44,7 @@ public:
 	// 当延迟加载提示时，这将加载无论如何都必须加载的提示
 	void LoadAlwaysLoadedCues();
 
-	// 更新单一游戏线索主要资产的捆绑包
-	void RefreshGameplayCuePrimaryAsset();
+	UE_API void RefreshGameplayCuePrimaryAsset();
 
 private:
 	void OnGameplayTagLoaded(const FGameplayTag& Tag);
