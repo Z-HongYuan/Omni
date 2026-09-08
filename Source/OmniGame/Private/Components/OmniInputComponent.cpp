@@ -5,6 +5,7 @@
 
 #include "Components/ExperiencePawnExtensionComponent.h"
 #include "CustomInputComponent.h"
+#include "CustomInputConfig.h"
 #include "Data/ExperiencePawnData.h"
 #include "Data/ExperienceSystemTags.h"
 #include "EnhancedInputSubsystems.h"
@@ -72,6 +73,12 @@ void UOmniInputComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		}
 	}
 	BoundInputConfig = nullptr;
+
+	// 解绑 GameFeature 注入的额外输入配置（倒序逐个走 RemoveAdditionalInputConfig，保证配对记录同步清理）
+	while (!AdditionalInputConfigs.IsEmpty())
+	{
+		RemoveAdditionalInputConfig(AdditionalInputConfigs.Top().Get());
+	}
 
 	UnregisterInitStateFeature();
 
@@ -241,7 +248,13 @@ void UOmniInputComponent::InitializePlayerInput(UInputComponent* PlayerInputComp
 		}
 	}
 
-	// 广播输入绑定完成，给 GameFeature Action（如未来的 AddInputBinding / AddInputContextMapping）挂输入的时机
+	// 标记输入绑定完成；GameFeatureAction_AddInputBinding 依赖此标记判断能否立即挂输入
+	if (ensure(!bReadyToBindInputs))
+	{
+		bReadyToBindInputs = true;
+	}
+
+	// 广播输入绑定完成，给 GameFeature Action（AddInputBinding / AddInputContextMapping）挂输入的时机
 	UGameFrameworkComponentManager::SendGameFrameworkComponentExtensionEvent(PC, NAME_BindInputsReady);
 	UGameFrameworkComponentManager::SendGameFrameworkComponentExtensionEvent(Pawn, NAME_BindInputsReady);
 }
@@ -308,4 +321,69 @@ void UOmniInputComponent::Input_Look_Mouse(const FInputActionValue& InputActionV
 	{
 		Pawn->AddControllerPitchInput(Value.Y);
 	}
+}
+
+void UOmniInputComponent::AddAdditionalInputConfig(const UCustomInputConfig* InputConfig)
+{
+	// 同一份配置只挂一次：激活线有 ExtensionAdded / BindInputsReady 两个触发事件，重复进入会重复绑定
+	if (!InputConfig || AdditionalInputConfigs.Contains(InputConfig))
+	{
+		return;
+	}
+
+	APawn* Pawn = GetPawn<APawn>();
+	if (!Pawn)
+	{
+		return;
+	}
+
+	// 能力输入挂在 PlayerController 的输入组件上（Pawn->InputComponent 持有引用），必须是自定义输入组件
+	if (UCustomInputComponent* CustomIC = Cast<UCustomInputComponent>(Pawn->InputComponent))
+	{
+		TArray<uint32> BindHandles;
+		CustomIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, /*out*/ BindHandles);
+
+		AdditionalInputConfigs.Add(InputConfig);
+		AdditionalAbilityBindHandles.Add(BindHandles);
+	}
+	else
+	{
+		UE_LOG(LogOmniGame, Error, TEXT("[%s] PlayerController 的 InputComponentClass 需要设置为 UCustomInputComponent，无法挂载额外输入配置 [%s]。"),
+		       *GetNameSafe(GetController()), *GetNameSafe(InputConfig));
+	}
+}
+
+void UOmniInputComponent::RemoveAdditionalInputConfig(const UCustomInputConfig* InputConfig)
+{
+	if (!InputConfig)
+	{
+		return;
+	}
+
+	// Lyra 此函数是 @TODO 空实现；这里补全为真实解绑，保证 GameFeature 反激活后输入不残留
+	int32 ConfigIndex = INDEX_NONE;
+	for (int32 Index = 0; Index < AdditionalInputConfigs.Num(); ++Index)
+	{
+		if (AdditionalInputConfigs[Index].Get() == InputConfig)
+		{
+			ConfigIndex = Index;
+			break;
+		}
+	}
+	if (ConfigIndex == INDEX_NONE)
+	{
+		return;
+	}
+
+	if (APawn* Pawn = GetPawn<APawn>())
+	{
+		if (UCustomInputComponent* CustomIC = Cast<UCustomInputComponent>(Pawn->InputComponent))
+		{
+			CustomIC->RemoveBinds(AdditionalAbilityBindHandles[ConfigIndex]);
+		}
+	}
+
+	// 两个数组按下标配对，必须同步删除
+	AdditionalInputConfigs.RemoveAt(ConfigIndex);
+	AdditionalAbilityBindHandles.RemoveAt(ConfigIndex);
 }
