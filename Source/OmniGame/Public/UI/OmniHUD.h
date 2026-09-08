@@ -14,5 +14,13 @@ UCLASS(MinimalAPI)
 class AOmniHUD : public AModularHUD
 {
 	GENERATED_BODY()
+
+public:
+	UE_API AOmniHUD(const FObjectInitializer& ObjectInitializer);
 };
 #undef UE_API
+
+// 通常不需要扩展或修改此类
+// 在您Experience中使用"添加小部件/Add Widget"操作，向其中添加HUD布局和小部件
+//
+// 此类主要用于调试渲染
