@@ -1,10 +1,10 @@
-﻿// Copyright © 2026 张鸿源. All Rights Reserved.
+// Copyright © 2026 张鸿源. All Rights Reserved.
 
 #pragma once
 
 #include "Components/GameFrameworkInitStateInterface.h"
 #include "Components/PawnComponent.h"
-#include "OmniCameraComponent.generated.h"
+#include "OmniCameraManagerComponent.generated.h"
 
 #define UE_API OMNIGAME_API
 
@@ -13,24 +13,19 @@ class UExperiencePawnExtensionComponent;
 class UGameplayCameraComponent;
 
 /**
- * 项目的相机组件（对应 Lyra 的 HeroComponent 中相机部分 + ULyraCameraComponent）
+ * 插件并不会添加相机组件,需要在附加的组件中有相机才能进行管理
  *
- * 职责：
- * - 参与 Pawn 的初始化状态链，内部持有一个引擎的 UGameplayCameraComponent
- * - DataInitialized 时从 PawnData 取相机资产，设置到 UGameplayCameraComponent::CameraReference
- * - GameplayReady 且本地控制端时，激活相机系统
- *
- * 注意：相机只在本地控制端有意义，Bot 上本组件会正常推进状态链但不会激活相机。
- * 相机的状态切换（第三人称/瞄准/倒地等）请在 UCameraAsset 内部用 CameraDirector 配置，
- * 不要在这里做多相机资产的切换。
+ * 本组件只负责"管理"：用 Find（FindComponentByClass）从 Pawn 附加的组件中查找引擎相机
+ * UGameplayCameraComponent（Pawn 自带或 GameFeatureAction_AddComponents 平级添加均可），
+ * 设置 PawnData 的相机资产并在本地控制端激活；找不到时仅告警并跳过相机相关流程，不会自己创建相机。
  */
 UCLASS(MinimalAPI)
-class UOmniCameraComponent : public UPawnComponent, public IGameFrameworkInitStateInterface
+class UOmniCameraManagerComponent : public UPawnComponent, public IGameFrameworkInitStateInterface
 {
 	GENERATED_BODY()
 
 public:
-	UE_API UOmniCameraComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	UE_API UOmniCameraManagerComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UE_API virtual void OnRegister() override;
 	UE_API virtual void BeginPlay() override;
@@ -46,24 +41,23 @@ public:
 	UE_API virtual void CheckDefaultInitialization() override;
 	//~End of IGameFrameworkInitStateInterface interface
 
-	// 获取内部的引擎相机组件
-	UFUNCTION(BlueprintPure, Category = "Omni|Camera")
-	UGameplayCameraComponent* GetGameplayCameraComponent() const { return GameplayCameraComponent; }
-
 	// 从当前 PawnData 读取相机资产（可能为空）
 	UFUNCTION(BlueprintPure, Category = "Omni|Camera")
 	UE_API UCameraAsset* GetCameraAssetFromPawnData() const;
 
 protected:
-	// 相机就绪钩子（本地控制端才会调用），派生类可重载
+	// 相机就绪钩子（本地控制端才会调用）：C++ 派生类重载本函数，蓝图派生类重载 K2_OnCameraReady（默认转发过去）
 	UE_API virtual void OnCameraReady(UCameraAsset* CameraAsset);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Omni|Camera", meta = (DisplayName = "OnCameraReady"))
 	UE_API void K2_OnCameraReady(UCameraAsset* CameraAsset);
 
 private:
-	// 引擎的相机组件，负责实际的相机运行
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Omni|Camera", Meta = (AllowPrivateAccess = "true"))
+	// 查找 Pawn 附加组件里的引擎相机组件并缓存（本组件不创建相机，找不到时返回空）
+	UE_API UGameplayCameraComponent* FindGameplayCameraComponent();
+
+	// 从 Pawn 附加组件中查找到的引擎相机组件（运行时 Find 填充缓存）
+	UPROPERTY(Transient)
 	TObjectPtr<UGameplayCameraComponent> GameplayCameraComponent;
 };
 
