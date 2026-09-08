@@ -98,7 +98,7 @@ void UGameFeatureAction_AddInputContextMapping::RegisterInputMappingContextsForL
 					}
 
 					// 注册时机早于 GameFeature 资产包的异步加载，软引用可能尚未在内存，必须同步加载
-					// （Lyra 这里用 AssetManager::GetAsset 内含同步加载；直接 Get() 会静默失败）
+					// （直接 Get() 会静默失败）
 					if (UInputMappingContext* IMC = Entry.InputMapping.LoadSynchronous())
 					{
 						Settings->RegisterInputMappingContext(IMC);
@@ -247,7 +247,7 @@ void UGameFeatureAction_AddInputContextMapping::AddInputMappingForPlayer(UPlayer
 		// 激活线有两个触发事件（ExtensionAdded / BindInputsReady），会重复进入这里；
 		// 引擎 AddMappingContext 在 IMC 的 TrackingMode=CountRegistrations 时按计数叠加，
 		// 多加少删会导致反激活后 IMC 残留。这里按 PC 查重保证 Add/Remove 严格配对
-		// （同时激活了 Lyra 中从未使用的 ControllersAddedTo 字段）
+		// （ControllersAddedTo 记录本上下文已挂过的 PC）
 		APlayerController* PC = Cast<APlayerController>(Player->GetOuter());
 		if (PC && ActiveData.ControllersAddedTo.Contains(PC))
 		{

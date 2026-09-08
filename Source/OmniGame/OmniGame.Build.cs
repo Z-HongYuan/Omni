@@ -14,7 +14,7 @@ public class OmniGame : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"CommonUI",
-			"AdvancedUI", "AdvancedUIExtension", // UI系统
+			"UMG", "AdvancedUI", "AdvancedUIExtension", // UI系统
 			"GameCoreExtension",
 			"ModularGameplayActors", "ExperienceSystem", "AIModule",
 			"GameplayAbilities", "GameplayTags", "GameplayTasks", "CustomAbilitySystem", //角色需要转发 ASC 与实现 IAbilitySystemInterface

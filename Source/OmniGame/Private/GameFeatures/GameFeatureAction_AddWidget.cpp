@@ -159,12 +159,12 @@ void UGameFeatureAction_AddWidget::AddWidgets(AActor* Actor, FPerContextData& Ac
 		{
 			if (TSubclassOf<UCommonActivatableWidget> ConcreteWidgetClass = Entry.LayoutClass.Get())
 			{
-				// Omni 的压层入口：AdvancedUI 的 UIHelperFunctions（对应 Lyra 的 UCommonUIExtensions）
+				// 压层入口：AdvancedUI 的 UIHelperFunctions
 				ActorData.LayoutsAdded.Add(UUIHelperFunctions::PushWidgetToLayerForPlayer(LocalPlayer, Entry.LayerID, ConcreteWidgetClass));
 			}
 		}
 
-		// Omni 的控件拓展入口：UAdvancedUIExtensionManager（对应 Lyra 的 UUIExtensionSubsystem）
+		// 控件拓展入口：UAdvancedUIExtensionManager
 		if (UAdvancedUIExtensionManager* ExtensionSubsystem = HUD->GetWorld()->GetSubsystem<UAdvancedUIExtensionManager>())
 		{
 			for (const FHUDElementEntry& Entry : Widgets)

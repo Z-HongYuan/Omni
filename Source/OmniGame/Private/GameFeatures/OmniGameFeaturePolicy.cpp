@@ -27,7 +27,7 @@ UOmniGameFeaturePolicy& UOmniGameFeaturePolicy::Get()
 
 void UOmniGameFeaturePolicy::InitGameFeatureManager()
 {
-	// Omni 暂无热更系统，未加入 Lyra 的 HotfixManager 观察者
+	// 暂无热更系统，暂不注册热更观察者（需要 OnlineHotfixManager 插件）
 	Observers.Add(NewObject<UOmniGameFeature_AddGameplayCuePaths>());
 
 	UGameFeaturesSubsystem& Subsystem = UGameFeaturesSubsystem::Get();

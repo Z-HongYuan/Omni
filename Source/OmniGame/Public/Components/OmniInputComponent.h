@@ -15,7 +15,7 @@ class UInputComponent;
 struct FInputActionValue;
 
 /**
- * 项目的输入组件（对应 Lyra 的 ULyraHeroComponent，此处拆为输入 + 相机两个组件）
+ * 项目的输入组件（输入与相机拆成两个组件，本类只负责输入）
  *
  * 职责：
  * - 参与 Pawn 的初始化状态链：DataInitialized 时把 ASC 接到 PawnExtension 上（所有端都要做）
@@ -51,7 +51,7 @@ public:
 	// （IMC 映射由 GameFeatureAction_AddInputContextMapping 负责，避免同一条 IA 被两处重复注册）
 	UE_API void AddAdditionalInputConfig(const UCustomInputConfig* InputConfig);
 
-	// 移除额外的输入配置并解绑其能力输入（Lyra 对应函数是 @TODO 空实现，这里是完整实现）
+	// 移除额外的输入配置并解绑其能力输入（撤销绑定句柄，避免 GameFeature 反激活后输入残留）
 	UE_API void RemoveAdditionalInputConfig(const UCustomInputConfig* InputConfig);
 
 	// 输入绑定是否已完成；GameFeatureAction 用它判断能否立即挂输入
@@ -68,7 +68,7 @@ protected:
 	UE_API void Input_AbilityInputTagPressed(const FGameplayTag InputTag);
 	UE_API void Input_AbilityInputTagReleased(const FGameplayTag InputTag);
 
-	//~基础原生动作（对应 Lyra 的 Input_Move / Input_Look_Mouse）
+	//~基础原生动作（移动 / 视角）
 	UE_API void Input_Move(const FInputActionValue& InputActionValue);
 	UE_API void Input_Look_Mouse(const FInputActionValue& InputActionValue);
 

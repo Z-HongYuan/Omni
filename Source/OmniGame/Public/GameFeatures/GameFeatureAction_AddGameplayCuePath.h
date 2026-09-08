@@ -17,7 +17,6 @@
  *   UOmniGameFeature_AddGameplayCuePaths 观察者里（GameFeature Registering/Unregistering 时机）
  *
  * @see UAbilitySystemGlobals::GameplayCueNotifyPaths
- * 与 Lyra 的差异: 仅本地化命名与注释，逻辑与 Lyra 完全一致
  */
 UCLASS(MinimalAPI, meta = (DisplayName = "添加 GameplayCue 路径"))
 class UGameFeatureAction_AddGameplayCuePath final : public UGameFeatureAction

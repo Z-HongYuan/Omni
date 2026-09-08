@@ -30,10 +30,10 @@ struct FComponentRequestHandle;
  *   GameFeatureAction_AddInputContextMapping 负责，两者各管一半避免重复
  * - Bot 与专用服务器上没有本地玩家，自动跳过
  *
- * 与 Lyra 的差异:
- * 1. ULyraInputConfig → UCustomInputConfig；ULyraHeroComponent → UOmniInputComponent
- * 2. 就绪事件监听 UOmniInputComponent::NAME_BindInputsReady，对应 Lyra 的 HeroComponent::NAME_BindInputsNow
- * 3. 移除线是真实解绑（Lyra 的 HeroComponent::RemoveAdditionalInputConfig 是 @TODO 空实现）
+ * 依赖：
+ * - 输入配置用 UCustomInputConfig，挂载点是 UOmniInputComponent
+ * - 就绪事件监听 UOmniInputComponent::NAME_BindInputsReady
+ * - 移除线是真实解绑（调用 RemoveAdditionalInputConfig 撤销绑定句柄），不是空实现
  */
 UCLASS(MinimalAPI, meta = (DisplayName = "添加输入绑定"))
 class UGameFeatureAction_AddInputBinding final : public UGameFeatureAction_WorldActionBase

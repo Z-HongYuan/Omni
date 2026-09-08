@@ -20,7 +20,7 @@ class AOmniPlayerController : public AExtensionPlayerController
 public:
 	UE_API AOmniPlayerController(const FObjectInitializer& ObjectInitializer);
 
-	// 获取玩家状态上持有的 ASC, 玩家状态未就绪时返回空(对标 LyraPlayerController::GetLyraAbilitySystemComponent)
+	// 获取玩家状态上持有的 ASC，玩家状态未就绪时返回空
 	UE_API UCustomAbilitySystemComponent* GetCustomAbilitySystemComponent() const;
 
 	// 每帧把积累的能力输入交给 ASC 处理

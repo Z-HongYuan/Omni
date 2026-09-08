@@ -215,7 +215,7 @@ void UGameFeatureAction_AddAbilities::AddActorAbilities(AActor* Actor, const FGa
 			}
 		}
 
-		// 不是本项目的 ASC 属于配置错误，直接断言（与 Lyra 的 CastChecked 策略一致）
+		// 不是本项目的 ASC 属于配置错误，直接断言
 		UCustomAbilitySystemComponent* CustomASC = CastChecked<UCustomAbilitySystemComponent>(AbilitySystemComponent);
 		for (const TSoftObjectPtr<const UCustomAbilitySet>& SetPtr : AbilitiesEntry.GrantedAbilitySets)
 		{

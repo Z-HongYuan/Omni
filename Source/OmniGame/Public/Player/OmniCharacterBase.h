@@ -21,7 +21,7 @@ class UInputComponent;
  * PawnExtension 自己感知不到控制器 / PlayerState / 输入的变化，必须由 Pawn 驱动，
  * 否则 Spawned → DataAvailable → DataInitialized → GameplayReady 这条状态链推不动。
  *
- * 组件挂载约定（对齐 Lyra 的分层）：
+ * 组件挂载约定：
  * - PawnExtension 在本类 C++ 构造中创建（内核，所有体验相同）
  * - 输入组件 / 相机组件由体验资产通过 GameFeatureAction_AddComponents 添加，
  *   注意输入组件必须 bServerComponent + bClientComponent 都勾选（服务端也要做 ASC 初始化），

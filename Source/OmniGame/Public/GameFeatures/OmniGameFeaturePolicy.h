@@ -13,10 +13,10 @@ class UGameFeatureData;
 struct FPrimaryAssetId;
 
 /**
- * 项目的 GameFeature 管理策略（对应 Lyra 的 ULyraGameFeaturePolicy）
+ * 项目的 GameFeature 管理策略
  *
  * 职责：
- * - 通过 DefaultEngine.ini 的 ProjectPolicyClassName 接管 GameFeaturesSubsystem 的策略
+ * - 通过 DefaultGame.ini 的 GameFeaturesManagerClassName 接管 GameFeaturesSubsystem 的策略
  * - InitGameFeatureManager 时挂上项目观察者（当前只有 GameplayCue 路径注册观察者）
  * - 定义 GameFeature 数据包的加载模式：DS 只加载服务器包，客户端只加载客户端包
  *
@@ -25,10 +25,9 @@ struct FPrimaryAssetId;
  *   [/Script/GameFeatures.GameFeaturesSubsystemSettings]
  *   GameFeaturesManagerClassName=/Script/OmniGame.OmniGameFeaturePolicy
  *
- * 与 Lyra 的差异:
- * 1. 去掉了 LyraGameFeature_HotfixManager 观察者——Omni 暂无热更系统
- *    （其依赖 OnlineHotfixManager 插件），后续接入热更时再补
- * 2. GameplayCue 路径观察者对接本项目的 UCustomGameplayCueManager
+ * 依赖：
+ * - GameplayCue 路径观察者对接 UCustomGameplayCueManager
+ * - 暂未接入热更系统（需要 OnlineHotfixManager 插件），后续接入时再补热更观察者
  */
 UCLASS(MinimalAPI, Config = Game)
 class UOmniGameFeaturePolicy : public UDefaultGameFeaturesProjectPolicies

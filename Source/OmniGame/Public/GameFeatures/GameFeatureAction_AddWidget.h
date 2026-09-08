@@ -54,14 +54,10 @@ struct FHUDElementEntry
  * 注意：
  * - 只在客户端有意义；处理器的监听对象是 AOmniHUD
  *
- * 与 Lyra 的差异:
- * 1. 类名 UGameFeatureAction_AddWidgets（文件 AddWidget）统一为 UGameFeatureAction_AddWidget，
- *    结构体 FLyraHUDLayoutRequest / FLyraHUDElementEntry 去掉 Lyra 前缀
- * 2. 布局压层用 UUIHelperFunctions::PushWidgetToLayerForPlayer（AdvancedUI），
- *    对应 Lyra 的 UCommonUIExtensions::PushContentToLayer_ForPlayer
- * 3. 控件拓展用 UAdvancedUIExtensionManager（AdvancedUIExtension），
- *    对应 Lyra 的 UUIExtensionSubsystem；HUD 目标类用 AOmniHUD 对应 ALyraHUD
- * 4. LayerID 的 Tag 过滤根从 "UI.Layer" 换成本项目的 "AdvancedUI.UIStack"
+ * 依赖：
+ * - 布局压层用 AdvancedUI 的 UUIHelperFunctions::PushWidgetToLayerForPlayer
+ * - 控件拓展用 AdvancedUIExtension 的 UAdvancedUIExtensionManager
+ * - HUD 目标类是 AOmniHUD，LayerID 的 Tag 过滤根是 "AdvancedUI.UIStack"
  */
 UCLASS(MinimalAPI, meta = (DisplayName = "添加小部件"))
 class UGameFeatureAction_AddWidget final : public UGameFeatureAction_WorldActionBase

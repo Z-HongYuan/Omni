@@ -21,8 +21,6 @@ struct FWorldContext;
  * - 功能激活时对每个命中的 WorldContext 投一张"禁用分屏"票（计数引用），
  *   第 1 张票生效时强制关闭 GameViewport 的分屏
  * - 功能反激活时按票数逐一退票，票数归零才恢复分屏，保证多功能叠加时正确复原
- *
- * 与 Lyra 的差异: 仅本地化命名与注释，逻辑与 Lyra 完全一致
  */
 UCLASS(MinimalAPI, meta = (DisplayName = "分屏配置"))
 class UGameFeatureAction_SplitscreenConfig final : public UGameFeatureAction_WorldActionBase

@@ -129,7 +129,7 @@ void UOmniCameraManagerComponent::HandleChangeInitState(UGameFrameworkComponentM
 					OnCameraReady(GetCameraAssetFromPawnData());
 
 					// 广播相机就绪，给 GameFeature Action 挂相机相关内容（如持久相机 Rig、相机层）的时机
-					// 对应 Lyra 的 NAME_BindInputsNow 模式，发给 PC 和 Pawn 两个接收者
+					// 发给 PC 和 Pawn 两个接收者
 					UGameFrameworkComponentManager::SendGameFrameworkComponentExtensionEvent(PC, NAME_CameraReady);
 					UGameFrameworkComponentManager::SendGameFrameworkComponentExtensionEvent(Pawn, NAME_CameraReady);
 				}

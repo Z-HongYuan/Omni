@@ -349,7 +349,7 @@ void UOmniInputComponent::AddAdditionalInputConfig(const UCustomInputConfig* Inp
 	else
 	{
 		UE_LOG(LogOmniGame, Error, TEXT("[%s] PlayerController 的 InputComponentClass 需要设置为 UCustomInputComponent，无法挂载额外输入配置 [%s]。"),
-		       *GetNameSafe(GetController()), *GetNameSafe(InputConfig));
+		       *GetNameSafe(GetController<APlayerController>()), *GetNameSafe(InputConfig));
 	}
 }
 
@@ -360,7 +360,7 @@ void UOmniInputComponent::RemoveAdditionalInputConfig(const UCustomInputConfig* 
 		return;
 	}
 
-	// Lyra 此函数是 @TODO 空实现；这里补全为真实解绑，保证 GameFeature 反激活后输入不残留
+	// 真实解绑：撤销该配置绑定的输入句柄，保证 GameFeature 反激活后输入不残留
 	int32 ConfigIndex = INDEX_NONE;
 	for (int32 Index = 0; Index < AdditionalInputConfigs.Num(); ++Index)
 	{

@@ -74,12 +74,14 @@ struct FGameFeatureAbilitiesEntry
  * - 只在服务器（HasAuthority）执行授予；客户端通过复制看到结果
  * - 目标 Actor 上没有 ASC 时，会通过组件请求系统给目标类补挂一个 UAbilitySystemComponent
  *
- * 与 Lyra 的差异:
- * 1. FLyraAbilityGrant / FLyraAttributeSetGrant 去掉 Lyra 前缀（FAbilityGrant / FAttributeSetGrant）；
- *    Lyra 里注释掉的 InputAction 字段未保留
- * 2. 就绪事件用 AExperiencePlayerState::NAME_GiveCustomAbilityReady 对应 Lyra 的 NAME_LyraAbilityReady
- * 3. 能力集/ASC 用本项目的 UCustomAbilitySet / UCustomAbilitySystemComponent
- *    （GiveToAbilitySystem 多一个 SourceObject 默认参，调用处写法不变）
+ * 数据结构：
+ * - FAbilityGrant / FAttributeSetGrant 描述单个授予项（能力类型 / 属性集类型 + 初始化数据表）
+ * - FGameFeatureAbilitiesEntry 描述"给哪个 Actor 类授予哪些东西"，AbilitiesList 是它的数组
+ *
+ * 依赖：
+ * - 能力集与 ASC 用 UCustomAbilitySet / UCustomAbilitySystemComponent
+ *   （GiveToAbilitySystem 多一个 SourceObject 默认参，调用处写法不变）
+ * - 就绪事件用 AExperiencePlayerState::NAME_GiveCustomAbilityReady
  */
 UCLASS(MinimalAPI, meta = (DisplayName = "添加能力"))
 class UGameFeatureAction_AddAbilities final : public UGameFeatureAction_WorldActionBase

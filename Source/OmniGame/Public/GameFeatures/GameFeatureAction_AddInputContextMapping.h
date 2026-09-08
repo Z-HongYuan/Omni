@@ -36,12 +36,12 @@ struct FInputMappingContextAndPriority
  * 向本地玩家的 EnhancedInput 系统添加 InputMappingContext
  * 前提：本地玩家已启用 EnhancedInput 系统
  *
- * 与 Lyra 的差异:
+ * 实现要点:
  * 1. 注册线（Registering）加载 IMC 使用 LoadSynchronous 同步加载，不依赖 AssetManager 包装
  * 2. 激活线（Activating）监听 UOmniInputComponent::NAME_BindInputsReady（输入绑定完成后广播），
- *    对应 Lyra 监听的 HeroComponent::NAME_BindInputsNow；不监听 NAME_GameActorReady——
+ *    不监听 NAME_GameActorReady——
  *    它与 ExtensionAdded 同期到达，无增量信息
- * 3. AddInputMappingForPlayer 按 PC 查重（激活了 Lyra 中从未使用的 ControllersAddedTo 字段）：
+ * 3. AddInputMappingForPlayer 按 PC 查重（用 ControllersAddedTo 记录已挂过的 PC）：
  *    添加成功才记录，保证 Add/Remove 严格配对，防止 IMC 在 CountRegistrations 模式下多加少删残留
  */
 UCLASS(MinimalAPI, meta = (DisplayName = "添加输入映射上下文"))

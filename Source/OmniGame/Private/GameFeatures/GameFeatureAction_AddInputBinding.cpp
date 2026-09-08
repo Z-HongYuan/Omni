@@ -131,7 +131,7 @@ void UGameFeatureAction_AddInputBinding::AddInputMappingForPlayer(APawn* Pawn, F
 	if (ULocalPlayer* LocalPlayer = PlayerController ? PlayerController->GetLocalPlayer() : nullptr)
 	{
 		// 本地玩家没启用 EnhancedInput 属于配置错误：报错但不挂输入（与 AddInputContextMapping 的报错口径一致）
-		// Lyra 原版此处把子系统取出来又不用（死变量），这里改为只判空
+		// 这里只需要确认 EnhancedInput 子系统存在，不需要持有它
 		if (LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>() == nullptr)
 		{
 			UE_LOG(LogGameFeatures, Error, TEXT("Failed to find `UEnhancedInputLocalPlayerSubsystem` for local player. Input mappings will not be added. Make sure you're set to use the EnhancedInput system via config file."));

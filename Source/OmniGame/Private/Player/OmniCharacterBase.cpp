@@ -70,7 +70,7 @@ UAbilitySystemComponent* AOmniCharacterBase::GetAbilitySystemComponent() const
 void AOmniCharacterBase::OnAbilitySystemInitialized()
 {
 	// 空实现，供派生类重载
-	// Lyra 在对应位置初始化 HealthComponent 与运动状态相关的 GameplayTag
+	// 派生类可在此初始化生命值组件、运动状态相关的 GameplayTag 等
 }
 
 void AOmniCharacterBase::OnAbilitySystemUninitialized()
