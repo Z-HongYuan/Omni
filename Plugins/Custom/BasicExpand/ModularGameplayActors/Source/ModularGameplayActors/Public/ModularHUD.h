@@ -10,7 +10,7 @@
 /**
  * 模块化的 HUD 支持 Component 增删
  */
-UCLASS(MinimalAPI)
+UCLASS(MinimalAPI, Blueprintable)
 class AModularHUD : public AHUD
 {
 	GENERATED_BODY()
