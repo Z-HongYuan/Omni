@@ -130,18 +130,19 @@ void UGameSettingValueDiscreteDynamic::RestoreToInitial()
 
 void UGameSettingValueDiscreteDynamic::SetDiscreteOptionByIndex(int32 Index)
 {
-	if (ensure(OptionValues.IsValidIndex(Index)))
+	if (const TArray<int32> AllowedOptionIndices = GetAllowedOptionIndices(); ensure(AllowedOptionIndices.IsValidIndex(Index)))
 	{
-		SetValueFromString(OptionValues[Index]);
+		SetValueFromString(OptionValues[AllowedOptionIndices[Index]]);
 	}
 }
 
 int32 UGameSettingValueDiscreteDynamic::GetDiscreteOptionIndex() const
 {
 	const FString CurrentValue = GetValueAsString();
-	const int32 Index = OptionValues.IndexOfByPredicate([this, CurrentValue](const FString& InOption)
+	const TArray<int32> AllowedOptionIndices = GetAllowedOptionIndices();
+	const int32 Index = AllowedOptionIndices.IndexOfByPredicate([this, &CurrentValue](const int32 OptionIndex)
 	{
-		return AreOptionsEqual(CurrentValue, InOption);
+		return AreOptionsEqual(CurrentValue, OptionValues[OptionIndex]);
 	});
 
 	// 如果找不到正确的索引，就返回默认索引。
@@ -157,9 +158,10 @@ int32 UGameSettingValueDiscreteDynamic::GetDiscreteOptionDefaultIndex() const
 {
 	if (DefaultValue.IsSet())
 	{
-		return OptionValues.IndexOfByPredicate([this](const FString& InOption)
+		const TArray<int32> AllowedOptionIndices = GetAllowedOptionIndices();
+		return AllowedOptionIndices.IndexOfByPredicate([this](const int32 OptionIndex)
 		{
-			return AreOptionsEqual(DefaultValue.GetValue(), InOption);
+			return AreOptionsEqual(DefaultValue.GetValue(), OptionValues[OptionIndex]);
 		});
 	}
 
@@ -168,24 +170,33 @@ int32 UGameSettingValueDiscreteDynamic::GetDiscreteOptionDefaultIndex() const
 
 TArray<FText> UGameSettingValueDiscreteDynamic::GetDiscreteOptions() const
 {
-	const TArray<FString>& DisabledOptions = GetEditState().GetDisabledOptions();
+	const TArray<int32> AllowedOptionIndices = GetAllowedOptionIndices();
+	TArray<FText> AllowedOptions;
+	AllowedOptions.Reserve(AllowedOptionIndices.Num());
 
-	if (DisabledOptions.Num() > 0)
+	for (const int32 OptionIndex : AllowedOptionIndices)
 	{
-		TArray<FText> AllowedOptions;
-
-		for (int32 OptionIndex = 0; OptionIndex < OptionValues.Num(); ++OptionIndex)
-		{
-			if (!DisabledOptions.Contains(OptionValues[OptionIndex]))
-			{
-				AllowedOptions.Add(OptionDisplayTexts[OptionIndex]);
-			}
-		}
-
-		return AllowedOptions;
+		AllowedOptions.Add(OptionDisplayTexts[OptionIndex]);
 	}
 
-	return OptionDisplayTexts;
+	return AllowedOptions;
+}
+
+TArray<int32> UGameSettingValueDiscreteDynamic::GetAllowedOptionIndices() const
+{
+	const TArray<FString>& DisabledOptions = GetEditState().GetDisabledOptions();
+	TArray<int32> AllowedOptionIndices;
+	AllowedOptionIndices.Reserve(OptionValues.Num());
+
+	for (int32 OptionIndex = 0; OptionIndex < OptionValues.Num(); ++OptionIndex)
+	{
+		if (!DisabledOptions.Contains(OptionValues[OptionIndex]))
+		{
+			AllowedOptionIndices.Add(OptionIndex);
+		}
+	}
+
+	return AllowedOptionIndices;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -67,6 +67,13 @@ void UGameSettingDetailView::FillSettingDetails(UGameSetting* InSetting)
 		return;
 	}
 
+	// 清空详情也必须取消旧请求，避免加载完成后重新添加旧设置的扩展控件。
+	if (StreamingHandle.IsValid())
+	{
+		StreamingHandle->CancelHandle();
+		StreamingHandle.Reset();
+	}
+
 	if (CurrentSetting)
 	{
 		CurrentSetting->OnSettingChangedEvent.RemoveAll(this);
@@ -156,11 +163,6 @@ void UGameSettingDetailView::FillSettingDetails(UGameSetting* InSetting)
 				ExtensionClassPtrs = VisualData->GatherDetailExtensions(InSetting);
 			}
 
-			if (StreamingHandle.IsValid())
-			{
-				StreamingHandle->CancelHandle();
-			}
-
 			bool bEverythingAlreadyLoaded = true;
 
 			TArray<FSoftObjectPath> ExtensionPaths;
@@ -188,9 +190,15 @@ void UGameSettingDetailView::FillSettingDetails(UGameSetting* InSetting)
 					MoveTemp(ExtensionPaths),
 					FStreamableDelegate::CreateWeakLambda(this, [this, SettingPtr, ExtensionClassPtrs]
 					                                      {
+						                                      UGameSetting* LoadedSetting = SettingPtr.Get();
+						                                      if (!LoadedSetting || LoadedSetting != CurrentSetting)
+						                                      {
+							                                      return;
+						                                      }
+
 						                                      for (TSoftClassPtr<UGameSettingDetailExtension> SoftClassPtr : ExtensionClassPtrs)
 						                                      {
-							                                      CreateDetailsExtension(SettingPtr.Get(), SoftClassPtr.Get());
+							                                      CreateDetailsExtension(LoadedSetting, SoftClassPtr.Get());
 						                                      }
 
 						                                      ExtensionWidgetPool.ReleaseInactiveSlateResources();

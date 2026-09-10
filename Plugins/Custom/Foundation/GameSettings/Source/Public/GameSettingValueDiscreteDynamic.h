@@ -60,6 +60,10 @@ protected:
 
 	UE_API bool AreOptionsEqual(const FString& InOptionA, const FString& InOptionB) const;
 
+private:
+	// 显示、读取和写入统一使用这份可见选项到原始选项的索引映射。
+	TArray<int32> GetAllowedOptionIndices() const;
+
 protected:
 	TSharedPtr<FGameSettingDataSource> Getter;
 	TSharedPtr<FGameSettingDataSource> Setter;

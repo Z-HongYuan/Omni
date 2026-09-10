@@ -68,6 +68,8 @@ void UGameSettingPanel::SetRegistry(UGameSettingRegistry* InRegistry)
 		if (RefreshHandle.IsValid())
 		{
 			FTSTicker::GetCoreTicker().RemoveTicker(RefreshHandle);
+			// 移除只标记 Ticker 失效，显式清空句柄才能立即安排新注册表的刷新。
+			RefreshHandle.Reset();
 		}
 
 		Registry = InRegistry;
