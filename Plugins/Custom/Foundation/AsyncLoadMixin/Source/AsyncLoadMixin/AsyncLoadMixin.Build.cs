@@ -8,7 +8,8 @@ public class AsyncLoadMixin : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PrivateDependencyModuleNames.AddRange(
+		// 公开头文件使用这些模块的类型与模板，依赖需要传递给使用方。
+		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",

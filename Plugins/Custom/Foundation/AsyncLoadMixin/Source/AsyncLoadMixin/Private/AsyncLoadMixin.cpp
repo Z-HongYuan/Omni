@@ -133,8 +133,8 @@ FAsyncLoadMixin::FLoadingState::~FLoadingState()
 
 	// 如果我们被销毁，需要取消我们正在做的任何事情，并取消任何
 	// 待处理的销毁 - 因为我们已经在退出的路上了。
-	CancelOnly(/*bDestroying*/true);
-	CancelDestroyThisMemory(/*bDestroying*/true);
+	CancelOnly(/*正在析构*/true);
+	CancelDestroyThisMemory(/*正在析构*/true);
 }
 
 void FAsyncLoadMixin::FLoadingState::CancelOnly(bool bDestroying)
@@ -162,7 +162,7 @@ void FAsyncLoadMixin::FLoadingState::CancelOnly(bool bDestroying)
 
 void FAsyncLoadMixin::FLoadingState::CancelAndDestroy()
 {
-	CancelOnly(/*bDestroying*/false);
+	CancelOnly(/*正在析构*/false);
 	RequestDestroyThisMemory();
 }
 
@@ -183,7 +183,7 @@ void FAsyncLoadMixin::FLoadingState::CancelDestroyThisMemory(bool bDestroying)
 
 void FAsyncLoadMixin::FLoadingState::RequestDestroyThisMemory()
 {
-	// 如果我们已经 pending 要销毁这个内存，就忽略。
+	// 如果已经安排销毁这块内存，就不再重复安排。
 	if (!IsPendingDestroy())
 	{
 		UE_LOG(LogAsyncMixin, Verbose, TEXT("[0x%p] Destroy LoadingState (Requested)"), this);
@@ -213,7 +213,7 @@ void FAsyncLoadMixin::FLoadingState::Start()
 	// 取消任何待处理的启动加载请求。
 	CancelStartTimer();
 
-	// bool bStartingStepFound = false;
+	// 预留：记录是否找到起始步骤，目前未使用。
 
 	if (!bHasStarted)
 	{
@@ -298,7 +298,7 @@ void FAsyncLoadMixin::FLoadingState::AsyncEvent(const FSimpleDelegate& DelegateT
 
 void FAsyncLoadMixin::FLoadingState::TryScheduleStart()
 {
-	CancelDestroyThisMemory(/*bDestroying*/false);
+	CancelDestroyThisMemory(/*正在析构*/false);
 
 	// 如果用户忘记启动异步加载，我们将在下一帧开始执行。
 	if (!StartTimerDelegate.IsValid())
@@ -419,7 +419,7 @@ void FAsyncLoadMixin::FLoadingState::CompleteAsyncLoading()
 		if (!bPreloadedBundles && !IsLoadingInProgressOrPending())
 		{
 			// 如果我们已完成所有加载或待处理加载，我们应该清理我们使用的内存。
-			// 继续移除拥有 mixin 分配的这个加载状态。
+			// 移除为混入对象分配的加载状态。
 			RequestDestroyThisMemory();
 			return;
 		}

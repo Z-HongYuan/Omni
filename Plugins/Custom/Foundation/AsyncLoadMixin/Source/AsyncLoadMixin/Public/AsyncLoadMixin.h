@@ -3,24 +3,23 @@
 #pragma once
 
 #include "Containers/Ticker.h"
+#include "Engine/DataAsset.h"
+#include "Templates/SubclassOf.h"
+#include "UObject/PrimaryAssetId.h"
 #include "UObject/SoftObjectPtr.h"
 
 #define UE_API ASYNCLOADMIXIN_API
 
 class FAsyncCondition;
 class FName;
-class UPrimaryDataAsset;
-struct FPrimaryAssetId;
 struct FStreamableHandle;
-template <class TClass>
-class TSubclassOf;
 
 DECLARE_DELEGATE_OneParam(FStreamableHandleDelegate, TSharedPtr<FStreamableHandle>)
 
-//TODO 我认为我们需要引入一个保留策略，预加载的资源会自动保留在内存中直到被取消
+// 待办：考虑引入资源保留策略，预加载的资源会自动保留在内存中直到被取消。
 //     但如果你想仅使用 AsyncLoad 函数来预加载单个项目怎么办？我不想
-//     为每次调用引入单独的策赂，或者引入一整套预加载与异步加载的区别，所以更
-//     倾向于有一个保留策略。它应该是一个成员并在你继承 AsyncMixin 时实际创建内存，
+//     为每次调用引入单独的策略，或者引入一整套预加载与异步加载的区别，所以更
+//     倾向于有一个保留策略。它应该是一个成员并在继承混入类时实际分配内存，
 //     还是应该作为一个模板参数？
 //enum class EAsyncMixinRetentionPolicy : uint8
 //{
@@ -41,14 +40,14 @@ DECLARE_DELEGATE_OneParam(FStreamableHandleDelegate, TSharedPtr<FStreamableHandl
  * AsyncLoad(ItemTwo, CallbackTwo);
  * StartAsyncLoading();
  * 
- * 你也可以安全地包含 'this' 作用域。FAsyncLoadMixin 的好处之一是，所有回调都不会超出宿主 AsyncMixin 派生对象的作用域。
+ * 你也可以捕获 this。FAsyncLoadMixin 会随宿主派生对象的销毁清理异步加载状态。
  * 例如：
  * AsyncLoad(SomeSoftObjectPtr, [this, ...]() {
  *    
  * });
  * 
  *
- * 会发生的情况是，首先我们会取消任何现有的加载请求，例如也许我们是一个刚刚被要求表示新事物的 widget。
+ * 首先取消现有的加载请求，例如控件被复用并需要展示新的对象时。
  * 接下来我们会加载 ItemOne 和 ItemTwo，*然后* 按照你请求异步加载的顺序调用回调函数 - 
  * 即使 ItemOne 或 ItemTwo 在你请求时已经加载完成。
  *
@@ -57,10 +56,10 @@ DECLARE_DELEGATE_OneParam(FStreamableHandleDelegate, TSharedPtr<FStreamableHandl
  * 如果你忘记调用 StartAsyncLoading()，我们会在下一帧调用它，但你应该在完成设置后记得调用它，
  * 因为可能所有内容都已经加载完毕，这样可以避免单帧的加载指示器闪烁，这很烦人。
  * 
- * 注意：FAsyncLoadMixin 还使得将 [this] 作为捕获输入传递到你的 lambda 中是安全的，
- * 因为它会处理当你的拥有类被销毁或你取消所有内容时的解钩操作。
+ * 注意：在匿名函数中捕获 [this] 时，应让加载请求的生命周期与宿主一致。
+ * 宿主析构或主动取消加载时，混入类会清理对应的加载状态。
  *
- * 注意：FAsyncLoadMixin 不会为你的类添加任何额外的内存。几个类目前在内部处理异步加载时会分配 
+ * 注意：FAsyncLoadMixin 不在宿主中保存加载状态成员。通常，手动管理异步加载的类会保存
  * TSharedPtr<FStreamableHandle> 成员并倾向于持有 SoftObjectPaths 临时状态。
  * FAsyncLoadMixin 在内部使用静态 TMap 完成所有这些操作，以便所有异步请求内存都稀疏地临时存储。
  * 
@@ -150,14 +149,21 @@ protected:
 	/** 异步加载 FSoftObjectPath 数组，完成时调用回调。 */
 	UE_API void AsyncLoad(const TArray<FSoftObjectPath>& SoftObjectPaths, const FSimpleDelegate& Callback = FSimpleDelegate());
 
-	/** 给定主资产数组，加载这些资产的属性所引用的所有捆绑包（由 LoadBundles 数组指定）。 */
+	/** 给定主资产数组，加载指定资源包；跳过空对象和无效的主资产 ID。资源包由 LoadBundles 指定。 */
 	template <typename T = UPrimaryDataAsset>
 	void AsyncPreloadPrimaryAssetsAndBundles(const TArray<T*>& Assets, const TArray<FName>& LoadBundles, const FSimpleDelegate& Callback = FSimpleDelegate())
 	{
 		TArray<FPrimaryAssetId> PrimaryAssetIds;
+		PrimaryAssetIds.Reserve(Assets.Num());
 		for (const T* Item : Assets)
 		{
-			PrimaryAssetIds.Add(Item);
+			if (Item)
+			{
+				if (const FPrimaryAssetId AssetId = Item->GetPrimaryAssetId(); AssetId.IsValid())
+				{
+					PrimaryAssetIds.Add(AssetId);
+				}
+			}
 		}
 
 		AsyncPreloadPrimaryAssetsAndBundles(PrimaryAssetIds, LoadBundles, Callback);
@@ -201,7 +207,7 @@ protected:
 
 private:
 	/**
-	 * FLoadingState 是在一个大 Map 中为 FAsyncLoadMixin 实际分配的内容，这样 FAsyncLoadMixin 本身不持有任何内存，
+	 * FLoadingState 是静态映射中为 FAsyncLoadMixin 分配的加载状态，混入类本身不保存加载状态成员，
 	 * 我们只在需要时动态创建 FLoadingState，并在不需要时销毁它。
 	 */
 	class FLoadingState : public TSharedFromThis<FLoadingState>
@@ -238,7 +244,7 @@ private:
 		void RequestDestroyThisMemory();
 		void CancelDestroyThisMemory(bool bDestroying);
 
-		/** 谁拥有加载状态？我们需要这个来回调拥有的 mixin 对象。 */
+		/** 加载状态的宿主，用于调用混入对象的加载通知。 */
 		FAsyncLoadMixin& OwnerRef;
 
 		/**
@@ -301,8 +307,8 @@ private:
 };
 
 /**
- * 有时 mixin 模式并不合适。也许对象必须管理许多不同的任务，每个任务都有自己独立的异步依赖链/作用域。
- * 对于这些情况，你可以使用 FAsyncScope。
+ * 有时混入模式并不合适。对象可能需要管理多个任务，每个任务都有独立的异步依赖链和作用域。
+ * 对于这些情况，可以使用 FAsyncLoadScope。
  * 
  * 这个类是一个独立的异步依赖处理器，让你可以启动多个加载任务并始终以正确的顺序处理它们，
  * 就像将 FAsyncLoadMixin 与你的类结合使用一样。
@@ -342,13 +348,13 @@ DECLARE_DELEGATE_RetVal(EAsyncConditionResult, FAsyncConditionDelegate);
 class FAsyncCondition : public TSharedFromThis<FAsyncCondition>
 {
 public:
-	FAsyncCondition(const FAsyncConditionDelegate& Condition);
-	FAsyncCondition(TFunction<EAsyncConditionResult()>&& Condition);
-	virtual ~FAsyncCondition();
+	UE_API FAsyncCondition(const FAsyncConditionDelegate& Condition);
+	UE_API FAsyncCondition(TFunction<EAsyncConditionResult()>&& Condition);
+	UE_API virtual ~FAsyncCondition();
 
 protected:
-	bool IsComplete() const;
-	bool BindCompleteDelegate(const FSimpleDelegate& NewDelegate);
+	UE_API bool IsComplete() const;
+	UE_API bool BindCompleteDelegate(const FSimpleDelegate& NewDelegate);
 
 private:
 	bool TryToContinue(float DeltaTime);
