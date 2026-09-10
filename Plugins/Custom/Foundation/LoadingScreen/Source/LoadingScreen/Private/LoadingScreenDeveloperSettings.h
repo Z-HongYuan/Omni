@@ -59,9 +59,10 @@ public:
 	UPROPERTY(Transient, EditAnywhere, Category="Debugging")
 	bool HoldLoadingScreenAdditionalSecsEvenInEditor = false;
 
-	// 是否在编辑器内强制停用玩家输入
+	// 加载画面显示时，在编辑器中也拦截 Slate 输入，用于手动验证输入阻塞。
+	// 默认值与 LoadingScreen.AlwaysStopPlayerInput 保持一致。
 	UPROPERTY(Transient, EditAnywhere, Category="Debugging", meta=(ConsoleVariable="LoadingScreen.AlwaysStopPlayerInput"))
-	bool ForceDisablePlayerInputInEditor = true;
+	bool ForceDisablePlayerInputInEditor = false;
 };
 
 #undef UE_API

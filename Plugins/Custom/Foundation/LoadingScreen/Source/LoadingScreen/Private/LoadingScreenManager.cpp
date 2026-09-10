@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 张鸿源. All Rights Reserved.
+// Copyright © 2026 张鸿源. All Rights Reserved.
 
 
 #include "LoadingScreenManager.h"
@@ -16,7 +16,6 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/WorldSettings.h"
 #include "HAL/ThreadHeartBeat.h"
-#include "Logging/StructuredLog.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Widgets/Images/SThrobber.h"
 
@@ -24,13 +23,13 @@
 #include UE_INLINE_GENERATED_CPP_BY_NAME(LoadingScreenDeveloperSettings)
 #include UE_INLINE_GENERATED_CPP_BY_NAME(LoadingScreenManager)
 
-DECLARE_LOG_CATEGORY_EXTERN(LogLoadingScreen, Log, All); // 注册Log分类
+DECLARE_LOG_CATEGORY_EXTERN(LogLoadingScreen, Log, All); // 注册日志分类
 DEFINE_LOG_CATEGORY(LogLoadingScreen);
 
 // 加载屏幕的分析类别
 CSV_DEFINE_CATEGORY(LoadingScreen, true);
 
-// CVars
+// 控制台变量
 //
 namespace LoadingScreenCVars
 {
@@ -38,7 +37,7 @@ namespace LoadingScreenCVars
 	static FAutoConsoleVariableRef CVarHoldLoadingScreenUpAtLeastThisLongInSecs(
 		TEXT("LoadingScreen.HoldLoadingScreenAdditionalSecs"),
 		HoldLoadingScreenAdditionalSecs,
-		TEXT("在其他加载结束（秒/s）后，加载画面要保持多久，才能尝试让纹理流式流避免模糊"),
+		TEXT("其他加载结束后，额外保持加载画面的秒数，用于等待纹理流送、减少画面模糊。"),
 		ECVF_Default | ECVF_Preview);
 
 	static bool LogLoadingScreenReasonEveryFrame = false;
@@ -59,7 +58,7 @@ namespace LoadingScreenCVars
 	static FAutoConsoleVariableRef CVarLoadingScreenAlwaysStopPlayerInput(
 		TEXT("LoadingScreen.AlwaysStopPlayerInput"),
 		LoadingScreenAlwaysStopPlayerInput,
-		TEXT("强制停用玩家输入。"),
+		TEXT("加载画面显示时，在编辑器中也拦截 Slate 输入，用于验证输入阻塞。"),
 		ECVF_Default);
 }
 
@@ -68,13 +67,16 @@ namespace LoadingScreenCVars
 class FLoadingScreenInputPreProcessor : public IInputProcessor
 {
 public:
-	FLoadingScreenInputPreProcessor() { ; }
-	virtual ~FLoadingScreenInputPreProcessor() override { ; }
+	FLoadingScreenInputPreProcessor() = default;
+	virtual ~FLoadingScreenInputPreProcessor() override = default;
 
 	static bool CanStopInput() { return !GIsEditor || LoadingScreenCVars::LoadingScreenAlwaysStopPlayerInput; }
 
 	//~IInputProcess 接口
-	virtual void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor) override { ; }
+	virtual void Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor) override
+	{
+	}
+
 	virtual bool HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent) override { return CanStopInput(); }
 	virtual bool HandleKeyUpEvent(FSlateApplication& SlateApp, const FKeyEvent& InKeyEvent) override { return CanStopInput(); }
 	virtual bool HandleAnalogInputEvent(FSlateApplication& SlateApp, const FAnalogInputEvent& InAnalogInputEvent) override { return CanStopInput(); }
@@ -84,14 +86,16 @@ public:
 	virtual bool HandleMouseButtonDoubleClickEvent(FSlateApplication& SlateApp, const FPointerEvent& MouseEvent) override { return CanStopInput(); }
 	virtual bool HandleMouseWheelOrGestureEvent(FSlateApplication& SlateApp, const FPointerEvent& InWheelEvent, const FPointerEvent* InGestureEvent) override { return CanStopInput(); }
 	virtual bool HandleMotionDetectedEvent(FSlateApplication& SlateApp, const FMotionEvent& MotionEvent) override { return CanStopInput(); }
-	//~End IInputProcess 接口
+	//~IInputProcess 接口结束
 };
 
 
-// Subsystem Interface
+// 子系统接口
 //
 void ULoadingScreenManager::Initialize(FSubsystemCollectionBase& Collection)
 {
+	Super::Initialize(Collection);
+
 	FCoreUObjectDelegates::PreLoadMapWithContext.AddUObject(this, &ThisClass::HandlePreLoadMap);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &ThisClass::HandlePostLoadMap);
 
@@ -101,15 +105,22 @@ void ULoadingScreenManager::Initialize(FSubsystemCollectionBase& Collection)
 
 void ULoadingScreenManager::Deinitialize()
 {
-	StopBlockingInput();
-
-	RemoveWidgetFromViewport();
-
-	FCoreUObjectDelegates::PreLoadMap.RemoveAll(this);
+	// 先停止更新并解除回调，防止清理过程中再次启动加载画面。
+	SetTickableTickType(ETickableTickType::Never);
+	FCoreUObjectDelegates::PreLoadMapWithContext.RemoveAll(this);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.RemoveAll(this);
 
-	// 停止Tick
-	SetTickableTickType(ETickableTickType::Never);
+	StopBlockingInput();
+	RemoveWidgetFromViewport();
+	ChangePerformanceSettings(false);
+	FThreadHeartBeat::Get().MonitorCheckpointEnd(GetFName());
+
+	bCurrentlyShowingLoadingScreen = false;
+	bCurrentlyInLoadMap = false;
+	ExternalLoadingProcessors.Reset();
+	LoadingScreenVisibilityChanged.Clear();
+
+	Super::Deinitialize();
 }
 
 bool ULoadingScreenManager::ShouldCreateSubsystem(UObject* Outer) const
@@ -120,7 +131,7 @@ bool ULoadingScreenManager::ShouldCreateSubsystem(UObject* Outer) const
 	return !bIsServerWorld;
 }
 
-// Tick Interface
+// 逐帧更新接口
 //
 void ULoadingScreenManager::Tick(float DeltaTime)
 {
@@ -156,7 +167,7 @@ UWorld* ULoadingScreenManager::GetTickableGameObjectWorld() const
 	return GetGameInstance()->GetWorld();
 }
 
-// public
+// 外部加载请求
 //
 void ULoadingScreenManager::RegisterLoadingProcessor(const TScriptInterface<ILoadingScreenCheckInterface>& Interface)
 {
@@ -168,7 +179,7 @@ void ULoadingScreenManager::UnregisterLoadingProcessor(const TScriptInterface<IL
 	ExternalLoadingProcessors.Remove(Interface.GetObject());
 }
 
-// protected
+// 加载流程与界面控制
 //
 void ULoadingScreenManager::HandlePreLoadMap(const FWorldContext& WorldContext, const FString& MapName)
 {
@@ -425,7 +436,7 @@ bool ULoadingScreenManager::ShouldShowLoadingScreen()
 		if ((HoldLoadingScreenAdditionalSecs > 0.0) && (TimeSinceScreenDismissed < HoldLoadingScreenAdditionalSecs))
 		{
 			// 确保我们此时渲染世界，这样贴图才能真正流入
-			// @TODO：如果bNeedToShowLoadingScreen在这个窗口内恢复为true，我们不会再关闭它......
+			// 待完善：如果额外等待期间再次需要加载画面，目前不会重新关闭世界渲染。
 			UGameViewportClient* GameViewportClient = GetGameInstance()->GetGameViewportClient();
 			GameViewportClient->bDisableWorldRendering = false;
 
@@ -566,32 +577,25 @@ void ULoadingScreenManager::HideLoadingScreen()
 void ULoadingScreenManager::RemoveWidgetFromViewport()
 {
 	const UGameInstance* LocalGameInstance = GetGameInstance();
-	UGameViewportClient* GameViewportClient = LocalGameInstance->GetGameViewportClient();
+	UGameViewportClient* GameViewportClient = LocalGameInstance ? LocalGameInstance->GetGameViewportClient() : nullptr;
 
-	if (!GameViewportClient)
+	// 清理已创建的控件，不依赖当前分屏模式；退出时视口也可能已经失效。
+	if (GameViewportClient != nullptr)
 	{
-		UE_LOGFMT(LogLoadingScreen, Warning, "GameViewportClient Is Not Valid");
-	}
-
-	if (GameViewportClient && GameViewportClient->bEnablePlayersSplitRT)
-	{
-		for (auto& Pair : PlayersLoadingScreenWidgets)
+		for (const TPair<TWeakObjectPtr<ULocalPlayer>, TSharedPtr<SWidget>>& Pair : PlayersLoadingScreenWidgets)
 		{
 			if (Pair.Key.IsValid() && Pair.Value.IsValid())
 			{
 				GameViewportClient->RemoveViewportWidgetForPlayer(Pair.Key.Get(), Pair.Value.ToSharedRef());
 			}
 		}
-		PlayersLoadingScreenWidgets.Empty();
-	}
-	else
-	{
 		if (LoadingScreenWidget.IsValid())
 		{
 			GameViewportClient->RemoveViewportWidgetContent(LoadingScreenWidget.ToSharedRef());
 		}
-		LoadingScreenWidget.Reset();
 	}
+	PlayersLoadingScreenWidgets.Reset();
+	LoadingScreenWidget.Reset();
 }
 
 void ULoadingScreenManager::StartBlockingInput()
@@ -607,27 +611,39 @@ void ULoadingScreenManager::StopBlockingInput()
 {
 	if (InputPreProcessor.IsValid())
 	{
-		FSlateApplication::Get().UnregisterInputPreProcessor(InputPreProcessor);
+		if (FSlateApplication::IsInitialized())
+		{
+			FSlateApplication::Get().UnregisterInputPreProcessor(InputPreProcessor);
+		}
 		InputPreProcessor.Reset();
 	}
 }
 
 void ULoadingScreenManager::ChangePerformanceSettings(bool bEnableLoadingScreen)
 {
-	UGameInstance* LocalGameInstance = GetGameInstance();
-	UGameViewportClient* GameViewportClient = LocalGameInstance->GetGameViewportClient();
+	// 只撤销本实例实际启用的设置，避免重复退出或从未显示过界面时多次恢复心跳。
+	if (bLoadingPerformanceSettingsApplied == bEnableLoadingScreen)
+	{
+		return;
+	}
+	bLoadingPerformanceSettingsApplied = bEnableLoadingScreen;
+
+	const UGameInstance* LocalGameInstance = GetGameInstance();
+	UGameViewportClient* GameViewportClient = LocalGameInstance ? LocalGameInstance->GetGameViewportClient() : nullptr;
 
 	FShaderPipelineCache::SetBatchMode(bEnableLoadingScreen ? FShaderPipelineCache::BatchMode::Fast : FShaderPipelineCache::BatchMode::Background);
 
-	// 加载时停止绘制世界
-	GameViewportClient->bDisableWorldRendering = bEnableLoadingScreen;
-
-	// 如果加载界面打开，确保优先播放关卡中的流媒体
-	if (UWorld* ViewportWorld = GameViewportClient->GetWorld())
+	// 视口失效时仍须恢复下方的全局性能与心跳状态。
+	if (GameViewportClient)
 	{
-		if (AWorldSettings* WorldSettings = ViewportWorld->GetWorldSettings(false, false))
+		// 加载时停止绘制世界，并提高关卡流送的优先级。
+		GameViewportClient->bDisableWorldRendering = bEnableLoadingScreen;
+		if (UWorld* ViewportWorld = GameViewportClient->GetWorld())
 		{
-			WorldSettings->bHighPriorityLoadingLocal = bEnableLoadingScreen;
+			if (AWorldSettings* WorldSettings = ViewportWorld->GetWorldSettings(false, false))
+			{
+				WorldSettings->bHighPriorityLoadingLocal = bEnableLoadingScreen;
+			}
 		}
 	}
 

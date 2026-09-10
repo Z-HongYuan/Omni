@@ -17,11 +17,11 @@ class ULoadingScreenTask : public UObject, public ILoadingScreenCheckInterface
 	GENERATED_BODY()
 
 public:
-	ULoadingScreenTask() { ; }
+	ULoadingScreenTask() = default;
 
 	/*
 	 * 请求加载界面显示
-	 * 使用 Unregister 取消显示
+	 * 调用方需持有返回任务的强引用，并使用 Unregister 取消请求。
 	 */
 	UFUNCTION(BlueprintCallable, Category=LoadingScreen, meta=(WorldContext = "WorldContextObject"))
 	static UE_API ULoadingScreenTask* CreateLoadingScreenTask(UObject* WorldContextObject, const FString& ShowLoadingScreenReason);
@@ -34,9 +34,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category=LoadingScreen)
 	UE_API void SetShowLoadingScreenReason(const FString& InReason);
 
-	// Begin ILoadingScreenCheckInterface
+	// ILoadingScreenCheckInterface 接口
 	UE_API virtual bool ShouldShowLoadingScreen(FString& OutReason) const override;
-	// End ILoadingScreenCheckInterface
+	// ILoadingScreenCheckInterface 接口结束
 
 private:
 	FString Reason = FString();

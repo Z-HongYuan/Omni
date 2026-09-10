@@ -27,7 +27,7 @@ public:
 	UE_API virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	UE_API virtual void Deinitialize() override;
 	UE_API virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
-	//~End USubsystem interface
+	//~USubsystem 接口结束
 
 	//~FTickableObjectBase 接口
 	UE_API virtual void Tick(float DeltaTime) override;
@@ -35,9 +35,9 @@ public:
 	UE_API virtual bool IsTickable() const override;
 	UE_API virtual TStatId GetStatId() const override;
 	UE_API virtual UWorld* GetTickableGameObjectWorld() const override;
-	//~End FTickableObjectBase interface
+	//~FTickableObjectBase 接口结束
 
-	// 获取显示加载屏幕的原因(Debug)
+	// 获取显示或隐藏加载屏幕的原因，用于调试
 	UFUNCTION(BlueprintCallable, Category="LoadingScreen")
 	FString GetDebugReasonForShowingOrHidingLoadingScreen() const { return DebugReasonForShowingOrHidingLoadingScreen; }
 
@@ -83,7 +83,7 @@ protected:
 	/** 恢复游戏输入（如果被阻止） */
 	void StopBlockingInput();
 
-	/** 改变性能设置,例如画面设置之类 */
+	/** 成对启用或恢复加载期间的性能与心跳设置。 */
 	void ChangePerformanceSettings(bool bEnableLoadingScreen);
 
 private:
@@ -117,6 +117,9 @@ private:
 
 	/** 当加载屏幕当前正在显示时为 true */
 	bool bCurrentlyShowingLoadingScreen = false;
+
+	/** 是否已启用加载性能设置，用于保证正常隐藏和退出清理只恢复一次。 */
+	bool bLoadingPerformanceSettingsApplied = false;
 };
 
 #undef UE_API
