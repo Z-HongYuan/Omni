@@ -30,9 +30,13 @@ void USubtitleDisplay::SynchronizeProperties()
 
 	RebuildStyle();
 
-	if (IsDesignTime() || bPreviewMode)
+	if (SubtitleWidget.IsValid())
 	{
-		SubtitleWidget->SetCurrentSubtitleText(PreviewText);
+		SubtitleWidget->SetWrapTextAt(WrapTextAt);
+		if (IsDesignTime() || bPreviewMode)
+		{
+			SubtitleWidget->SetCurrentSubtitleText(PreviewText);
+		}
 	}
 }
 

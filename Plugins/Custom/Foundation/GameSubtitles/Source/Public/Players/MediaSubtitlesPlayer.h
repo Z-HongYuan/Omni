@@ -15,9 +15,8 @@ class UOverlays;
 struct FFrame;
 
 /**
- * 用于媒体字幕的游戏专用播放器。它需要与媒体播放器（Media Player）一同存在，
- * 并且其 Play() / Pause() / Stop() 方法要与媒体播放器的
- * 对应方法在同一时间被调用。
+ * 根据绑定的媒体播放器时间读取字幕。调用方在媒体开始和停止时同步调用 Play() / Stop()。
+ * 暂停和跳转随媒体时间同步，无需独立的 Pause() 接口；字幕播放器自身需由调用方持有。
  */
 UCLASS(MinimalAPI, BlueprintType)
 class UMediaSubtitlesPlayer
@@ -46,7 +45,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game Subtitles|Subtitles Player")
 	UE_API void SetSubtitles(UOverlays* Subtitles);
 
-	/** 将字幕播放绑定到媒体播放器的 Tick 上。 */
+	/** 指定字幕读取时间所依据的媒体播放器；该调用不自动开始播放字幕。 */
 	UFUNCTION(BlueprintCallable, Category="Game Subtitles|Subtitles Player")
 	UE_API void BindToMediaPlayer(UMediaPlayer* InMediaPlayer);
 

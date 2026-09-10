@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsManager.h"
+#include "Interfaces/IPluginManager.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
 
@@ -14,7 +15,12 @@ public:
 
 void FGameSubtitlesModule::StartupModule()
 {
-	UGameplayTagsManager::Get().AddTagIniSearchPath(FPaths::ProjectPluginsDir() / TEXT("GameSubtitles/Config/Tags"));
+	// 按实际安装位置查找配置，支持插件放在自定义子目录或引擎插件目录。
+	if (const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("GameSubtitles"));
+		ensureMsgf(Plugin.IsValid(), TEXT("未找到 GameSubtitles 插件，无法加载字幕标签配置。")))
+	{
+		UGameplayTagsManager::Get().AddTagIniSearchPath(FPaths::Combine(Plugin->GetBaseDir(), TEXT("Config/Tags")));
+	}
 }
 
 void FGameSubtitlesModule::ShutdownModule()
