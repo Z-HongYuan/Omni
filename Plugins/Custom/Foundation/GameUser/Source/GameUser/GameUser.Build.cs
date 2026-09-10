@@ -8,6 +8,7 @@ public class GameUser : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
+		// 公共头文件使用对象、引擎与输入类型，并公开 OSS v1 接口。
 		PublicDependencyModuleNames.Add("OnlineSubsystem");
 
 		PublicDependencyModuleNames.AddRange(
