@@ -1,0 +1,18 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0",
+  "FriendlyName": "示例内容",
+  "Description": "展示自定义插件的接入方法、必要配置和使用流程的示例内容插件",
+  "Category": "ZHY|Content",
+  "CreatedBy": "张鸿源",
+  "CreatedByURL": "OwnerToZhy@Gmail.com",
+  "DocsURL": "",
+  "MarketplaceURL": "",
+  "SupportURL": "",
+  "EnabledByDefault": false,
+  "CanContainContent": true,
+  "IsBetaVersion": false,
+  "IsExperimentalVersion": false,
+  "Installed": false
+}
