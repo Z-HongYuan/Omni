@@ -2,19 +2,33 @@
 
 using UnrealBuildTool;
 
-public class Omni : ModuleRules
+public class OmniGame : ModuleRules
 {
-	public Omni(ReadOnlyTargetRules Target) : base(Target)
+	public OmniGame(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
+		// Modules whose headers are exposed through Public/
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", // 基础模块引用
+			"Core",
+			"CoreUObject",
+			"Engine"
 		});
 
+		// Modules only used by implementation files in Private/
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
+			"InputCore",
+			"EnhancedInput"
 		});
+
+		// Uncomment if you are using Slate UI
+		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+
+		// Uncomment if you are using online features
+		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
+
+		// To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
 	}
 }
