@@ -2,10 +2,12 @@
 
 #pragma once
 
+#include "UObject/GCObject.h"
 #include "Widgets/SCompoundWidget.h"
 
 /*
- * 提供最基础的预加载界面,黑屏
+ * 提供可扩展的启动界面，目前显示纯黑背景。
+ * 保留 FGCObject，用于后续持有纹理等 UObject 资源。
  */
 class SStartupPreLoadingScreenWidget : public SCompoundWidget, public FGCObject
 {
@@ -18,8 +20,8 @@ public:
 
 	void Construct(const FArguments& InArgs);
 
-	//~ Begin FGCObject interface
+	//~FGCObject 接口
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	virtual FString GetReferencerName() const override;
-	//~ End FGCObject interface
+	//~FGCObject 接口结束
 };

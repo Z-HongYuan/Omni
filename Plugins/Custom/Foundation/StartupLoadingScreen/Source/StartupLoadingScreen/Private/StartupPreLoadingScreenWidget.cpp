@@ -1,11 +1,12 @@
 ﻿// Copyright © 2026 张鸿源. All Rights Reserved.
 
 #include "StartupPreLoadingScreenWidget.h"
+#include "Styling/CoreStyle.h"
 #include "Widgets/Layout/SBorder.h"
 
 void SStartupPreLoadingScreenWidget::Construct(const FArguments& InArgs)
 {
-	// 构建一个黑屏边框,可以通过这个做其他的事情,比如构建一个小型Logo
+	// 提供纯黑背景，后续可在此扩展 Logo、图片或其他 Slate 控件。
 	ChildSlot
 	[
 		SNew(SBorder)
@@ -17,7 +18,7 @@ void SStartupPreLoadingScreenWidget::Construct(const FArguments& InArgs)
 
 void SStartupPreLoadingScreenWidget::AddReferencedObjects(FReferenceCollector& Collector)
 {
-	//WidgetAssets.AddReferencedObjects(Collector);
+	// 当前没有持有 UObject；后续添加纹理等资源时，在此通过 Collector 登记引用，防止被垃圾回收。
 }
 
 FString SStartupPreLoadingScreenWidget::GetReferencerName() const
