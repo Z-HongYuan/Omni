@@ -23,7 +23,8 @@ struct FFrame;
  *
  * 负责把口袋小世界里指定的 Actor 用 SceneCaptureComponent2D 拍成 RenderTarget，供 UMG 直接采样显示。
  * 本类是抽象类，实际使用时应继承它，在子类里配置相机、遮罩材质并决定要拍摄哪些 Actor。
- * 实例由 UPocketCaptureSubsystem 创建并持有（UCLASS 的 Within=PocketCaptureSubsystem）。
+ * 实例由 UPocketCaptureSubsystem 创建并弱引用跟踪，调用方需用 UPROPERTY 等强引用保持存活。
+ * Within 仅约束 Outer 类型；不再使用时调用 DestroyThumbnailRenderer 注销拍摄组件。
  */
 UCLASS(MinimalAPI, Abstract, Within=PocketCaptureSubsystem, BlueprintType, Blueprintable)
 class UPocketCapture : public UObject
@@ -31,7 +32,7 @@ class UPocketCapture : public UObject
 	GENERATED_BODY()
 
 public:
-	UE_API UPocketCapture() { ; };
+	UE_API UPocketCapture() = default;
 
 	// 初始化：创建并注册 SceneCaptureComponent2D。由子系统创建时自动调用，一般无需手动调用。
 	UE_API virtual void Initialize(UWorld* InWorld, int32 RendererIndex);
@@ -41,7 +42,7 @@ public:
 	// 对象销毁时兜底注销 SceneCapture 组件。
 	UE_API virtual void BeginDestroy() override;
 
-	// 设置渲染目标分辨率。已存在的 RenderTarget 会同步 Resize，未创建的会在创建时采用该尺寸。
+	// 设置渲染目标分辨率；非正数或超过当前渲染接口上限时保留原尺寸。有效尺寸会同步应用到已有 RenderTarget。
 	UFUNCTION(BlueprintCallable, Category=Pocket)
 	UE_API void SetRenderTargetSize(int32 Width, int32 Height);
 
@@ -94,7 +95,9 @@ protected:
 	AActor* GetCaptureTarget() const { return CaptureTargetPtr.Get(); }
 
 	// 拍摄目标发生变化时的回调钩子。子类可重写以重建预览内容。
-	virtual void OnCaptureTargetChanged(AActor* InCaptureTarget) { ; }
+	virtual void OnCaptureTargetChanged(AActor* InCaptureTarget)
+	{
+	}
 
 	// 执行一次场景拍摄：只渲染 InCaptureActors，可临时用 OverrideMaterial 覆盖它们的材质（拍完会还原）。
 	UE_API bool CaptureScene(UTextureRenderTarget2D* InRenderTarget, const TArray<AActor*>& InCaptureActors, ESceneCaptureSource CaptureSource, UMaterialInterface* OverrideMaterial);

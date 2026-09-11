@@ -14,5 +14,8 @@ public class PocketWorlds : ModuleRules
 				"Engine",
 			}
 		);
+
+		// 查询当前渲染接口支持的纹理尺寸上限。
+		PrivateDependencyModuleNames.Add("RHI");
 	}
 }

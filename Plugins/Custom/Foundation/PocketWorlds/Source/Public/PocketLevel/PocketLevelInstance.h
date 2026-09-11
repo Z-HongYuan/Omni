@@ -30,7 +30,7 @@ class UPocketLevelInstance : public UObject
 	GENERATED_BODY()
 
 public:
-	UE_API UPocketLevelInstance() { ; };
+	UE_API UPocketLevelInstance() = default;
 
 	// 销毁时卸载关卡、解绑流送回调，且不做阻塞式卸载。
 	UE_API virtual void BeginDestroy() override;
@@ -40,7 +40,7 @@ public:
 	// 让口袋世界隐藏并卸载，之后仍可再次 StreamIn。
 	UE_API void StreamOut();
 
-	// 注册“口袋世界已就绪（关卡已显示）”回调。若当前已就绪会立即同步执行一次，返回句柄用于反注册。
+	// 注册“口袋世界已就绪（关卡已显示）”回调。若当前已就绪会立即同步执行一次，返回句柄用于反注册；未初始化时返回无效句柄。
 	UE_API FDelegateHandle AddReadyCallback(FPocketLevelInstanceEvent::FDelegate Callback);
 	// 反注册之前添加的就绪回调。
 	UE_API void RemoveReadyCallback(FDelegateHandle CallbackToRemove);

@@ -8,6 +8,10 @@
 #include "Components/SceneCaptureComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Engine/TextureRenderTarget2D.h"
+#include "Materials/MaterialInterface.h"
+#include "Misc/ScopeExit.h"
+#include "RHIGlobals.h"
+#include "UObject/StrongObjectPtr.h"
 #include "Capture/PocketCaptureSubsystem.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(PocketCapture)
@@ -26,15 +30,11 @@ void UPocketCapture::Initialize(UWorld* InWorld, int32 InRendererIndex)
 	CaptureComponent->bCaptureEveryFrame = false;
 	CaptureComponent->bCaptureOnMovement = false;
 	CaptureComponent->bAlwaysPersistRenderingState = true;
-
-	//UE_LOG(LogPocketLevels, Log, TEXT("ThumbnailRenderer: Initialize:%s"), *GetName());
 }
 
 void UPocketCapture::Deinitialize()
 {
 	CaptureComponent->UnregisterComponent();
-
-	//UE_LOG(LogPocketLevels, Log, TEXT("ThumbnailRenderer: Deinitialize:%s"), *GetName());
 }
 
 void UPocketCapture::BeginDestroy()
@@ -50,6 +50,12 @@ void UPocketCapture::BeginDestroy()
 
 void UPocketCapture::SetRenderTargetSize(int32 Width, int32 Height)
 {
+	const uint32 MaxDimension = GetMax2DTextureDimension();
+	if (Width <= 0 || Height <= 0 || static_cast<uint32>(Width) > MaxDimension || static_cast<uint32>(Height) > MaxDimension)
+	{
+		return;
+	}
+
 	if (SurfaceWidth != Width || SurfaceHeight != Height)
 	{
 		SurfaceWidth = Width;
@@ -70,8 +76,6 @@ void UPocketCapture::SetRenderTargetSize(int32 Width, int32 Height)
 			EffectsRT->ResizeTarget(SurfaceWidth, SurfaceHeight);
 		}
 	}
-
-	//UE_LOG(LogPocketLevels, Log, TEXT("ThumbnailRenderer: SetRenderTargetSize:%dx%d"), Width, Height);
 }
 
 UTextureRenderTarget2D* UPocketCapture::GetOrCreateDiffuseRenderTarget()
@@ -142,14 +146,19 @@ TArray<UPrimitiveComponent*> UPocketCapture::GatherPrimitivesForCapture(const TA
 
 	for (AActor* CaptureActor : InCaptureActors)
 	{
-		TArray<UPrimitiveComponent*> ChildPrimitiveComponents;
+		if (!IsValid(CaptureActor))
+		{
+			continue;
+		}
+
+		TInlineComponentArray<UPrimitiveComponent*> ChildPrimitiveComponents;
 		CaptureActor->GetComponents(ChildPrimitiveComponents, bIncludeFromChildActors);
 
 		for (UPrimitiveComponent* ChildPrimitiveComponent : ChildPrimitiveComponents)
 		{
-			if (!ChildPrimitiveComponent->bHiddenInGame)
+			if (IsValid(ChildPrimitiveComponent) && !ChildPrimitiveComponent->bHiddenInGame)
 			{
-				PrimitiveComponents.Add(ChildPrimitiveComponent);
+				PrimitiveComponents.AddUnique(ChildPrimitiveComponent);
 			}
 		}
 	}
@@ -159,113 +168,97 @@ TArray<UPrimitiveComponent*> UPocketCapture::GatherPrimitivesForCapture(const TA
 
 bool UPocketCapture::CaptureScene(UTextureRenderTarget2D* InRenderTarget, const TArray<AActor*>& InCaptureActors, ESceneCaptureSource InCaptureSource, UMaterialInterface* OverrideMaterial)
 {
-	if (InRenderTarget == nullptr)
+	AActor* CaptureTarget = CaptureTargetPtr.Get();
+	if (!IsValid(InRenderTarget) || !IsValid(CaptureTarget) || !IsValid(CaptureComponent) || !CaptureComponent->IsRegistered() || InCaptureActors.IsEmpty())
 	{
-		//UE_LOG(LogPocketLevels, Error, TEXT(""));
 		return false;
 	}
 
-	if (AActor* CaptureTarget = CaptureTargetPtr.Get())
+	// 先检查相机并读取视角，失败时不触碰参与拍摄的材质。
+	UCameraComponent* Camera = CaptureTarget->FindComponentByClass<UCameraComponent>();
+	if (!IsValid(Camera))
 	{
-		if (InCaptureActors.Num() > 0)
-		{
-			TArray<UPrimitiveComponent*> PrimitiveComponents = GatherPrimitivesForCapture(InCaptureActors);
-
-			GetThumbnailSystem()->StreamThisFrame(PrimitiveComponents);
-
-			TArray<UMaterialInterface*> OriginalMaterials;
-			if (OverrideMaterial)
-			{
-				for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
-				{
-					const int32 MaterialCount = PrimitiveComponent->GetNumMaterials();
-					for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; MaterialIndex++)
-					{
-						OriginalMaterials.Add(PrimitiveComponent->GetMaterial(MaterialIndex));
-
-						PrimitiveComponent->SetMaterial(MaterialIndex, OverrideMaterial);
-					}
-				}
-			}
-
-			UCameraComponent* Camera = CaptureTarget->FindComponentByClass<UCameraComponent>();
-			if (ensure(Camera))
-			{
-				CaptureComponent->ShowOnlyActors = InCaptureActors;
-
-				FMinimalViewInfo CaptureView;
-				Camera->GetCameraView(0, CaptureView);
-
-				// 需要让纹理流送器把这个新位置纳入计算。
-				// 该请求只生效一帧，所以每次需要绘制时都要重新调用一次，
-				// 以保证贴图常驻内存。
-
-				CaptureComponent->TextureTarget = InRenderTarget;
-				CaptureComponent->PostProcessSettings = Camera->PostProcessSettings;
-				CaptureComponent->SetCameraView(CaptureView);
-
-				CaptureComponent->ShowFlags.SetDepthOfField(false);
-				CaptureComponent->ShowFlags.SetMotionBlur(false);
-				CaptureComponent->ShowFlags.SetScreenPercentage(false);
-				CaptureComponent->ShowFlags.SetScreenSpaceReflections(false);
-				CaptureComponent->ShowFlags.SetDistanceFieldAO(false);
-
-				CaptureComponent->ShowFlags.SetLensFlares(false);
-				CaptureComponent->ShowFlags.SetOnScreenDebug(false);
-				//CaptureComponent->ShowFlags.SetEyeAdaptation(false);
-				CaptureComponent->ShowFlags.SetColorGrading(false);
-				CaptureComponent->ShowFlags.SetCameraImperfections(false);
-				CaptureComponent->ShowFlags.SetVignette(false);
-				CaptureComponent->ShowFlags.SetGrain(false);
-				CaptureComponent->ShowFlags.SetSeparateTranslucency(false);
-				CaptureComponent->ShowFlags.SetScreenPercentage(false);
-				CaptureComponent->ShowFlags.SetScreenSpaceReflections(false);
-				CaptureComponent->ShowFlags.SetTemporalAA(false);
-				// 如果很少向它渲染，可能会触发资源重新分配 —— 暂时关闭
-				CaptureComponent->ShowFlags.SetAmbientOcclusion(false);
-				// 该特性需要 FScene 中的资源，一旦开启，每个临时场景都会重新分配这些资源
-				CaptureComponent->ShowFlags.SetIndirectLightingCache(false);
-				CaptureComponent->ShowFlags.SetLightShafts(false);
-				CaptureComponent->ShowFlags.SetPostProcessMaterial(false);
-				CaptureComponent->ShowFlags.SetHighResScreenshotMask(false);
-				CaptureComponent->ShowFlags.SetHMDDistortion(false);
-				CaptureComponent->ShowFlags.SetStereoRendering(false);
-				CaptureComponent->ShowFlags.SetVolumetricFog(false);
-				CaptureComponent->ShowFlags.SetVolumetricLightmap(false);
-				CaptureComponent->ShowFlags.SetSkyLighting(false);
-
-				CaptureComponent->CaptureSource = InCaptureSource;
-				CaptureComponent->ProfilingEventName = TEXT("Pocket Capture");
-				CaptureComponent->CaptureScene();
-
-				if (OriginalMaterials.Num() > 0)
-				{
-					int32 TotalMaterialIndex = 0;
-					for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
-					{
-						const int32 MaterialCount = PrimitiveComponent->GetNumMaterials();
-						for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; MaterialIndex++)
-						{
-							PrimitiveComponent->SetMaterial(MaterialIndex, OriginalMaterials[TotalMaterialIndex]);
-							TotalMaterialIndex++;
-						}
-					}
-				}
-
-				return true;
-			}
-		}
-		else
-		{
-			//UE_LOG(LogPocketLevels, Warning, TEXT("UPocketCapture: %s CaptureScene Failed: No Capture Actors"), *GetName());
-		}
-	}
-	else
-	{
-		//UE_LOG(LogPocketLevels, Warning, TEXT("UPocketCapture: %s CaptureScene Failed: No Capture Target"), *GetName());
+		return false;
 	}
 
-	return false;
+	FMinimalViewInfo CaptureView;
+	Camera->GetCameraView(0, CaptureView);
+	TArray<UPrimitiveComponent*> PrimitiveComponents = GatherPrimitivesForCapture(InCaptureActors);
+	GetThumbnailSystem()->StreamThisFrame(PrimitiveComponents);
+
+	struct FMaterialRestoreEntry
+	{
+		TWeakObjectPtr<UPrimitiveComponent> Component;
+		int32 MaterialIndex = 0;
+		TStrongObjectPtr<UMaterialInterface> OriginalMaterial;
+	};
+	TArray<FMaterialRestoreEntry> OriginalMaterials;
+
+	// 覆盖材质只在本次拍摄中有效；任何退出路径都恢复原材质。
+	ON_SCOPE_EXIT
+	{
+		for (const FMaterialRestoreEntry& Entry : OriginalMaterials)
+		{
+			if (UPrimitiveComponent* Component = Entry.Component.Get())
+			{
+				Component->SetMaterial(Entry.MaterialIndex, Entry.OriginalMaterial.Get());
+			}
+		}
+	};
+
+	if (OverrideMaterial)
+	{
+		for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+		{
+			const int32 MaterialCount = PrimitiveComponent->GetNumMaterials();
+			for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; MaterialIndex++)
+			{
+				FMaterialRestoreEntry& Entry = OriginalMaterials.AddDefaulted_GetRef();
+				Entry.Component = PrimitiveComponent;
+				Entry.MaterialIndex = MaterialIndex;
+				Entry.OriginalMaterial.Reset(PrimitiveComponent->GetMaterial(MaterialIndex));
+				PrimitiveComponent->SetMaterial(MaterialIndex, OverrideMaterial);
+			}
+		}
+	}
+
+	CaptureComponent->ShowOnlyActors = InCaptureActors;
+	CaptureComponent->TextureTarget = InRenderTarget;
+	CaptureComponent->PostProcessSettings = Camera->PostProcessSettings;
+	CaptureComponent->SetCameraView(CaptureView);
+
+	CaptureComponent->ShowFlags.SetDepthOfField(false);
+	CaptureComponent->ShowFlags.SetMotionBlur(false);
+	CaptureComponent->ShowFlags.SetScreenPercentage(false);
+	CaptureComponent->ShowFlags.SetScreenSpaceReflections(false);
+	CaptureComponent->ShowFlags.SetDistanceFieldAO(false);
+
+	CaptureComponent->ShowFlags.SetLensFlares(false);
+	CaptureComponent->ShowFlags.SetOnScreenDebug(false);
+	//CaptureComponent->ShowFlags.SetEyeAdaptation(false);
+	CaptureComponent->ShowFlags.SetColorGrading(false);
+	CaptureComponent->ShowFlags.SetCameraImperfections(false);
+	CaptureComponent->ShowFlags.SetVignette(false);
+	CaptureComponent->ShowFlags.SetGrain(false);
+	CaptureComponent->ShowFlags.SetSeparateTranslucency(false);
+	CaptureComponent->ShowFlags.SetTemporalAA(false);
+	// 如果很少向它渲染，可能会触发资源重新分配 —— 暂时关闭
+	CaptureComponent->ShowFlags.SetAmbientOcclusion(false);
+	// 该特性需要 FScene 中的资源，一旦开启，每个临时场景都会重新分配这些资源
+	CaptureComponent->ShowFlags.SetIndirectLightingCache(false);
+	CaptureComponent->ShowFlags.SetLightShafts(false);
+	CaptureComponent->ShowFlags.SetPostProcessMaterial(false);
+	CaptureComponent->ShowFlags.SetHighResScreenshotMask(false);
+	CaptureComponent->ShowFlags.SetHMDDistortion(false);
+	CaptureComponent->ShowFlags.SetStereoRendering(false);
+	CaptureComponent->ShowFlags.SetVolumetricFog(false);
+	CaptureComponent->ShowFlags.SetVolumetricLightmap(false);
+	CaptureComponent->ShowFlags.SetSkyLighting(false);
+
+	CaptureComponent->CaptureSource = InCaptureSource;
+	CaptureComponent->ProfilingEventName = TEXT("Pocket Capture");
+	CaptureComponent->CaptureScene();
+	return true;
 }
 
 void UPocketCapture::CaptureDiffuse()
@@ -326,8 +319,6 @@ void UPocketCapture::ReleaseResources()
 	{
 		EffectsRT->ReleaseResource();
 	}
-
-	//OnReleaseResources();
 }
 
 void UPocketCapture::ReclaimResources()
@@ -346,8 +337,6 @@ void UPocketCapture::ReclaimResources()
 	{
 		EffectsRT->UpdateResource();
 	}
-
-	//OnReclaimResources();
 }
 
 int32 UPocketCapture::GetRendererIndex() const

@@ -22,7 +22,7 @@ class UPocketLevelSubsystem : public UWorldSubsystem
 	GENERATED_BODY()
 
 public:
-	// 获取（或首次创建）指定本地玩家在该口袋世界中的流送实例。
+	// 获取（或首次创建）同一世界内本地玩家的流送实例；参数无效或流送请求创建失败时返回 nullptr。
 	UE_API UPocketLevelInstance* GetOrCreatePocketLevelFor(ULocalPlayer* LocalPlayer, UPocketLevel* PocketLevel, FVector DesiredSpawnPoint);
 
 private:

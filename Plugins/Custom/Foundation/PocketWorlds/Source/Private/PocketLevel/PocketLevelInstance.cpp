@@ -13,29 +13,31 @@
 
 bool UPocketLevelInstance::Initialize(ULocalPlayer* InLocalPlayer, UPocketLevel* InPocketLevel, FVector InSpawnPoint)
 {
+	if (!IsValid(InLocalPlayer) || !IsValid(InLocalPlayer->GetWorld()) || !IsValid(InPocketLevel) || InPocketLevel->SubLevel.IsNull())
+	{
+		return false;
+	}
+
+	if (!ensure(StreamingPocketLevel == nullptr))
+	{
+		return false;
+	}
+
 	LocalPlayer = InLocalPlayer;
 	World = LocalPlayer->GetWorld();
 	PocketLevel = InPocketLevel;
 	Bounds = FBoxSphereBounds(FSphere(InSpawnPoint, PocketLevel->BoundsSize.GetAbsMax()));
 
-	if (ensure(StreamingPocketLevel == nullptr))
+	bool bSuccess = false;
+	StreamingPocketLevel = ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(LocalPlayer, PocketLevel->SubLevel, Bounds.Origin, FRotator::ZeroRotator, bSuccess);
+	if (!bSuccess || !IsValid(StreamingPocketLevel))
 	{
-		if (ensure(!PocketLevel->SubLevel.IsNull()))
-		{
-			bool bSuccess = false;
-			StreamingPocketLevel = ULevelStreamingDynamic::LoadLevelInstanceBySoftObjectPtr(LocalPlayer, PocketLevel->SubLevel, Bounds.Origin, FRotator::ZeroRotator, bSuccess);
-
-			if (ensure(bSuccess && StreamingPocketLevel))
-			{
-				StreamingPocketLevel->OnLevelLoaded.AddUniqueDynamic(this, &ThisClass::HandlePocketLevelLoaded);
-				StreamingPocketLevel->OnLevelShown.AddUniqueDynamic(this, &ThisClass::HandlePocketLevelShown);
-			}
-
-			return bSuccess;
-		}
+		return false;
 	}
 
-	return false;
+	StreamingPocketLevel->OnLevelLoaded.AddUniqueDynamic(this, &ThisClass::HandlePocketLevelLoaded);
+	StreamingPocketLevel->OnLevelShown.AddUniqueDynamic(this, &ThisClass::HandlePocketLevelShown);
+	return true;
 }
 
 void UPocketLevelInstance::StreamIn()
@@ -58,6 +60,11 @@ void UPocketLevelInstance::StreamOut()
 
 FDelegateHandle UPocketLevelInstance::AddReadyCallback(FPocketLevelInstanceEvent::FDelegate Callback)
 {
+	if (!IsValid(StreamingPocketLevel))
+	{
+		return FDelegateHandle();
+	}
+
 	if (StreamingPocketLevel->GetLevelStreamingState() == ELevelStreamingState::LoadedVisible)
 	{
 		Callback.ExecuteIfBound(this);

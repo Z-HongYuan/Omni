@@ -30,12 +30,12 @@ class UPocketCaptureSubsystem : public UWorldSubsystem
 	GENERATED_BODY()
 
 public:
-	// Begin USubsystem
+	//~USubsystem 接口
 	UE_API virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	UE_API virtual void Deinitialize() override;
-	// End USubsystem
+	//~USubsystem 接口结束
 
-	// 创建一个指定类型的拍摄器，返回类型由 PocketCaptureClass 决定。不再使用时应调用 DestroyThumbnailRenderer。
+	// 创建一个指定类型的拍摄器，返回类型由 PocketCaptureClass 决定。无效类型返回 nullptr。调用方需持有强引用，不再使用时调用 DestroyThumbnailRenderer。
 	UFUNCTION(BlueprintCallable, Category=Pocket, meta = (DeterminesOutputType = "PocketCaptureClass"))
 	UE_API UPocketCapture* CreateThumbnailRenderer(TSubclassOf<UPocketCapture> PocketCaptureClass);
 
@@ -47,7 +47,7 @@ public:
 	UE_API void StreamThisFrame(TArray<UPrimitiveComponent*>& PrimitiveComponents);
 
 protected:
-	// 每帧回调：解除“上一帧流送过、这一帧不再需要”的组件的强制流送标记。
+	// 每帧回调：为不再需要拍摄的组件恢复接管前的强制流送标记。
 	UE_API bool Tick(float DeltaTime);
 
 	// 下一帧需要强制流送的组件。
@@ -56,8 +56,11 @@ protected:
 	TArray<TWeakObjectPtr<UPrimitiveComponent>> StreamedLastFrameButNotNext;
 
 private:
-	// 所有已创建的拍摄器。已销毁的位置会留下 nullptr 空槽，供新建时复用。
+	// 仅弱引用跟踪拍摄器，不负责保活；已销毁的槽位供后续创建复用。
 	TArray<TWeakObjectPtr<UPocketCapture>> ThumbnailRenderers;
+
+	// 首次接管组件时的标记原值，停止拍摄或反初始化时恢复。
+	TMap<TWeakObjectPtr<UPrimitiveComponent>, bool> OriginalMipStreamingStates;
 
 	// 核心 Ticker 句柄，用于 Deinitialize 时反注册。
 	FTSTicker::FDelegateHandle TickHandle;

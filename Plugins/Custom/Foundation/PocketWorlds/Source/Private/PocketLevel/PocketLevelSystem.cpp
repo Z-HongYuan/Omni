@@ -2,6 +2,7 @@
 
 #include "PocketLevel/PocketLevelSystem.h"
 
+#include "Engine/LocalPlayer.h"
 #include "PocketLevel/PocketLevel.h"
 #include "PocketLevel/PocketLevelInstance.h"
 
@@ -9,7 +10,7 @@
 
 UPocketLevelInstance* UPocketLevelSubsystem::GetOrCreatePocketLevelFor(ULocalPlayer* LocalPlayer, UPocketLevel* PocketLevel, FVector DesiredSpawnPoint)
 {
-	if (PocketLevel == nullptr)
+	if (!IsValid(LocalPlayer) || !IsValid(PocketLevel) || !IsValid(GetWorld()) || LocalPlayer->GetWorld() != GetWorld())
 	{
 		return nullptr;
 	}
@@ -28,7 +29,11 @@ UPocketLevelInstance* UPocketLevelSubsystem::GetOrCreatePocketLevelFor(ULocalPla
 	const FVector SpawnPoint = DesiredSpawnPoint + FVector(0, 0, VerticalBoundsOffset);
 
 	UPocketLevelInstance* NewInstance = NewObject<UPocketLevelInstance>(this);
-	NewInstance->Initialize(LocalPlayer, PocketLevel, SpawnPoint);
+	// 初始化失败时不返回或缓存实例，后续请求仍可重新尝试。
+	if (!NewInstance->Initialize(LocalPlayer, PocketLevel, SpawnPoint))
+	{
+		return nullptr;
+	}
 
 	PocketInstances.Add(NewInstance);
 
