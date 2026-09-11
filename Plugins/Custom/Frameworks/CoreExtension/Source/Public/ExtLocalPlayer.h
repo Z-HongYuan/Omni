@@ -3,9 +3,9 @@
 #pragma once
 
 #include "Engine/LocalPlayer.h"
-#include "ExtensionLocalPlayer.generated.h"
+#include "ExtLocalPlayer.generated.h"
 
-#define UE_API GAMECOREEXTENSION_API
+#define UE_API COREEXTENSION_API
 
 class UGameUIRootWidget;
 
@@ -13,20 +13,20 @@ class UGameUIRootWidget;
  * 自定义的本地玩家,承载游戏流程的转发
  */
 UCLASS(MinimalAPI, Transient, Config = Game)
-class UExtensionLocalPlayer : public ULocalPlayer
+class UExtLocalPlayer : public ULocalPlayer
 {
 	GENERATED_BODY()
 
 public:
-	UE_API UExtensionLocalPlayer(const FObjectInitializer& ObjectInitializer);
+	UE_API UExtLocalPlayer(const FObjectInitializer& ObjectInitializer);
 
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FPlayerControllerSetDelegate, UExtensionLocalPlayer* LocalPlayer, APlayerController* PlayerController);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FPlayerControllerSetDelegate, UExtLocalPlayer* LocalPlayer, APlayerController* PlayerController);
 	FPlayerControllerSetDelegate OnPlayerControllerSet;
 
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FPlayerStateSetDelegate, UExtensionLocalPlayer* LocalPlayer, APlayerState* PlayerState);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FPlayerStateSetDelegate, UExtLocalPlayer* LocalPlayer, APlayerState* PlayerState);
 	FPlayerStateSetDelegate OnPlayerStateSet;
 
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FPlayerPawnSetDelegate, UExtensionLocalPlayer* LocalPlayer, APawn* Pawn);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FPlayerPawnSetDelegate, UExtLocalPlayer* LocalPlayer, APawn* Pawn);
 	FPlayerPawnSetDelegate OnPlayerPawnSet;
 
 	UE_API FDelegateHandle CallOrRegister_OnPlayerControllerSet(const FPlayerControllerSetDelegate::FDelegate& Delegate);

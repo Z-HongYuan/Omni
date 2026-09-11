@@ -3,9 +3,9 @@
 #pragma once
 
 #include "Engine/GameInstance.h"
-#include "ExtensionGameInstance.generated.h"
+#include "ExtGameInstance.generated.h"
 
-#define UE_API GAMECOREEXTENSION_API
+#define UE_API COREEXTENSION_API
 
 struct FOnlineResultInformation;
 class UGameUserSession_SearchResult;
@@ -19,12 +19,12 @@ struct FGameplayTag;
  * 自定义的游戏实例,充当胶水模块
  */
 UCLASS(MinimalAPI, Abstract, Config = Game)
-class UExtensionGameInstance : public UGameInstance
+class UExtGameInstance : public UGameInstance
 {
 	GENERATED_BODY()
 
 public:
-	UE_API UExtensionGameInstance(const FObjectInitializer& ObjectInitializer);
+	UE_API UExtGameInstance(const FObjectInitializer& ObjectInitializer);
 
 	UE_API virtual void Init() override;
 	UE_API virtual void ReturnToMainMenu() override;

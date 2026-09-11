@@ -1,7 +1,7 @@
 ﻿// Copyright © 2026 张鸿源. All Rights Reserved.
 
 
-#include "ExtensionGameInstance.h"
+#include "ExtGameInstance.h"
 #include "CommonUISettings.h"
 #include "GameplayTagContainer.h"
 #include "ICommonUIModule.h"
@@ -10,19 +10,19 @@
 #include "Logging/StructuredLog.h"
 #include "MessagingSystem/DialogWidgetDescriptorBase.h"
 #include "MessagingSystem/MessagingManager.h"
-#include "Misc/GameCoreExtensionTags.h"
-#include "Misc/LogGameCoreExtension.h"
+#include "Misc/CoreExtensionTags.h"
+#include "Misc/LogCoreExtension.h"
 #include "System/GameUserSessionSubsystem.h"
 #include "System/GameUserSubsystem.h"
 
-#include UE_INLINE_GENERATED_CPP_BY_NAME(ExtensionGameInstance)
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ExtGameInstance)
 
-UExtensionGameInstance::UExtensionGameInstance(const FObjectInitializer& ObjectInitializer)
+UExtGameInstance::UExtGameInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 }
 
-void UExtensionGameInstance::Init()
+void UExtGameInstance::Init()
 {
 	Super::Init();
 
@@ -48,44 +48,44 @@ void UExtensionGameInstance::Init()
 	}
 }
 
-void UExtensionGameInstance::ReturnToMainMenu()
+void UExtGameInstance::ReturnToMainMenu()
 {
 	ResetUserAndSessionState();
 
 	Super::ReturnToMainMenu();
 }
 
-void UExtensionGameInstance::HandleSystemMessage(FGameplayTag MessageType, FText Title, FText Message)
+void UExtGameInstance::HandleSystemMessage(FGameplayTag MessageType, FText Title, FText Message)
 {
 	ULocalPlayer* FirstPlayer = GetFirstGamePlayer();
 
 	// 将严重错误转发到第一个玩家的错误对话框
-	if (FirstPlayer && MessageType.MatchesTag(GameCoreExtensionTags::TAG_SystemMessage_Error))
+	if (FirstPlayer && MessageType.MatchesTag(CoreExtensionTags::TAG_SystemMessage_Error))
 	{
 		if (UMessagingManager* Messaging = FirstPlayer->GetSubsystem<UMessagingManager>())
 		{
-			Messaging->ShowDialogInternal(GameCoreExtensionTags::TAG_SystemMessage_Error, UDialogWidgetDescriptorBase::CreateConfirmationOk(Title, Message), {});
+			Messaging->ShowDialogInternal(CoreExtensionTags::TAG_SystemMessage_Error, UDialogWidgetDescriptorBase::CreateConfirmationOk(Title, Message), {});
 		}
 	}
 }
 
-void UExtensionGameInstance::HandlePrivilegeChanged(const UGameUserInfo* UserInfo, EGameUserPrivilege Privilege, EGameUserAvailability OldAvailability, EGameUserAvailability NewAvailability)
+void UExtGameInstance::HandlePrivilegeChanged(const UGameUserInfo* UserInfo, EGameUserPrivilege Privilege, EGameUserAvailability OldAvailability, EGameUserAvailability NewAvailability)
 {
 	// 默认情况下，如果第一个玩家的游戏权限丢失，则显示错误并断开连接
 	if (Privilege == EGameUserPrivilege::CanPlay && OldAvailability == EGameUserAvailability::NowAvailable && NewAvailability != EGameUserAvailability::NowAvailable)
 	{
-		UE_LOG(LogGameCoreExtension, Error, TEXT("HandlePrivilegeChanged: Player %d no longer has permission to play the game!"), UserInfo->LocalPlayerIndex);
+		UE_LOG(LogCoreExtension, Error, TEXT("HandlePrivilegeChanged: Player %d no longer has permission to play the game!"), UserInfo->LocalPlayerIndex);
 		// TODO: 游戏玩法可以在子类中做一些特定的事情
 		// ReturnToMainMenu();
 	}
 }
 
-void UExtensionGameInstance::HandlerUserInitialized(const UGameUserInfo* UserInfo, bool bSuccess, FText Error, EGameUserPrivilege RequestedPrivilege, EGameUserOnlineContext OnlineContext)
+void UExtGameInstance::HandlerUserInitialized(const UGameUserInfo* UserInfo, bool bSuccess, FText Error, EGameUserPrivilege RequestedPrivilege, EGameUserOnlineContext OnlineContext)
 {
 	// 子类可以覆盖这一点
 }
 
-void UExtensionGameInstance::ResetUserAndSessionState()
+void UExtGameInstance::ResetUserAndSessionState()
 {
 	UGameUserSubsystem* UserSubsystem = GetSubsystem<UGameUserSubsystem>();
 	if (ensure(UserSubsystem))
@@ -100,7 +100,7 @@ void UExtensionGameInstance::ResetUserAndSessionState()
 	}
 }
 
-void UExtensionGameInstance::OnUserRequestedSession(const FPlatformUserId& PlatformUserId, UGameUserSession_SearchResult* InRequestedSession, const FOnlineResultInformation& RequestedSessionResult)
+void UExtGameInstance::OnUserRequestedSession(const FPlatformUserId& PlatformUserId, UGameUserSession_SearchResult* InRequestedSession, const FOnlineResultInformation& RequestedSessionResult)
 {
 	if (InRequestedSession)
 	{
@@ -108,20 +108,20 @@ void UExtensionGameInstance::OnUserRequestedSession(const FPlatformUserId& Platf
 	}
 	else
 	{
-		HandleSystemMessage(GameCoreExtensionTags::TAG_SystemMessage_Error, NSLOCTEXT("UExtensionGameInstance", "Warning_RequestedSessionFailed", "Requested Session Failed"), RequestedSessionResult.ErrorText);
+		HandleSystemMessage(CoreExtensionTags::TAG_SystemMessage_Error, NSLOCTEXT("UExtensionGameInstance", "Warning_RequestedSessionFailed", "Requested Session Failed"), RequestedSessionResult.ErrorText);
 	}
 }
 
-void UExtensionGameInstance::OnDestroySessionRequested(const FPlatformUserId& PlatformUserId, const FName& SessionName)
+void UExtGameInstance::OnDestroySessionRequested(const FPlatformUserId& PlatformUserId, const FName& SessionName)
 {
 	// 当请求会话销毁时，请确保你的项目处于正确状态，可以销毁会话并转离
 
-	UE_LOG(LogGameCoreExtension, Verbose, TEXT("[%hs] PlatformUserId:%d, SessionName: %s)"), __FUNCTION__, PlatformUserId.GetInternalId(), *SessionName.ToString());
+	UE_LOG(LogCoreExtension, Verbose, TEXT("[%hs] PlatformUserId:%d, SessionName: %s)"), __FUNCTION__, PlatformUserId.GetInternalId(), *SessionName.ToString());
 
 	ReturnToMainMenu();
 }
 
-void UExtensionGameInstance::SetRequestedSession(UGameUserSession_SearchResult* InRequestedSession)
+void UExtGameInstance::SetRequestedSession(UGameUserSession_SearchResult* InRequestedSession)
 {
 	RequestedSession = InRequestedSession;
 	if (RequestedSession)
@@ -137,13 +137,13 @@ void UExtensionGameInstance::SetRequestedSession(UGameUserSession_SearchResult* 
 	}
 }
 
-bool UExtensionGameInstance::CanJoinRequestedSession() const
+bool UExtGameInstance::CanJoinRequestedSession() const
 {
 	// 默认行为总是允许加入请求的会话
 	return true;
 }
 
-void UExtensionGameInstance::JoinRequestedSession()
+void UExtGameInstance::JoinRequestedSession()
 {
 	if (RequestedSession)
 	{
@@ -161,7 +161,7 @@ void UExtensionGameInstance::JoinRequestedSession()
 	}
 }
 
-void UExtensionGameInstance::ResetGameAndJoinRequestedSession()
+void UExtGameInstance::ResetGameAndJoinRequestedSession()
 {
 	// 默认行为是返回主菜单。当游戏处于准备状态时，必须调用 JoinRequestedSession。
 	ReturnToMainMenu();

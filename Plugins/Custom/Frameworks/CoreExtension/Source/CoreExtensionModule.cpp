@@ -4,4 +4,4 @@
 
 #include "Modules/ModuleManager.h"
 
-IMPLEMENT_MODULE(FDefaultModuleImpl, GameCoreExtension)
+IMPLEMENT_MODULE(FDefaultModuleImpl, CoreExtension)

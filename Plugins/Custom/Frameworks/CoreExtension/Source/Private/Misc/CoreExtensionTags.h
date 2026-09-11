@@ -4,9 +4,9 @@
 
 #include "NativeGameplayTags.h"
 
-#define UE_API GAMECOREEXTENSION_API
+#define UE_API COREEXTENSION_API
 
-namespace GameCoreExtensionTags
+namespace CoreExtensionTags
 {
 	UE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_SystemMessage_Error);
 }

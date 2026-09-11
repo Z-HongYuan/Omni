@@ -1,18 +1,18 @@
 ﻿// Copyright © 2026 张鸿源. All Rights Reserved.
 
 
-#include "ExtensionLocalPlayer.h"
+#include "ExtLocalPlayer.h"
 
 #include "Engine/GameInstance.h"
 
-#include UE_INLINE_GENERATED_CPP_BY_NAME(ExtensionLocalPlayer)
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ExtLocalPlayer)
 
-UExtensionLocalPlayer::UExtensionLocalPlayer(const FObjectInitializer& ObjectInitializer)
+UExtLocalPlayer::UExtLocalPlayer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 }
 
-FDelegateHandle UExtensionLocalPlayer::CallOrRegister_OnPlayerControllerSet(const FPlayerControllerSetDelegate::FDelegate& Delegate)
+FDelegateHandle UExtLocalPlayer::CallOrRegister_OnPlayerControllerSet(const FPlayerControllerSetDelegate::FDelegate& Delegate)
 {
 	APlayerController* PC = GetPlayerController(GetWorld());
 
@@ -21,7 +21,7 @@ FDelegateHandle UExtensionLocalPlayer::CallOrRegister_OnPlayerControllerSet(cons
 	return OnPlayerControllerSet.Add(Delegate);
 }
 
-FDelegateHandle UExtensionLocalPlayer::CallOrRegister_OnPlayerStateSet(const FPlayerStateSetDelegate::FDelegate& Delegate)
+FDelegateHandle UExtLocalPlayer::CallOrRegister_OnPlayerStateSet(const FPlayerStateSetDelegate::FDelegate& Delegate)
 {
 	APlayerController* PC = GetPlayerController(GetWorld());
 	APlayerState* PlayerState = PC ? PC->PlayerState : nullptr;
@@ -31,7 +31,7 @@ FDelegateHandle UExtensionLocalPlayer::CallOrRegister_OnPlayerStateSet(const FPl
 	return OnPlayerStateSet.Add(Delegate);
 }
 
-FDelegateHandle UExtensionLocalPlayer::CallOrRegister_OnPlayerPawnSet(const FPlayerPawnSetDelegate::FDelegate& Delegate)
+FDelegateHandle UExtLocalPlayer::CallOrRegister_OnPlayerPawnSet(const FPlayerPawnSetDelegate::FDelegate& Delegate)
 {
 	APlayerController* PC = GetPlayerController(GetWorld());
 	APawn* Pawn = PC ? PC->GetPawn() : nullptr;
@@ -41,7 +41,7 @@ FDelegateHandle UExtensionLocalPlayer::CallOrRegister_OnPlayerPawnSet(const FPla
 	return OnPlayerPawnSet.Add(Delegate);
 }
 
-bool UExtensionLocalPlayer::GetProjectionData(FViewport* Viewport, FSceneViewProjectionData& ProjectionData, int32 StereoViewIndex) const
+bool UExtLocalPlayer::GetProjectionData(FViewport* Viewport, FSceneViewProjectionData& ProjectionData, int32 StereoViewIndex) const
 {
 	if (!bIsPlayerViewEnabled) { return false; }
 	return Super::GetProjectionData(Viewport, ProjectionData, StereoViewIndex);

@@ -1,11 +1,11 @@
 ﻿// Copyright © 2026 张鸿源. All Rights Reserved.
 
 
-#include "LogGameCoreExtension.h"
+#include "LogCoreExtension.h"
 
 #include "GameFramework/Actor.h"
 
-DEFINE_LOG_CATEGORY(LogGameCoreExtension);
+DEFINE_LOG_CATEGORY(LogCoreExtension);
 
 FString GetClientServerContextString(UObject* ContextObject)
 {
