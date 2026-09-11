@@ -6,9 +6,9 @@
 #include "CommonInputSubsystem.h"
 #include "GameplayTagContainer.h"
 #include "Engine/GameInstance.h"
-#include "System/UIManager.h"
-#include "System/UIPolicy.h"
-#include "Widgets/GameRootLayoutWidget.h"
+#include "System/GameUIManager.h"
+#include "System/GameUIPolicy.h"
+#include "Widgets/GameUIRootWidget.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(UIHelperFunctions)
 
@@ -58,11 +58,11 @@ UCommonActivatableWidget* UUIHelperFunctions::PushWidgetToLayerForPlayer(const U
 		return nullptr;
 	}
 
-	if (UUIManager* UIManager = LocalPlayer->GetGameInstance()->GetSubsystem<UUIManager>())
+	if (UGameUIManager* GameUIManager = LocalPlayer->GetGameInstance()->GetSubsystem<UGameUIManager>())
 	{
-		if (UUIPolicy* Policy = UIManager->GetCurrentUIPolicy())
+		if (UGameUIPolicy* Policy = GameUIManager->GetCurrentUIPolicy())
 		{
-			if (UGameRootLayoutWidget* RootLayout = Policy->GetRootLayoutWidget(LocalPlayer))
+			if (UGameUIRootWidget* RootLayout = Policy->GetRootLayoutWidget(LocalPlayer))
 			{
 				return RootLayout->PushWidgetToLayerStack(LayerName, WidgetClass);
 			}
@@ -79,11 +79,11 @@ void UUIHelperFunctions::PushSoftWidgetToLayerForPlayer(const ULocalPlayer* Loca
 		return;
 	}
 
-	if (UUIManager* UIManager = LocalPlayer->GetGameInstance()->GetSubsystem<UUIManager>())
+	if (UGameUIManager* GameUIManager = LocalPlayer->GetGameInstance()->GetSubsystem<UGameUIManager>())
 	{
-		if (UUIPolicy* Policy = UIManager->GetCurrentUIPolicy())
+		if (UGameUIPolicy* Policy = GameUIManager->GetCurrentUIPolicy())
 		{
-			if (UGameRootLayoutWidget* RootLayout = Policy->GetRootLayoutWidget(LocalPlayer))
+			if (UGameUIRootWidget* RootLayout = Policy->GetRootLayoutWidget(LocalPlayer))
 			{
 				RootLayout->PushWidgetToLayerStackAsync(LayerName, true, WidgetClass);
 			}
@@ -100,11 +100,11 @@ void UUIHelperFunctions::RemoveWidgetFromLayer(UCommonActivatableWidget* Activat
 
 	if (const ULocalPlayer* LocalPlayer = ActivatableWidget->GetOwningLocalPlayer())
 	{
-		if (const UUIManager* UIManager = LocalPlayer->GetGameInstance()->GetSubsystem<UUIManager>())
+		if (const UGameUIManager* GameUIManager = LocalPlayer->GetGameInstance()->GetSubsystem<UGameUIManager>())
 		{
-			if (const UUIPolicy* Policy = UIManager->GetCurrentUIPolicy())
+			if (const UGameUIPolicy* Policy = GameUIManager->GetCurrentUIPolicy())
 			{
-				if (UGameRootLayoutWidget* RootLayout = Policy->GetRootLayoutWidget(LocalPlayer))
+				if (UGameUIRootWidget* RootLayout = Policy->GetRootLayoutWidget(LocalPlayer))
 				{
 					RootLayout->FindAndRemoveWidgetFromLayer(ActivatableWidget);
 				}

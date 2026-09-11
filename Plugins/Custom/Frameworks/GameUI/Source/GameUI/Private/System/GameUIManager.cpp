@@ -1,34 +1,34 @@
 ﻿// Copyright © 2026 张鸿源. All Rights Reserved.
 
 
-#include "System/UIManager.h"
+#include "System/GameUIManager.h"
 #include "GameUISettings.h"
 #include "LogGameUI.h"
 #include "Engine/GameInstance.h"
 #include "GameFramework/HUD.h"
-#include "System/UIPolicy.h"
-#include "Widgets/GameRootLayoutWidget.h"
+#include "System/GameUIPolicy.h"
+#include "Widgets/GameUIRootWidget.h"
 
-#include UE_INLINE_GENERATED_CPP_BY_NAME(UIManager)
+#include UE_INLINE_GENERATED_CPP_BY_NAME(GameUIManager)
 
-void UUIManager::Initialize(FSubsystemCollectionBase& Collection)
+void UGameUIManager::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
 	//获取开发者设置
 	const UGameUISettings* UISettings = GetDefault<UGameUISettings>();
-	TSoftClassPtr<UUIPolicy> SoftPolicyClass = UISettings->DefaultUIPolicyClass;
+	TSoftClassPtr<UGameUIPolicy> SoftPolicyClass = UISettings->DefaultUIPolicyClass;
 
 	if (!CurrentPolicy && !SoftPolicyClass.IsNull())
 	{
-		TSubclassOf<UUIPolicy> PolicyClass = SoftPolicyClass.LoadSynchronous();
+		TSubclassOf<UGameUIPolicy> PolicyClass = SoftPolicyClass.LoadSynchronous();
 		if (PolicyClass && !PolicyClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists))
 		{
-			SwitchToPolicy(NewObject<UUIPolicy>(this, PolicyClass));
+			SwitchToPolicy(NewObject<UGameUIPolicy>(this, PolicyClass));
 		}
 		else
 		{
-			UE_LOG(LogGameUI, Warning, TEXT("UUIManager::Initialize: UI 策略 [%s] 加载失败或不是可实例化的类。"), *SoftPolicyClass.ToString());
+			UE_LOG(LogGameUI, Warning, TEXT("UGameUIManager::Initialize: UI 策略 [%s] 加载失败或不是可实例化的类。"), *SoftPolicyClass.ToString());
 		}
 	}
 
@@ -43,11 +43,11 @@ void UUIManager::Initialize(FSubsystemCollectionBase& Collection)
 	}
 	else
 	{
-		UE_LOG(LogGameUI, Error, TEXT("UUIManager::Initialize: 无法获取游戏实例，不能绑定本地玩家事件。"))
+		UE_LOG(LogGameUI, Error, TEXT("UGameUIManager::Initialize: 无法获取游戏实例，不能绑定本地玩家事件。"))
 	}
 }
 
-void UUIManager::Deinitialize()
+void UGameUIManager::Deinitialize()
 {
 	Super::Deinitialize();
 
@@ -64,11 +64,11 @@ void UUIManager::Deinitialize()
 	}
 	else
 	{
-		UE_LOG(LogGameUI, Error, TEXT("UUIManager::Deinitialize: 无法获取游戏实例，不能解除本地玩家事件。"))
+		UE_LOG(LogGameUI, Error, TEXT("UGameUIManager::Deinitialize: 无法获取游戏实例，不能解除本地玩家事件。"))
 	}
 }
 
-bool UUIManager::ShouldCreateSubsystem(UObject* Outer) const
+bool UGameUIManager::ShouldCreateSubsystem(UObject* Outer) const
 {
 	//继承链单例
 	if (!CastChecked<UGameInstance>(Outer)->IsDedicatedServerInstance())
@@ -82,35 +82,35 @@ bool UUIManager::ShouldCreateSubsystem(UObject* Outer) const
 	return false;
 }
 
-void UUIManager::NotifyPlayerAdded(ULocalPlayer* LocalPlayer)
+void UGameUIManager::NotifyPlayerAdded(ULocalPlayer* LocalPlayer)
 {
 	if (ensure(LocalPlayer) && CurrentPolicy) CurrentPolicy->NotifyPlayerAdded(LocalPlayer);
 }
 
-void UUIManager::NotifyPlayerRemoved(ULocalPlayer* LocalPlayer)
+void UGameUIManager::NotifyPlayerRemoved(ULocalPlayer* LocalPlayer)
 {
 	if (LocalPlayer && CurrentPolicy) CurrentPolicy->NotifyPlayerRemoved(LocalPlayer);
 }
 
-void UUIManager::NotifyPlayerDestroyed(ULocalPlayer* LocalPlayer)
+void UGameUIManager::NotifyPlayerDestroyed(ULocalPlayer* LocalPlayer)
 {
 	if (LocalPlayer && CurrentPolicy) CurrentPolicy->NotifyPlayerDestroyed(LocalPlayer);
 }
 
-void UUIManager::SwitchToPolicy(UUIPolicy* InPolicy)
+void UGameUIManager::SwitchToPolicy(UGameUIPolicy* InPolicy)
 {
 	if (CurrentPolicy != InPolicy) CurrentPolicy = InPolicy;
 }
 
-bool UUIManager::Tick(float DeltaTime)
+bool UGameUIManager::Tick(float DeltaTime)
 {
 	SyncRootLayoutVisibilityToShowHUD();
 	return true;
 }
 
-void UUIManager::SyncRootLayoutVisibilityToShowHUD()
+void UGameUIManager::SyncRootLayoutVisibilityToShowHUD()
 {
-	if (const UUIPolicy* Policy = GetCurrentUIPolicy())
+	if (const UGameUIPolicy* Policy = GetCurrentUIPolicy())
 	{
 		for (const ULocalPlayer* LocalPlayer : GetGameInstance()->GetLocalPlayers())
 		{
@@ -126,7 +126,7 @@ void UUIManager::SyncRootLayoutVisibilityToShowHUD()
 				}
 			}
 
-			if (UGameRootLayoutWidget* RootLayout = Policy->GetRootLayoutWidget(LocalPlayer))
+			if (UGameUIRootWidget* RootLayout = Policy->GetRootLayoutWidget(LocalPlayer))
 			{
 				const ESlateVisibility DesiredVisibility = bShouldShowUI ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed;
 				if (DesiredVisibility != RootLayout->GetVisibility())

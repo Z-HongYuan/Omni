@@ -7,7 +7,7 @@
 
 #define UE_API GAMECOREEXTENSION_API
 
-class UGameRootLayoutWidget;
+class UGameUIRootWidget;
 
 /**
  * 自定义的本地玩家,承载游戏流程的转发

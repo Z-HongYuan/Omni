@@ -7,9 +7,9 @@
 #include "LogGameUI.h"
 #include "MessagingSystem/DialogWidgetBase.h"
 #include "System/GameUIGameplayTags.h"
-#include "System/UIManager.h"
-#include "System/UIPolicy.h"
-#include "Widgets/GameRootLayoutWidget.h"
+#include "System/GameUIManager.h"
+#include "System/GameUIPolicy.h"
+#include "Widgets/GameUIRootWidget.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GameUISettings)
 #include UE_INLINE_GENERATED_CPP_BY_NAME(MessagingManager)
@@ -65,9 +65,9 @@ void UMessagingManager::ShowDialogInternal(FGameplayTag InWidgetTag, UDialogWidg
 
 	ULocalPlayer* LocalPlayer = GetLocalPlayer();
 	UGameInstance* GameInstance = LocalPlayer ? LocalPlayer->GetGameInstance() : nullptr;
-	UUIManager* UIManager = GameInstance ? GameInstance->GetSubsystem<UUIManager>() : nullptr;
-	UUIPolicy* Policy = UIManager ? UIManager->GetCurrentUIPolicy() : nullptr;
-	UGameRootLayoutWidget* RootLayout = Policy ? Policy->GetRootLayoutWidget(LocalPlayer) : nullptr;
+	UGameUIManager* GameUIManager = GameInstance ? GameInstance->GetSubsystem<UGameUIManager>() : nullptr;
+	UGameUIPolicy* Policy = GameUIManager ? GameUIManager->GetCurrentUIPolicy() : nullptr;
+	UGameUIRootWidget* RootLayout = Policy ? Policy->GetRootLayoutWidget(LocalPlayer) : nullptr;
 	if (!RootLayout)
 	{
 		Fail(TEXT("本地玩家的 UI 策略或根布局尚未就绪"));

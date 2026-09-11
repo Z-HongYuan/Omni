@@ -1,41 +1,41 @@
 ﻿// Copyright © 2026 张鸿源. All Rights Reserved.
 
 
-#include "Widgets/GameRootLayoutWidget.h"
+#include "Widgets/GameUIRootWidget.h"
 
 #include "LogGameUI.h"
 #include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "System/GameUIGameplayTags.h"
-#include "System/UIManager.h"
-#include "System/UIPolicy.h"
+#include "System/GameUIManager.h"
+#include "System/GameUIPolicy.h"
 
-#include UE_INLINE_GENERATED_CPP_BY_NAME(GameRootLayoutWidget)
+#include UE_INLINE_GENERATED_CPP_BY_NAME(GameUIRootWidget)
 
-UGameRootLayoutWidget* UGameRootLayoutWidget::GetRootLayoutWidgetForPrimaryPlayer(const UObject* WorldContextObject)
+UGameUIRootWidget* UGameUIRootWidget::GetRootLayoutWidgetForPrimaryPlayer(const UObject* WorldContextObject)
 {
 	UGameInstance* GameInstance = WorldContextObject ? UGameplayStatics::GetGameInstance(WorldContextObject) : nullptr;
 	return GameInstance ? GetRootLayoutWidget(GameInstance->GetPrimaryPlayerController(false)) : nullptr;
 }
 
-UGameRootLayoutWidget* UGameRootLayoutWidget::GetRootLayoutWidget(APlayerController* PlayerController)
+UGameUIRootWidget* UGameUIRootWidget::GetRootLayoutWidget(APlayerController* PlayerController)
 {
 	return PlayerController ? GetRootLayoutWidget(PlayerController->GetLocalPlayer()) : nullptr;
 }
 
-UGameRootLayoutWidget* UGameRootLayoutWidget::GetRootLayoutWidget(ULocalPlayer* LocalPlayer)
+UGameUIRootWidget* UGameUIRootWidget::GetRootLayoutWidget(ULocalPlayer* LocalPlayer)
 {
 	if (LocalPlayer)
 		if (const UGameInstance* GameInstance = LocalPlayer->GetGameInstance())
-			if (UUIManager* UIManager = GameInstance->GetSubsystem<UUIManager>())
-				if (const UUIPolicy* Policy = UIManager->GetCurrentUIPolicy())
-					if (UGameRootLayoutWidget* RootLayout = Policy->GetRootLayoutWidget(LocalPlayer))
+			if (UGameUIManager* GameUIManager = GameInstance->GetSubsystem<UGameUIManager>())
+				if (const UGameUIPolicy* Policy = GameUIManager->GetCurrentUIPolicy())
+					if (UGameUIRootWidget* RootLayout = Policy->GetRootLayoutWidget(LocalPlayer))
 						return RootLayout;
 
 	return nullptr;
 }
 
-void UGameRootLayoutWidget::SetIsDormant(bool InDormant)
+void UGameUIRootWidget::SetIsDormant(bool InDormant)
 {
 	if (bIsDormant == InDormant) return;
 
@@ -45,18 +45,18 @@ void UGameRootLayoutWidget::SetIsDormant(bool InDormant)
 	const TCHAR* OldDormancyStr = bIsDormant ? TEXT("Dormant") : TEXT("Not-Dormant");
 	const TCHAR* NewDormancyStr = InDormant ? TEXT("Dormant") : TEXT("Not-Dormant");
 	const TCHAR* PrimaryPlayerStr = LP && LP->IsPrimaryPlayer() ? TEXT("[Primary]") : TEXT("[Non-Primary]");
-	UE_LOG(LogGameUI, Display, TEXT("%s UGameRootLayoutWidget Dormancy changed for [%d] from [%s] to [%s]"), PrimaryPlayerStr, PlayerId, OldDormancyStr, NewDormancyStr);
+	UE_LOG(LogGameUI, Display, TEXT("%s UGameUIRootWidget Dormancy changed for [%d] from [%s] to [%s]"), PrimaryPlayerStr, PlayerId, OldDormancyStr, NewDormancyStr);
 
 	bIsDormant = InDormant;
 	OnIsDormantChanged();
 }
 
-void UGameRootLayoutWidget::OnIsDormantChanged()
+void UGameUIRootWidget::OnIsDormantChanged()
 {
 	// 暂时禁用过渡动画，避免手柄焦点在切换控件时落到错误位置。
 }
 
-void UGameRootLayoutWidget::FindAndRemoveWidgetFromLayer(UCommonActivatableWidget* ActivatableWidget)
+void UGameUIRootWidget::FindAndRemoveWidgetFromLayer(UCommonActivatableWidget* ActivatableWidget)
 {
 	for (const auto& LayerKVP : Layers)
 	{
@@ -64,16 +64,16 @@ void UGameRootLayoutWidget::FindAndRemoveWidgetFromLayer(UCommonActivatableWidge
 	}
 }
 
-UCommonActivatableWidgetContainerBase* UGameRootLayoutWidget::GetLayerFromTag(FGameplayTag LayerName)
+UCommonActivatableWidgetContainerBase* UGameUIRootWidget::GetLayerFromTag(FGameplayTag LayerName)
 {
 	return Layers.FindRef(LayerName);
 }
 
-void UGameRootLayoutWidget::RegisterLayer(FGameplayTag LayerTag, UCommonActivatableWidgetContainerBase* LayerWidget)
+void UGameUIRootWidget::RegisterLayer(FGameplayTag LayerTag, UCommonActivatableWidgetContainerBase* LayerWidget)
 {
 	if (!IsDesignTime())
 	{
-		LayerWidget->OnTransitioningChanged.AddUObject(this, &UGameRootLayoutWidget::OnWidgetStackTransitioning);
+		LayerWidget->OnTransitioningChanged.AddUObject(this, &UGameUIRootWidget::OnWidgetStackTransitioning);
 		// TODO: Consider allowing a transition duration, we currently set it to 0, because if it's not 0, the
 		//       transition effect will cause focus to not transition properly to the new widgets when using
 		//       gamepad always.
@@ -83,7 +83,7 @@ void UGameRootLayoutWidget::RegisterLayer(FGameplayTag LayerTag, UCommonActivata
 	}
 }
 
-void UGameRootLayoutWidget::OnWidgetStackTransitioning(UCommonActivatableWidgetContainerBase* Widget, bool bIsTransitioning)
+void UGameUIRootWidget::OnWidgetStackTransitioning(UCommonActivatableWidgetContainerBase* Widget, bool bIsTransitioning)
 {
 	// 在转换过程中禁用输入
 	if (bIsTransitioning)
@@ -101,7 +101,7 @@ void UGameRootLayoutWidget::OnWidgetStackTransitioning(UCommonActivatableWidgetC
 	}
 }
 
-void UGameRootLayoutWidget::NativeOnInitialized()
+void UGameUIRootWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 

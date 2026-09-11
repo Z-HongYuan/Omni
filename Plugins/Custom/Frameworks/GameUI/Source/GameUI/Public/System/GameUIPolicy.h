@@ -5,13 +5,13 @@
 #include "Templates/SubclassOf.h"
 #include "UObject/Object.h"
 #include "UObject/SoftObjectPtr.h"
-#include "UIPolicy.generated.h"
+#include "GameUIPolicy.generated.h"
 
 #define UE_API GAMEUI_API
 
 class ULocalPlayer;
-class UGameRootLayoutWidget;
-class UUIManager;
+class UGameUIRootWidget;
+class UGameUIManager;
 
 /**
  * 屏幕模式
@@ -40,14 +40,14 @@ public:
 	TObjectPtr<ULocalPlayer> LocalPlayer = nullptr;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UGameRootLayoutWidget> RootLayout = nullptr;
+	TObjectPtr<UGameUIRootWidget> RootLayout = nullptr;
 
 	UPROPERTY(Transient)
 	bool bAddedToViewport = false;
 
 	FRootViewportLayoutInfo() { ; }
 
-	FRootViewportLayoutInfo(ULocalPlayer* InLocalPlayer, UGameRootLayoutWidget* InRootLayout, bool bIsInViewport) : LocalPlayer(InLocalPlayer), RootLayout(InRootLayout), bAddedToViewport(bIsInViewport) { ; }
+	FRootViewportLayoutInfo(ULocalPlayer* InLocalPlayer, UGameUIRootWidget* InRootLayout, bool bIsInViewport) : LocalPlayer(InLocalPlayer), RootLayout(InRootLayout), bAddedToViewport(bIsInViewport) { ; }
 
 	bool operator==(const ULocalPlayer* OtherLocalPlayer) const { return LocalPlayer == OtherLocalPlayer; }
 };
@@ -56,60 +56,60 @@ public:
  * 一个 UI 策略 包含全部的 LocalPlayer
  * 在游戏中有且仅有一个 UI 策略生效
  */
-UCLASS(MinimalAPI, Abstract, Blueprintable, Within = UIManager)
-class UUIPolicy : public UObject
+UCLASS(MinimalAPI, Abstract, Blueprintable, Within = GameUIManager)
+class UGameUIPolicy : public UObject
 {
 	GENERATED_BODY()
 
 public:
 	// 从游戏上下文中获取当前的 UI 策略
-	static UE_API UUIPolicy* GetGameUIPolicy(const UObject* WorldContextObject);
+	static UE_API UGameUIPolicy* GetGameUIPolicy(const UObject* WorldContextObject);
 
-	template <typename GameUIPolicyClass = UUIPolicy>
+	template <typename GameUIPolicyClass = UGameUIPolicy>
 	static GameUIPolicyClass* GetGameUIPolicyAs(const UObject* WorldContextObject)
 	{
 		return Cast<GameUIPolicyClass>(GetGameUIPolicy(WorldContextObject));
 	}
 
 	UE_API virtual UWorld* GetWorld() const override;
-	UE_API UUIManager* GetOwningUIManager() const;
+	UE_API UGameUIManager* GetOwningUIManager() const;
 
 	// 获取指定 LocalPlayer 拥有的 RootWidget
-	UE_API UGameRootLayoutWidget* GetRootLayoutWidget(const ULocalPlayer* LocalPlayer) const;
+	UE_API UGameUIRootWidget* GetRootLayoutWidget(const ULocalPlayer* LocalPlayer) const;
 
 	// 获取 本地多玩家 的视口模式
 	ELocalMultiplayerViewMode GetLocalMultiplayerViewMode() const { return LocalMultiplayerInteractionMode; }
 
 	// 将指定的 RootWidget 设置为主要的视口屏幕 (将会隐藏/休眠其他所有的 RootWidget)
-	UE_API void RequestPrimaryControl(UGameRootLayoutWidget* Layout);
+	UE_API void RequestPrimaryControl(UGameUIRootWidget* Layout);
 
 protected:
-	UE_API void AddLayoutToViewport(ULocalPlayer* LocalPlayer, UGameRootLayoutWidget* Layout);
-	UE_API void RemoveLayoutFromViewport(ULocalPlayer* LocalPlayer, UGameRootLayoutWidget* Layout);
+	UE_API void AddLayoutToViewport(ULocalPlayer* LocalPlayer, UGameUIRootWidget* Layout);
+	UE_API void RemoveLayoutFromViewport(ULocalPlayer* LocalPlayer, UGameUIRootWidget* Layout);
 
-	UE_API virtual void OnRootLayoutAddedToViewport(ULocalPlayer* LocalPlayer, UGameRootLayoutWidget* Layout);
-	UE_API virtual void OnRootLayoutRemovedFromViewport(ULocalPlayer* LocalPlayer, UGameRootLayoutWidget* Layout);
-	UE_API virtual void OnRootLayoutReleased(ULocalPlayer* LocalPlayer, UGameRootLayoutWidget* Layout);
+	UE_API virtual void OnRootLayoutAddedToViewport(ULocalPlayer* LocalPlayer, UGameUIRootWidget* Layout);
+	UE_API virtual void OnRootLayoutRemovedFromViewport(ULocalPlayer* LocalPlayer, UGameUIRootWidget* Layout);
+	UE_API virtual void OnRootLayoutReleased(ULocalPlayer* LocalPlayer, UGameUIRootWidget* Layout);
 
 	UE_API void CreateLayoutWidget(ULocalPlayer* LocalPlayer);
-	UE_API TSubclassOf<UGameRootLayoutWidget> GetLayoutWidgetClass();
+	UE_API TSubclassOf<UGameUIRootWidget> GetLayoutWidgetClass();
 
 private:
 	ELocalMultiplayerViewMode LocalMultiplayerInteractionMode = ELocalMultiplayerViewMode::PrimaryOnly;
 
 	// 此 UI 策略 使用的 RootWidget 软引用,全部 LocalPlayer 都会使用
 	UPROPERTY(EditAnywhere)
-	TSoftClassPtr<UGameRootLayoutWidget> LayoutClass;
+	TSoftClassPtr<UGameUIRootWidget> LayoutClass;
 
 	UPROPERTY(Transient)
 	TArray<FRootViewportLayoutInfo> RootViewportLayouts;
 
-	// 外部传递的事件流 GameInstance->UIManager->this , 通知本地玩家的增删
+	// 外部传递的事件流 GameInstance->GameUIManager->this , 通知本地玩家的增删
 	UE_API void NotifyPlayerAdded(ULocalPlayer* LocalPlayer);
 	UE_API void NotifyPlayerRemoved(ULocalPlayer* LocalPlayer);
 	UE_API void NotifyPlayerDestroyed(ULocalPlayer* LocalPlayer);
 
-	friend class UUIManager;
+	friend class UGameUIManager;
 };
 
 #undef UE_API

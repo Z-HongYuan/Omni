@@ -10,7 +10,7 @@
 #define UE_API GAMEUI_API
 
 class UDialogWidgetBase;
-class UUIPolicy;
+class UGameUIPolicy;
 
 /** 配置默认 UI 策略，以及对话框标签到控件类的映射。 */
 UCLASS(MinimalAPI, Config=Game, DefaultConfig, meta=(DisplayName="Game UI Settings"))
@@ -23,7 +23,7 @@ public:
 	virtual FName GetCategoryName() const override { return TEXT("ZHYS"); }
 
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "UI Settings")
-	TSoftClassPtr<UUIPolicy> DefaultUIPolicyClass;
+	TSoftClassPtr<UGameUIPolicy> DefaultUIPolicyClass;
 
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Dialog Settings", meta=(AllowEditInlineCustomization))
 	TMap<FGameplayTag, TSoftClassPtr<UDialogWidgetBase>> DialogSoftClasses;

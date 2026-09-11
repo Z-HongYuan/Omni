@@ -1,55 +1,55 @@
 ﻿// Copyright © 2026 张鸿源. All Rights Reserved.
 
 
-#include "System/UIPolicy.h"
+#include "System/GameUIPolicy.h"
 
 #include "LogGameUI.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Framework/Application/SlateApplication.h"
-#include "System/UIManager.h"
-#include "Widgets/GameRootLayoutWidget.h"
+#include "System/GameUIManager.h"
+#include "Widgets/GameUIRootWidget.h"
 
-#include UE_INLINE_GENERATED_CPP_BY_NAME(UIPolicy)
+#include UE_INLINE_GENERATED_CPP_BY_NAME(GameUIPolicy)
 
-UUIPolicy* UUIPolicy::GetGameUIPolicy(const UObject* WorldContextObject)
+UGameUIPolicy* UGameUIPolicy::GetGameUIPolicy(const UObject* WorldContextObject)
 {
 	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 		if (UGameInstance* GameInstance = World->GetGameInstance())
-			if (UUIManager* UIManager = UGameInstance::GetSubsystem<UUIManager>(GameInstance))
-				return UIManager->GetCurrentUIPolicy();
+			if (UGameUIManager* GameUIManager = UGameInstance::GetSubsystem<UGameUIManager>(GameInstance))
+				return GameUIManager->GetCurrentUIPolicy();
 
 	return nullptr;
 }
 
-UWorld* UUIPolicy::GetWorld() const
+UWorld* UGameUIPolicy::GetWorld() const
 {
 	//原来的逻辑将会在编辑器下崩溃
-	if (const UUIManager* OwningManager = GetOwningUIManager())
+	if (const UGameUIManager* OwningManager = GetOwningUIManager())
 	{
 		return OwningManager->GetGameInstance()->GetWorld();
 	}
 	return nullptr;
 }
 
-UUIManager* UUIPolicy::GetOwningUIManager() const
+UGameUIManager* UGameUIPolicy::GetOwningUIManager() const
 {
-	return Cast<UUIManager>(GetOuter());
+	return Cast<UGameUIManager>(GetOuter());
 }
 
-UGameRootLayoutWidget* UUIPolicy::GetRootLayoutWidget(const ULocalPlayer* LocalPlayer) const
+UGameUIRootWidget* UGameUIPolicy::GetRootLayoutWidget(const ULocalPlayer* LocalPlayer) const
 {
 	const FRootViewportLayoutInfo* LayoutInfo = RootViewportLayouts.FindByKey(LocalPlayer);
 	return LayoutInfo ? LayoutInfo->RootLayout : nullptr;
 }
 
-void UUIPolicy::RequestPrimaryControl(UGameRootLayoutWidget* Layout)
+void UGameUIPolicy::RequestPrimaryControl(UGameUIRootWidget* Layout)
 {
 	if (LocalMultiplayerInteractionMode == ELocalMultiplayerViewMode::SingleToggle && Layout->IsDormant())
 	{
 		for (const FRootViewportLayoutInfo& LayoutInfo : RootViewportLayouts)
 		{
-			UGameRootLayoutWidget* RootLayout = LayoutInfo.RootLayout;
+			UGameUIRootWidget* RootLayout = LayoutInfo.RootLayout;
 			if (RootLayout && !RootLayout->IsDormant())
 			{
 				RootLayout->SetIsDormant(true);
@@ -60,7 +60,7 @@ void UUIPolicy::RequestPrimaryControl(UGameRootLayoutWidget* Layout)
 	}
 }
 
-void UUIPolicy::AddLayoutToViewport(ULocalPlayer* LocalPlayer, UGameRootLayoutWidget* Layout)
+void UGameUIPolicy::AddLayoutToViewport(ULocalPlayer* LocalPlayer, UGameUIRootWidget* Layout)
 {
 	UE_LOG(LogGameUI, Log, TEXT("[%s] is adding player [%s]'s root layout [%s] to the viewport"), *GetName(), *GetNameSafe(LocalPlayer), *GetNameSafe(Layout));
 
@@ -71,7 +71,7 @@ void UUIPolicy::AddLayoutToViewport(ULocalPlayer* LocalPlayer, UGameRootLayoutWi
 	OnRootLayoutAddedToViewport(LocalPlayer, Layout);
 }
 
-void UUIPolicy::RemoveLayoutFromViewport(ULocalPlayer* LocalPlayer, UGameRootLayoutWidget* Layout)
+void UGameUIPolicy::RemoveLayoutFromViewport(ULocalPlayer* LocalPlayer, UGameUIRootWidget* Layout)
 {
 	TWeakPtr<SWidget> LayoutSlateWidget = Layout->GetCachedWidget();
 	if (LayoutSlateWidget.IsValid())
@@ -89,7 +89,7 @@ void UUIPolicy::RemoveLayoutFromViewport(ULocalPlayer* LocalPlayer, UGameRootLay
 	}
 }
 
-void UUIPolicy::OnRootLayoutAddedToViewport(ULocalPlayer* LocalPlayer, UGameRootLayoutWidget* Layout)
+void UGameUIPolicy::OnRootLayoutAddedToViewport(ULocalPlayer* LocalPlayer, UGameUIRootWidget* Layout)
 {
 #if WITH_EDITOR
 	if (GIsEditor && LocalPlayer->IsPrimaryPlayer())
@@ -100,22 +100,22 @@ void UUIPolicy::OnRootLayoutAddedToViewport(ULocalPlayer* LocalPlayer, UGameRoot
 #endif
 }
 
-void UUIPolicy::OnRootLayoutRemovedFromViewport(ULocalPlayer* LocalPlayer, UGameRootLayoutWidget* Layout)
+void UGameUIPolicy::OnRootLayoutRemovedFromViewport(ULocalPlayer* LocalPlayer, UGameUIRootWidget* Layout)
 {
 }
 
-void UUIPolicy::OnRootLayoutReleased(ULocalPlayer* LocalPlayer, UGameRootLayoutWidget* Layout)
+void UGameUIPolicy::OnRootLayoutReleased(ULocalPlayer* LocalPlayer, UGameUIRootWidget* Layout)
 {
 }
 
-void UUIPolicy::CreateLayoutWidget(ULocalPlayer* LocalPlayer)
+void UGameUIPolicy::CreateLayoutWidget(ULocalPlayer* LocalPlayer)
 {
 	if (APlayerController* PlayerController = LocalPlayer->GetPlayerController(GetWorld()))
 	{
-		TSubclassOf<UGameRootLayoutWidget> LayoutWidgetClass = GetLayoutWidgetClass();
+		TSubclassOf<UGameUIRootWidget> LayoutWidgetClass = GetLayoutWidgetClass();
 		if (ensure(LayoutWidgetClass && !LayoutWidgetClass->HasAnyClassFlags(CLASS_Abstract)))
 		{
-			UGameRootLayoutWidget* NewLayoutObject = CreateWidget<UGameRootLayoutWidget>(PlayerController, LayoutWidgetClass);
+			UGameUIRootWidget* NewLayoutObject = CreateWidget<UGameUIRootWidget>(PlayerController, LayoutWidgetClass);
 			RootViewportLayouts.Emplace(LocalPlayer, NewLayoutObject, true);
 
 			AddLayoutToViewport(LocalPlayer, NewLayoutObject);
@@ -123,12 +123,12 @@ void UUIPolicy::CreateLayoutWidget(ULocalPlayer* LocalPlayer)
 	}
 }
 
-TSubclassOf<UGameRootLayoutWidget> UUIPolicy::GetLayoutWidgetClass()
+TSubclassOf<UGameUIRootWidget> UGameUIPolicy::GetLayoutWidgetClass()
 {
 	return LayoutClass.LoadSynchronous();
 }
 
-void UUIPolicy::NotifyPlayerAdded(ULocalPlayer* LocalPlayer)
+void UGameUIPolicy::NotifyPlayerAdded(ULocalPlayer* LocalPlayer)
 {
 	// 在PC改变后重建一遍
 	LocalPlayer->OnPlayerControllerChanged().AddWeakLambda(
@@ -160,7 +160,7 @@ void UUIPolicy::NotifyPlayerAdded(ULocalPlayer* LocalPlayer)
 	}
 }
 
-void UUIPolicy::NotifyPlayerRemoved(ULocalPlayer* LocalPlayer)
+void UGameUIPolicy::NotifyPlayerRemoved(ULocalPlayer* LocalPlayer)
 {
 	FRootViewportLayoutInfo* LayoutInfo = RootViewportLayouts.FindByKey(LocalPlayer);
 	if (!LayoutInfo) return;
@@ -172,7 +172,7 @@ void UUIPolicy::NotifyPlayerRemoved(ULocalPlayer* LocalPlayer)
 	// 模式是单人全屏 且 被移除的玩家是次要玩家 那么休眠次要玩家,并且激活主要玩家的控件
 	if (LocalMultiplayerInteractionMode == ELocalMultiplayerViewMode::SingleToggle && !LocalPlayer->IsPrimaryPlayer())
 	{
-		UGameRootLayoutWidget* RootLayout = LayoutInfo->RootLayout;
+		UGameUIRootWidget* RootLayout = LayoutInfo->RootLayout;
 		if (RootLayout && !RootLayout->IsDormant())
 		{
 			RootLayout->SetIsDormant(true);
@@ -187,14 +187,14 @@ void UUIPolicy::NotifyPlayerRemoved(ULocalPlayer* LocalPlayer)
 	}
 }
 
-void UUIPolicy::NotifyPlayerDestroyed(ULocalPlayer* LocalPlayer)
+void UGameUIPolicy::NotifyPlayerDestroyed(ULocalPlayer* LocalPlayer)
 {
 	NotifyPlayerRemoved(LocalPlayer);
 	LocalPlayer->OnPlayerControllerChanged().RemoveAll(this);
 	const int32 LayoutInfoIdx = RootViewportLayouts.IndexOfByKey(LocalPlayer);
 	if (LayoutInfoIdx != INDEX_NONE)
 	{
-		UGameRootLayoutWidget* Layout = RootViewportLayouts[LayoutInfoIdx].RootLayout;
+		UGameUIRootWidget* Layout = RootViewportLayouts[LayoutInfoIdx].RootLayout;
 		RootViewportLayouts.RemoveAt(LayoutInfoIdx);
 
 		RemoveLayoutFromViewport(LocalPlayer, Layout);

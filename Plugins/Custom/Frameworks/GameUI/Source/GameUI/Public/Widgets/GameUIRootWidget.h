@@ -10,7 +10,7 @@
 #include "UObject/StrongObjectPtr.h"
 #include "HelperFunctions/UIHelperFunctions.h"
 #include "Widgets/CommonActivatableWidgetContainer.h"
-#include "GameRootLayoutWidget.generated.h"
+#include "GameUIRootWidget.generated.h"
 
 #define UE_API GAMEUI_API
 
@@ -26,17 +26,17 @@ enum class EAsyncWidgetPushState : uint8
  * 作为每个本地玩家拥有的根控件
  */
 UCLASS(MinimalAPI, Abstract, meta = (DisableNativeTick))
-class UGameRootLayoutWidget : public UCommonUserWidget
+class UGameUIRootWidget : public UCommonUserWidget
 {
 	GENERATED_BODY()
 
 public:
 	// 从世界上下文获取主要玩家的根控件
-	static UE_API UGameRootLayoutWidget* GetRootLayoutWidgetForPrimaryPlayer(const UObject* WorldContextObject);
+	static UE_API UGameUIRootWidget* GetRootLayoutWidgetForPrimaryPlayer(const UObject* WorldContextObject);
 	// 从 PC 获取 根控件
-	static UE_API UGameRootLayoutWidget* GetRootLayoutWidget(APlayerController* PlayerController);
+	static UE_API UGameUIRootWidget* GetRootLayoutWidget(APlayerController* PlayerController);
 	// 从 本地玩家 获取 根控件
-	static UE_API UGameRootLayoutWidget* GetRootLayoutWidget(ULocalPlayer* LocalPlayer);
+	static UE_API UGameUIRootWidget* GetRootLayoutWidget(ULocalPlayer* LocalPlayer);
 
 	/** 更新根布局的休眠状态；具体显示行为由 OnIsDormantChanged 扩展。 */
 	UE_API void SetIsDormant(bool InDormant);
@@ -63,7 +63,7 @@ public:
 		// 两个回调共享终态和输入令牌，布局失效后仍能完成清理。
 		struct FAsyncPushOperation
 		{
-			TWeakObjectPtr<UGameRootLayoutWidget> RootLayout;
+			TWeakObjectPtr<UGameUIRootWidget> RootLayout;
 			TWeakObjectPtr<ULocalPlayer> LocalPlayer;
 			FName InputToken = NAME_None;
 			bool bFinished = false;
@@ -107,7 +107,7 @@ public:
 				if (Operation->bFinished) return;
 				Operation->ResumeInput();
 
-				const TStrongObjectPtr<UGameRootLayoutWidget> RootLayout(Operation->RootLayout.Get());
+				const TStrongObjectPtr<UGameUIRootWidget> RootLayout(Operation->RootLayout.Get());
 				UClass* WidgetClass = ActivatableWidgetClass.Get();
 				if (!RootLayout.IsValid() || !WidgetClass)
 				{
