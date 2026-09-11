@@ -12,7 +12,7 @@ public class CustomInteraction : ModuleRules
 			new string[]
 			{
 				"Core",
-				"GameplayAbilities", "GameplayTags", "GameplayTasks", "GameAbilitySystem",
+				"GameplayAbilities", "GameplayTags", "GameplayTasks", "AbilityExtension",
 				"UMG",
 				"CustomIndicator"
 			}

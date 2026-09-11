@@ -25,7 +25,7 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, meta=(BlueprintInternalUseOnly="true"), Category=GameUI)
 	static UE_API UAsyncAction_PushWidgetToLayerForPlayer* PushWidgetToLayerForPlayer(APlayerController* InOwningPlayer,
 	                                                                                  UPARAM(meta = (AllowAbstract=false)) TSoftClassPtr<UCommonActivatableWidget> InWidgetClass,
-	                                                                                  UPARAM(meta = (Categories = "AdvancedUI.UIStack")) FGameplayTag InLayerName,
+	                                                                                  UPARAM(meta = (Categories = "GameUI.UIStack")) FGameplayTag InLayerName,
 	                                                                                  bool bSuspendInputUntilComplete = true);
 
 	UE_API virtual void Activate() override;

@@ -1,0 +1,60 @@
+﻿// Copyright © 2026 张鸿源. All Rights Reserved.
+
+
+#include "GamPhases/ExtGamePhaseAbility.h"
+#include "AbilitySystemComponent.h"
+#include "Engine/World.h"
+#include "GamPhases/ExtGamePhaseManager.h"
+
+#if WITH_EDITOR
+#include "Misc/DataValidation.h"
+#endif
+
+#include UE_INLINE_GENERATED_CPP_BY_NAME(ExtGamePhaseAbility)
+
+UExtGamePhaseAbility::UExtGamePhaseAbility(const FObjectInitializer& ObjectInitializer)
+{
+	ReplicationPolicy = EGameplayAbilityReplicationPolicy::ReplicateNo;
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
+	NetSecurityPolicy = EGameplayAbilityNetSecurityPolicy::ServerOnly;
+}
+
+#if WITH_EDITOR
+EDataValidationResult UExtGamePhaseAbility::IsDataValid(class FDataValidationContext& Context) const
+{
+	EDataValidationResult Result = CombineDataValidationResults(Super::IsDataValid(Context), EDataValidationResult::Valid);
+
+	if (!GamePhaseTag.IsValid())
+	{
+		Result = EDataValidationResult::Invalid;
+		Context.AddError(NSLOCTEXT("ExtGamePhaseAbility", "GamePhaseTagNotSet", "GamePhaseTag must be set to a tag representing the current phase."));
+	}
+
+	return Result;
+}
+#endif
+
+void UExtGamePhaseAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
+{
+	if (ActorInfo->IsNetAuthority())
+	{
+		UWorld* World = ActorInfo->AbilitySystemComponent->GetWorld();
+		UExtGamePhaseManager* PhaseSubsystem = UWorld::GetSubsystem<UExtGamePhaseManager>(World);
+		PhaseSubsystem->OnBeginPhase(this, Handle);
+	}
+
+	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+}
+
+void UExtGamePhaseAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
+{
+	if (ActorInfo->IsNetAuthority())
+	{
+		UWorld* World = ActorInfo->AbilitySystemComponent->GetWorld();
+		UExtGamePhaseManager* PhaseSubsystem = UWorld::GetSubsystem<UExtGamePhaseManager>(World);
+		PhaseSubsystem->OnEndPhase(this, Handle);
+	}
+
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}

@@ -13,7 +13,7 @@
 
 UCustomGameplayAbility_Interact::UCustomGameplayAbility_Interact(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	ActivationPolicy = ECustomAbilityActivationPolicy::OnSpawn;
+	ActivationPolicy = EExtAbilityActivationPolicy::OnSpawn;
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 }

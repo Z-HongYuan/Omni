@@ -178,7 +178,7 @@ public:
 
 	/** 注册堆栈到缓存中. */
 	UFUNCTION(BlueprintCallable, Category="GameUI")
-	UE_API void RegisterLayer(UPARAM(meta = (Categories = "AdvancedUI.UIStack")) FGameplayTag LayerTag, UCommonActivatableWidgetContainerBase* LayerWidget);
+	UE_API void RegisterLayer(UPARAM(meta = (Categories = "GameUI.UIStack")) FGameplayTag LayerTag, UCommonActivatableWidgetContainerBase* LayerWidget);
 
 	UE_API void OnWidgetStackTransitioning(UCommonActivatableWidgetContainerBase* Widget, bool bIsTransitioning);
 

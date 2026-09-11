@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Abilities/CustomGameplayAbility.h"
+#include "Abilities/ExtGameplayAbility.h"
 #include "CustomGameplayAbility_FromEquipment.generated.h"
 
 #define UE_API CUSTOMEQUIPMENT_API
@@ -14,7 +14,7 @@ class UEquipmentInstance;
  * 由装备实例赋予并与之相关联的能力
  */
 UCLASS(MinimalAPI)
-class UCustomGameplayAbility_FromEquipment : public UCustomGameplayAbility
+class UCustomGameplayAbility_FromEquipment : public UExtGameplayAbility
 {
 	GENERATED_BODY()
 

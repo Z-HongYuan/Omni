@@ -7,7 +7,7 @@
 
 #define UE_API EXPERIENCESYSTEM_API
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FExperienceReadyAsyncDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FExpReadyAsyncDelegate);
 
 /**
  * 等待体验加载完成的异步操作
@@ -30,7 +30,7 @@ public:
 protected:
 	// 体验加载完成后调用的委托事件
 	UPROPERTY(BlueprintAssignable)
-	FExperienceReadyAsyncDelegate OnReady;
+	FExpReadyAsyncDelegate OnReady;
 
 private:
 	void ListenToExperienceLoading(const AGameStateBase* GameState);

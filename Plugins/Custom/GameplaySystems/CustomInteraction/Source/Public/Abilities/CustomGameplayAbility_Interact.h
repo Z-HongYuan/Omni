@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Abilities/CustomGameplayAbility.h"
+#include "Abilities/ExtGameplayAbility.h"
 #include "Core/InteractionOption.h"
 #include "CustomGameplayAbility_Interact.generated.h"
 
@@ -14,7 +14,7 @@ class UIndicatorDescriptorDataObj;
  * 
  */
 UCLASS(MinimalAPI, Abstract)
-class UCustomGameplayAbility_Interact : public UCustomGameplayAbility
+class UCustomGameplayAbility_Interact : public UExtGameplayAbility
 {
 	GENERATED_BODY()
 

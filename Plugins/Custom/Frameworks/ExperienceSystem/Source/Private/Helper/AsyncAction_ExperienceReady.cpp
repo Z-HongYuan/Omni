@@ -3,9 +3,9 @@
 
 #include "Helper/AsyncAction_ExperienceReady.h"
 
-#include "Components/ExperienceManagerComponent.h"
+#include "Components/ExpManagerComponent.h"
 #include "GameFramework/GameStateBase.h"
-#include "Logs/LogExperienceSystem.h"
+#include "Logs/LogExpSystem.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(AsyncAction_ExperienceReady)
 
@@ -41,7 +41,7 @@ void UAsyncAction_ExperienceReady::Activate()
 	else
 	{
 		// 如果无效的话,直接结束监听
-		UE_LOG(LogExperienceSystem, Warning, TEXT("UAsyncAction_ExperienceReady::Activate: World is null"));
+		UE_LOG(LogExpSystem, Warning, TEXT("UAsyncAction_ExperienceReady::Activate: World is null"));
 		SetReadyToDestroy();
 	}
 }
@@ -58,7 +58,7 @@ void UAsyncAction_ExperienceReady::SetReadyToDestroy()
 void UAsyncAction_ExperienceReady::ListenToExperienceLoading(const AGameStateBase* GameState)
 {
 	check(GameState);
-	UExperienceManagerComponent* ExperienceComponent = GameState->FindComponentByClass<UExperienceManagerComponent>();
+	UExpManagerComponent* ExperienceComponent = GameState->FindComponentByClass<UExpManagerComponent>();
 	check(ExperienceComponent);
 
 	TWeakObjectPtr<UAsyncAction_ExperienceReady> WeakThis(this);
@@ -85,7 +85,7 @@ void UAsyncAction_ExperienceReady::ListenToExperienceLoading(const AGameStateBas
 	else
 	{
 		// 如果还在加载,就注册一个委托,当体验完成后触发,体验加载完成后会自动销毁委托
-		ExperienceComponent->CallOrRegister_OnExperienceLoaded(FOnExperienceLoaded::FDelegate::CreateLambda([WeakThis](const UExperienceDefinition* CurrentExperience)
+		ExperienceComponent->CallOrRegister_OnExperienceLoaded(FExpLoaded::FDelegate::CreateLambda([WeakThis](const UExpDefinition* CurrentExperience)
 		{
 			WeakThis->OnReady.Broadcast();
 			WeakThis->SetReadyToDestroy();

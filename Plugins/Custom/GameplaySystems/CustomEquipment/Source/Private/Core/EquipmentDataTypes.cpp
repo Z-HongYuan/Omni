@@ -5,7 +5,7 @@
 #include "AbilitySystemGlobals.h"
 #include "Core/EquipmentDefinition.h"
 #include "Core/EquipmentInstance.h"
-#include "System/CustomAbilitySystemComponent.h"
+#include "System/ExtAbilitySystemComponent.h"
 #include "AbilitySystemComponent.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(EquipmentDataTypes)
@@ -69,9 +69,9 @@ UEquipmentInstance* FEquipmentList::AddEntry(TSubclassOf<UEquipmentDefinition> E
 	NewEntry.Instance = NewObject<UEquipmentInstance>(OwnerComponent->GetOwner(), InstanceType); //@TODO:由于 UE-127172，外部使用actor而非组件
 	Result = NewEntry.Instance;
 
-	if (UCustomAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	if (UExtAbilitySystemComponent* ASC = GetAbilitySystemComponent())
 	{
-		for (const TObjectPtr<const UCustomAbilitySet>& AbilitySet : EquipmentCDO->AbilitySetsToGrant)
+		for (const TObjectPtr<const UExtAbilitySet>& AbilitySet : EquipmentCDO->AbilitySetsToGrant)
 		{
 			AbilitySet->GiveToAbilitySystem(ASC, &NewEntry.GrantedHandles, Result);
 		}
@@ -95,7 +95,7 @@ void FEquipmentList::RemoveEntry(UEquipmentInstance* Instance)
 		FAppliedEquipmentEntry& Entry = *EntryIt;
 		if (Entry.Instance == Instance)
 		{
-			if (UCustomAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+			if (UExtAbilitySystemComponent* ASC = GetAbilitySystemComponent())
 			{
 				Entry.GrantedHandles.TakeFromAbilitySystem(ASC);
 			}
@@ -108,10 +108,10 @@ void FEquipmentList::RemoveEntry(UEquipmentInstance* Instance)
 	}
 }
 
-UCustomAbilitySystemComponent* FEquipmentList::GetAbilitySystemComponent() const
+UExtAbilitySystemComponent* FEquipmentList::GetAbilitySystemComponent() const
 {
 	check(OwnerComponent);
 	// 获取组件的Owner,应该就是Character或者Pawn
 	AActor* OwningActor = OwnerComponent->GetOwner();
-	return Cast<UCustomAbilitySystemComponent>(UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwningActor));
+	return Cast<UExtAbilitySystemComponent>(UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwningActor));
 }

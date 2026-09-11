@@ -22,6 +22,10 @@
   ],
   "Plugins": [
     {
+      "Name": "GameUser",
+      "Enabled": true
+    },
+    {
       "Name": "GameFeatures",
       "Enabled": true
     },
@@ -38,7 +42,7 @@
       "Enabled": true
     },
     {
-      "Name": "GameAbilitySystem",
+      "Name": "AbilityExtension",
       "Enabled": true
     },
     {
@@ -47,10 +51,6 @@
     },
     {
       "Name": "EnhancedInput",
-      "Enabled": true
-    },
-    {
-      "Name": "GameInputSystem",
       "Enabled": true
     },
     {

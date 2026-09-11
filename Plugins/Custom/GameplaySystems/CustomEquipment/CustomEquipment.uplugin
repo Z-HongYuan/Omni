@@ -22,7 +22,7 @@
   ],
   "Plugins": [
     {
-      "Name": "GameAbilitySystem",
+      "Name": "AbilityExtension",
       "Enabled": true
     },
     {
