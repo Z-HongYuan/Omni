@@ -24,7 +24,7 @@ enum class EMessageRouterMatchRule : uint8
 template <typename FMessageStructType>
 struct FMessageRouterListenerParams
 {
-	/** Callback 是否应该被更派生的通道广播调用，还是仅在精确匹配时调用。 */
+	/** 回调是否接收子通道上的广播，或仅接收完全匹配的通道。 */
 	EMessageRouterMatchRule MatchType = EMessageRouterMatchRule::ExactMatch;
 
 	/** 如果绑定，此回调将在指定通道上广播消息时触发。 */

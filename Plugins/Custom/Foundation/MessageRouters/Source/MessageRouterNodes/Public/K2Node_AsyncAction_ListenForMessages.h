@@ -8,7 +8,7 @@
 #define UE_API MESSAGEROUTERNODES_API
 
 /**
- * 
+ * 消息监听的专用蓝图节点，负责根据消息类型生成负载输出和事件处理流程。
  */
 UCLASS(MinimalAPI)
 class UK2Node_AsyncAction_ListenForMessage : public UK2Node_AsyncAction
@@ -16,16 +16,16 @@ class UK2Node_AsyncAction_ListenForMessage : public UK2Node_AsyncAction
 	GENERATED_BODY()
 
 public:
-	//~UEdGraphNode interface
+	//~UEdGraphNode 接口
 	virtual void PostReconstructNode() override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* ChangedPin) override;
 	virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
-	//~End of UEdGraphNode interface
+	//~UEdGraphNode 接口结束
 
-	//~UK2Node interface
+	//~UK2Node 接口
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual void AllocateDefaultPins() override;
-	//~End of UK2Node interface
+	//~UK2Node 接口结束
 
 protected:
 	virtual bool HandleDelegates(

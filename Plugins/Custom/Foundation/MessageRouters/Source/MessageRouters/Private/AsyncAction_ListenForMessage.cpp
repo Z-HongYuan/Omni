@@ -3,6 +3,9 @@
 
 #include "AsyncAction_ListenForMessage.h"
 #include "Engine/Engine.h"
+#include "Engine/World.h"
+#include "Templates/UnrealTemplate.h"
+#include "UObject/Stack.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(AsyncAction_ListenForMessage)
 
@@ -81,18 +84,22 @@ void UAsyncAction_ListenForMessage::SetReadyToDestroy()
 
 void UAsyncAction_ListenForMessage::HandleMessageReceived(FGameplayTag Channel, const UScriptStruct* StructType, const void* Payload)
 {
+	// 分发使用监听列表副本；即使已经注销，当前轮也可能再次调用此对象。
+	if (!ShouldBroadcastDelegates())
+	{
+		return;
+	}
+
 	if (!MessageStructType.Get() || (MessageStructType.Get() == StructType))
 	{
-		ReceivedMessagePayloadPtr = Payload;
-
+		// 嵌套消息结束后恢复外层负载，而不是提前清空外层回调仍在使用的指针。
+		TGuardValue<const void*> PayloadGuard(ReceivedMessagePayloadPtr, Payload);
 		OnMessageReceived.Broadcast(this, Channel);
-
-		ReceivedMessagePayloadPtr = nullptr;
 	}
 
 	if (!OnMessageReceived.IsBound())
 	{
-		//如果创建异步节点的BP对象被销毁，OnMessageReceived在调用广播后将被解绑。在这种情况下，我们可以安全地标记该接收机为待销毁状态。需要支持更主动的清理机制 FORT-340994
+		// 创建节点的蓝图对象销毁后若已无有效接收者，结束任务并注销监听。
 		SetReadyToDestroy();
 	}
 }

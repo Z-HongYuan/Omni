@@ -47,7 +47,7 @@ void UK2Node_AsyncAction_ListenForMessage::GetPinHoverText(const UEdGraphPin& Pi
 	Super::GetPinHoverText(Pin, HoverTextOut);
 	if (Pin.PinName == UK2Node_AsyncAction_ListenForMessageHelper::PayloadPinName)
 	{
-		HoverTextOut = HoverTextOut + LOCTEXT("PayloadOutTooltip", "\n\nThe message structure that we received").ToString();
+		HoverTextOut = HoverTextOut + LOCTEXT("PayloadOutTooltip", "\n\n接收到的消息结构体").ToString();
 	}
 }
 
@@ -88,7 +88,7 @@ void UK2Node_AsyncAction_ListenForMessage::AllocateDefaultPins()
 {
 	Super::AllocateDefaultPins();
 
-	// UAsyncAction_ListenForGameplayMessage 代理的输出是一个代理对象，在触发后调用 GetPayload 时会被使用。这只在该节点内部需要，因此对编辑器隐藏引脚。
+	// 委托中的 ProxyObject 仅供节点内部调用 GetPayload 使用，因此隐藏该引脚；用于取消任务的 AsyncAction 引脚仍然保留。
 	UEdGraphPin* DelegateProxyPin = FindPin(UK2Node_AsyncAction_ListenForMessageHelper::DelegateProxyPinName);
 	if (ensure(DelegateProxyPin))
 	{
@@ -108,7 +108,7 @@ bool UK2Node_AsyncAction_ListenForMessage::HandleDelegates(const TArray<FBaseAsy
 
 	if (VariableOutputs.Num() != 3)
 	{
-		ensureMsgf(false, TEXT("UK2Node_AsyncAction_ListenForGameplayMessages::HandleDelegates - Variable output array not valid. Output delegates must only have the single proxy object output and than must have pin for payload."));
+		ensureMsgf(false, TEXT("UK2Node_AsyncAction_ListenForMessage::HandleDelegates requires proxy object, actual channel and payload outputs."));
 		return false;
 	}
 
@@ -159,17 +159,16 @@ bool UK2Node_AsyncAction_ListenForMessage::HandlePayloadImplementation(FMulticas
 	CallGetPayloadNode->FunctionReference.SetExternalMember(TEXT("GetPayload"), CurrentProperty->GetOwnerClass());
 	CallGetPayloadNode->AllocateDefaultPins();
 
-	// Hook up the self connection
+	// 连接调用 GetPayload 所需的代理对象。
 	UEdGraphPin* GetPayloadCallSelfPin = Schema->FindSelfPin(*CallGetPayloadNode, EGPD_Input);
 	if (GetPayloadCallSelfPin)
 	{
 		bIsErrorFree &= Schema->TryCreateConnection(GetPayloadCallSelfPin, ProxyObjectVar.TempVar->GetVariablePin());
 
-		// Hook the activate node up in the exec chain
+		// 将负载读取与赋值接入事件执行链。
 		UEdGraphPin* GetPayloadExecPin = CallGetPayloadNode->FindPinChecked(UEdGraphSchema_K2::PN_Execute);
 		UEdGraphPin* GetPayloadThenPin = CallGetPayloadNode->FindPinChecked(UEdGraphSchema_K2::PN_Then);
 
-		UEdGraphPin* LastThenPin = nullptr;
 		UEdGraphPin* GetPayloadPin = CallGetPayloadNode->FindPinChecked(TEXT("OutPayload"));
 		bIsErrorFree &= Schema->TryCreateConnection(TempVarOutput->GetVariablePin(), GetPayloadPin);
 

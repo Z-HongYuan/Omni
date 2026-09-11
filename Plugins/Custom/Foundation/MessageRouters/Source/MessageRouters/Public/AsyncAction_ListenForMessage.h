@@ -18,7 +18,7 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAsyncGameplayMessageDelegate, UAsyncAction_ListenForMessage*, ProxyObject, FGameplayTag, ActualChannel);
 
 /**
- * 异步等待消息广播
+ * 持续监听消息的异步任务；收到消息时同步转发事件，调用 Cancel 结束监听。
  */
 UCLASS(MinimalAPI, BlueprintType, meta=(HasDedicatedAsyncNode))
 class UAsyncAction_ListenForMessage : public UCancellableAsyncAction
@@ -27,7 +27,7 @@ class UAsyncAction_ListenForMessage : public UCancellableAsyncAction
 
 public:
 	/**
-	 * 异步等待在指定通道上广播 gameplay 消息。
+	 * 等待在指定通道上广播的消息。
 	 *
 	 * @param Channel			要监听的消息通道
 	 * @param PayloadType		要使用的消息结构类型（这必须与发送者广播的类型相同）
@@ -37,10 +37,10 @@ public:
 	static UE_API UAsyncAction_ListenForMessage* ListenForMessage(UObject* WorldContextObject, FGameplayTag Channel, UScriptStruct* PayloadType, EMessageRouterMatchRule MatchType = EMessageRouterMatchRule::ExactMatch);
 
 	/**
-	 * 尝试将从广播的 gameplay 消息接收的 payload 复制到指定的通配符中。
+	 * 尝试将当前消息负载复制到指定的通配符中，只能在消息回调执行期间读取。
 	 * 通配符的类型必须与接收消息的类型匹配。
 	 *
-	 * @param OutPayload	应该复制 payload 的通配符引用
+	 * @param OutPayload	接收消息负载的通配符引用
 	 * @return				如果复制成功则返回 true
 	 */
 	UFUNCTION(BlueprintCallable, CustomThunk, Category = Messaging, meta = (CustomStructureParam = "OutPayload"))
@@ -52,7 +52,7 @@ public:
 	UE_API virtual void SetReadyToDestroy() override;
 
 public:
-	/** 当在指定通道上广播消息时调用。使用 GetPayload() 请求消息 payload。 */
+	/** 当在指定通道上广播消息时调用。使用 GetPayload() 读取当前消息负载。 */
 	UPROPERTY(BlueprintAssignable)
 	FAsyncGameplayMessageDelegate OnMessageReceived;
 

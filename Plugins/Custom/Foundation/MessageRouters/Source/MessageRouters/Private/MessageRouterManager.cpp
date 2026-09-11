@@ -4,11 +4,13 @@
 #include "MessageRouterManager.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
+#include "Engine/World.h"
 #include "HAL/IConsoleManager.h"
+#include "UObject/Stack.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(MessageRouterManager)
 
-DECLARE_LOG_CATEGORY_EXTERN(LogMessageRouterManager, Log, All) //定义日志分类
+DECLARE_LOG_CATEGORY_EXTERN(LogMessageRouterManager, Log, All); // 定义日志分类
 DEFINE_LOG_CATEGORY(LogMessageRouterManager);
 
 namespace UE
@@ -18,7 +20,7 @@ namespace UE
 		static int32 ShouldLogMessages = 0;
 		static FAutoConsoleVariableRef CVarShouldLogMessages(TEXT("MessageRouterManager.LogMessages"),
 		                                                     ShouldLogMessages,
-		                                                     TEXT("Should messages broadcast through the MessageRouterManager be logged?"));
+		                                                     TEXT("是否记录消息路由器广播的消息。"));
 	}
 }
 
@@ -29,10 +31,10 @@ void FMessageRouterListenerHandle::Unregister()
 	if (UMessageRouterManager* StrongSubsystem = Subsystem.Get())
 	{
 		StrongSubsystem->UnregisterListener(*this);
-		Subsystem.Reset();
-		Channel = FGameplayTag();
-		ID = 0;
 	}
+	Subsystem.Reset();
+	Channel = FGameplayTag();
+	ID = 0;
 }
 
 // UMessageRouterManager
@@ -129,8 +131,8 @@ void UMessageRouterManager::BroadcastMessageInternal(FGameplayTag Channel, const
 				{
 					if (Listener.bHadValidType && !Listener.ListenerStructType.IsValid())
 					{
-						UE_LOG(LogMessageRouterManager, Warning, TEXT("Listener struct type has gone invalid on Channel %s. Removing listener from list"), *Channel.ToString());
-						UnregisterListenerInternal(Channel, Listener.HandleID);
+						UE_LOG(LogMessageRouterManager, Warning, TEXT("Listener struct type has gone invalid on Channel %s. Removing listener from list"), *Tag.ToString());
+						UnregisterListenerInternal(Tag, Listener.HandleID);
 						continue;
 					}
 
@@ -159,13 +161,19 @@ FMessageRouterListenerHandle UMessageRouterManager::RegisterListenerInternal(FGa
                                                                              const UScriptStruct* StructType,
                                                                              EMessageRouterMatchRule MatchType)
 {
+	// 达到句柄编号上限时拒绝注册，不允许溢出后复用旧编号。
+	if (!ensureMsgf(LastListenerID < MAX_int32, TEXT("Message router listener IDs exhausted")))
+	{
+		return FMessageRouterListenerHandle();
+	}
+
 	FChannelListenerList& List = ListenerMap.FindOrAdd(Channel);
 
 	FMessageRouterListenerData& Entry = List.Listeners.AddDefaulted_GetRef();
 	Entry.ReceivedCallback = MoveTemp(Callback);
 	Entry.ListenerStructType = StructType;
 	Entry.bHadValidType = (StructType != nullptr);
-	Entry.HandleID = ++List.HandleID;
+	Entry.HandleID = ++LastListenerID;
 	Entry.MatchType = MatchType;
 
 	return FMessageRouterListenerHandle(this, Channel, Entry.HandleID);

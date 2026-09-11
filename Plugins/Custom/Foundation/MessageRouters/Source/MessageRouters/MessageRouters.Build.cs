@@ -11,12 +11,6 @@ public class MessageRouters : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-			}
-		);
-
-		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
 				"Core",
 				"CoreUObject",
 				"Engine",

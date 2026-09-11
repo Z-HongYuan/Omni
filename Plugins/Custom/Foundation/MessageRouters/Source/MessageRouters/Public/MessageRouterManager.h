@@ -22,7 +22,7 @@ struct FMessageRouterListenerHandle
 public:
 	GENERATED_BODY()
 
-	FMessageRouterListenerHandle() { ; }
+	FMessageRouterListenerHandle() = default;
 
 	UE_API void Unregister();
 
@@ -38,11 +38,11 @@ private:
 	UPROPERTY(Transient)
 	int32 ID = 0;
 
-	// FDelegateHandle StateClearedHandle; 没有使用
-
 	friend UMessageRouterManager;
 
-	FMessageRouterListenerHandle(UMessageRouterManager* InSubsystem, FGameplayTag InChannel, int32 InID) : Subsystem(InSubsystem), Channel(InChannel), ID(InID) { ; }
+	FMessageRouterListenerHandle(UMessageRouterManager* InSubsystem, FGameplayTag InChannel, int32 InID) : Subsystem(InSubsystem), Channel(InChannel), ID(InID)
+	{
+	}
 };
 
 /** 
@@ -59,14 +59,15 @@ struct FMessageRouterListenerData
 	int32 HandleID;
 	EMessageRouterMatchRule MatchType;
 
-	// 围绕此问题的一些潜在问题添加了一些日志记录和额外变量
+	// 记录注册时是否指定消息类型，用于区分未指定类型与类型失效。
 	TWeakObjectPtr<const UScriptStruct> ListenerStructType = nullptr;
 	bool bHadValidType = false;
 };
 
 /**
- * 消息路由
- * 使用 Tag 和 Struct 共同构建的消息总线系统
+ * 游戏实例内的同步消息总线，以 GameplayTag 标识通道，以 USTRUCT 定义消息内容。
+ * 广播与回调应在游戏线程执行，不提供网络复制或消息缓存。
+ * 同一通道的监听顺序不保证；分发使用监听列表副本，回调中可以注册或注销监听。
  */
 UCLASS(MinimalAPI)
 class UMessageRouterManager : public UGameInstanceSubsystem
@@ -82,7 +83,7 @@ public:
 	static UE_API UMessageRouterManager& Get(const UObject* WorldContextObject);
 
 	/**
-	 * @return 如果提供的世界中存在有效的 GameplayMessageRouter 子系统则返回 true
+	 * @return 如果提供的世界中存在有效的消息路由子系统则返回 true
 	 */
 	static UE_API bool HasInstance(const UObject* WorldContextObject);
 
@@ -91,10 +92,10 @@ public:
 	//~USubsystem 接口结束
 
 	/**
-	 * Broadcast a message on the specified channel
+	 * 在指定通道上同步广播消息，所有回调结束后才返回。
 	 *
-	 * @param Channel			The message channel to broadcast on
-	 * @param Message			The message to send (must be the same type of UScriptStruct expected by the listeners for this channel, otherwise an error will be logged)
+	 * @param Channel			要广播的消息通道
+	 * @param Message			消息结构体；类型必须兼容监听器声明的类型，否则会记录错误。
 	 */
 	template <typename FMessageStructType>
 	void BroadcastMessage(FGameplayTag Channel, const FMessageStructType& Message)
@@ -212,10 +213,12 @@ private:
 	struct FChannelListenerList
 	{
 		TArray<FMessageRouterListenerData> Listeners;
-		int32 HandleID = 0;
 	};
 
 	TMap<FGameplayTag, FChannelListenerList> ListenerMap;
+
+	// 通道清空或重新创建时也不重置，避免旧句柄误注销后来注册的监听。
+	int32 LastListenerID = 0;
 };
 
 #undef UE_API

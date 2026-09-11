@@ -11,6 +11,7 @@ public class MessageRouterNodes : ModuleRules
         PublicDependencyModuleNames.AddRange(
             new string[]
             {
+                "BlueprintGraph"
             }
         );
 
@@ -20,9 +21,7 @@ public class MessageRouterNodes : ModuleRules
                 "Core",
                 "CoreUObject",
                 "Engine",
-                "BlueprintGraph",
                 "UnrealEd",
-                "BlueprintGraph",
                 "KismetCompiler",
                 "MessageRouters"
             }
