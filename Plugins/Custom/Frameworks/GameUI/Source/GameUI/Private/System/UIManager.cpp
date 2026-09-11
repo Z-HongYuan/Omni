@@ -2,8 +2,8 @@
 
 
 #include "System/UIManager.h"
-#include "AdvancedUISettings.h"
-#include "LogAdvancedUI.h"
+#include "GameUISettings.h"
+#include "LogGameUI.h"
 #include "Engine/GameInstance.h"
 #include "GameFramework/HUD.h"
 #include "System/UIPolicy.h"
@@ -16,7 +16,7 @@ void UUIManager::Initialize(FSubsystemCollectionBase& Collection)
 	Super::Initialize(Collection);
 
 	//获取开发者设置
-	const UAdvancedUISettings* UISettings = GetDefault<UAdvancedUISettings>();
+	const UGameUISettings* UISettings = GetDefault<UGameUISettings>();
 	TSoftClassPtr<UUIPolicy> SoftPolicyClass = UISettings->DefaultUIPolicyClass;
 
 	if (!CurrentPolicy && !SoftPolicyClass.IsNull())
@@ -28,7 +28,7 @@ void UUIManager::Initialize(FSubsystemCollectionBase& Collection)
 		}
 		else
 		{
-			UE_LOG(LogAdvancedUI, Warning, TEXT("UUIManager::Initialize: UI 策略 [%s] 加载失败或不是可实例化的类。"), *SoftPolicyClass.ToString());
+			UE_LOG(LogGameUI, Warning, TEXT("UUIManager::Initialize: UI 策略 [%s] 加载失败或不是可实例化的类。"), *SoftPolicyClass.ToString());
 		}
 	}
 
@@ -43,7 +43,7 @@ void UUIManager::Initialize(FSubsystemCollectionBase& Collection)
 	}
 	else
 	{
-		UE_LOG(LogAdvancedUI, Error, TEXT("UUIManager::Initialize: 无法获取游戏实例，不能绑定本地玩家事件。"))
+		UE_LOG(LogGameUI, Error, TEXT("UUIManager::Initialize: 无法获取游戏实例，不能绑定本地玩家事件。"))
 	}
 }
 
@@ -64,7 +64,7 @@ void UUIManager::Deinitialize()
 	}
 	else
 	{
-		UE_LOG(LogAdvancedUI, Error, TEXT("UUIManager::Deinitialize: 无法获取游戏实例，不能解除本地玩家事件。"))
+		UE_LOG(LogGameUI, Error, TEXT("UUIManager::Deinitialize: 无法获取游戏实例，不能解除本地玩家事件。"))
 	}
 }
 

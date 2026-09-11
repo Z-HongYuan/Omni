@@ -9,7 +9,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Engine/StreamableManager.h"
 #include "HelperFunctions/UIHelperFunctions.h"
-#include "LogAdvancedUI.h"
+#include "LogGameUI.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(AsyncAction_CreateWidget)
 
@@ -19,14 +19,14 @@ UAsyncAction_CreateWidget* UAsyncAction_CreateWidget::CreateWidgetAsync(UObject*
 {
 	if (InUserWidgetSoftClass.IsNull())
 	{
-		UE_LOG(LogAdvancedUI, Warning, TEXT("CreateWidgetAsync: 未指定控件类。"));
+		UE_LOG(LogGameUI, Warning, TEXT("CreateWidgetAsync: 未指定控件类。"));
 		return nullptr;
 	}
 
 	UWorld* World = GEngine ? GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::ReturnNull) : nullptr;
 	if (!World || !World->GetGameInstance())
 	{
-		UE_LOG(LogAdvancedUI, Warning, TEXT("CreateWidgetAsync: 无法获取有效的世界或游戏实例。"));
+		UE_LOG(LogGameUI, Warning, TEXT("CreateWidgetAsync: 无法获取有效的世界或游戏实例。"));
 		return nullptr;
 	}
 

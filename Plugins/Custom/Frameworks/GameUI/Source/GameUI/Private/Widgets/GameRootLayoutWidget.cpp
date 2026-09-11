@@ -3,10 +3,10 @@
 
 #include "Widgets/GameRootLayoutWidget.h"
 
-#include "LogAdvancedUI.h"
+#include "LogGameUI.h"
 #include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
-#include "System/AdvancedUIGameplayTags.h"
+#include "System/GameUIGameplayTags.h"
 #include "System/UIManager.h"
 #include "System/UIPolicy.h"
 
@@ -45,7 +45,7 @@ void UGameRootLayoutWidget::SetIsDormant(bool InDormant)
 	const TCHAR* OldDormancyStr = bIsDormant ? TEXT("Dormant") : TEXT("Not-Dormant");
 	const TCHAR* NewDormancyStr = InDormant ? TEXT("Dormant") : TEXT("Not-Dormant");
 	const TCHAR* PrimaryPlayerStr = LP && LP->IsPrimaryPlayer() ? TEXT("[Primary]") : TEXT("[Non-Primary]");
-	UE_LOG(LogAdvancedUI, Display, TEXT("%s UGameRootLayoutWidget Dormancy changed for [%d] from [%s] to [%s]"), PrimaryPlayerStr, PlayerId, OldDormancyStr, NewDormancyStr);
+	UE_LOG(LogGameUI, Display, TEXT("%s UGameRootLayoutWidget Dormancy changed for [%d] from [%s] to [%s]"), PrimaryPlayerStr, PlayerId, OldDormancyStr, NewDormancyStr);
 
 	bIsDormant = InDormant;
 	OnIsDormantChanged();
@@ -105,8 +105,8 @@ void UGameRootLayoutWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 
-	if (LayerStack_Modal) RegisterLayer(AdvancedUITags::TAG_AdvancedUI_UIStack_Modal, LayerStack_Modal);
-	if (LayerStack_GameMenu) RegisterLayer(AdvancedUITags::TAG_AdvancedUI_UIStack_GameMenu, LayerStack_GameMenu);
-	if (LayerStack_GameHUD) RegisterLayer(AdvancedUITags::TAG_AdvancedUI_UIStack_GameHUD, LayerStack_GameHUD);
-	if (LayerStack_Frontend) RegisterLayer(AdvancedUITags::TAG_AdvancedUI_UIStack_Frontend, LayerStack_Frontend);
+	if (LayerStack_Modal) RegisterLayer(GameUITags::TAG_GameUI_UIStack_Modal, LayerStack_Modal);
+	if (LayerStack_GameMenu) RegisterLayer(GameUITags::TAG_GameUI_UIStack_GameMenu, LayerStack_GameMenu);
+	if (LayerStack_GameHUD) RegisterLayer(GameUITags::TAG_GameUI_UIStack_GameHUD, LayerStack_GameHUD);
+	if (LayerStack_Frontend) RegisterLayer(GameUITags::TAG_GameUI_UIStack_Frontend, LayerStack_Frontend);
 }

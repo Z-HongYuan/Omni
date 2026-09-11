@@ -7,9 +7,9 @@
 #include "CommonTextBlock.h"
 #include "ICommonInputModule.h"
 #include "Components/DynamicEntryBox.h"
-#include "LogAdvancedUI.h"
-#include "System/AdvancedUIGameplayTags.h"
-#include "Widgets/Basic/AdvancedButtonBase.h"
+#include "LogGameUI.h"
+#include "System/GameUIGameplayTags.h"
+#include "Widgets/Basic/GameUIButtonBase.h"
 
 #if WITH_EDITOR
 #include "CommonInputSettings.h"
@@ -23,7 +23,7 @@ void UDialogWidgetBase::SetupDialog(UDialogWidgetDescriptorBase* Descriptor, FDi
 	Text_Title->SetText(Descriptor->Title);
 	RichText_Description->SetText(Descriptor->Body);
 
-	EntryBox_Buttons->Reset<UAdvancedButtonBase>([](const UAdvancedButtonBase& Button)
+	EntryBox_Buttons->Reset<UGameUIButtonBase>([](const UGameUIButtonBase& Button)
 	{
 		Button.OnClicked().Clear();
 	});
@@ -32,26 +32,26 @@ void UDialogWidgetBase::SetupDialog(UDialogWidgetDescriptorBase* Descriptor, FDi
 	{
 		FDataTableRowHandle ActionRow;
 
-		if (Action.ActionResult.MatchesTagExact(AdvancedUITags::TAG_AdvancedUI_Dialog_Confirmed))
+		if (Action.ActionResult.MatchesTagExact(GameUITags::TAG_GameUI_Dialog_Confirmed))
 		{
 			ActionRow = ICommonInputModule::GetSettings().GetDefaultClickAction();
 		}
-		else if (Action.ActionResult.MatchesTagExact(AdvancedUITags::TAG_AdvancedUI_Dialog_Declined))
+		else if (Action.ActionResult.MatchesTagExact(GameUITags::TAG_GameUI_Dialog_Declined))
 		{
 			ActionRow = ICommonInputModule::GetSettings().GetDefaultBackAction();
 		}
-		else if (Action.ActionResult.MatchesTagExact(AdvancedUITags::TAG_AdvancedUI_Dialog_Cancelled))
+		else if (Action.ActionResult.MatchesTagExact(GameUITags::TAG_GameUI_Dialog_Cancelled))
 		{
 			ActionRow = CancelAction;
 		}
 		else
 		{
 			// 未匹配到预设结果的按钮使用默认点击动作,避免按钮没有任何触发输入动作
-			UE_LOG(LogAdvancedUI, Warning, TEXT("UDialogWidgetBase::SetupDialog: Action result [%s] has no predefined input action, falling back to default click action"), *Action.ActionResult.ToString());
+			UE_LOG(LogGameUI, Warning, TEXT("UDialogWidgetBase::SetupDialog: Action result [%s] has no predefined input action, falling back to default click action"), *Action.ActionResult.ToString());
 			ActionRow = ICommonInputModule::GetSettings().GetDefaultClickAction();
 		}
 
-		UAdvancedButtonBase* Button = EntryBox_Buttons->CreateEntry<UAdvancedButtonBase>();
+		UGameUIButtonBase* Button = EntryBox_Buttons->CreateEntry<UGameUIButtonBase>();
 		Button->SetTriggeringInputAction(ActionRow);
 		Button->OnClicked().AddUObject(this, &ThisClass::CloseConfirmationWindow, Action.ActionResult);
 		Button->SetButtonText(Action.OptionalDisplayText);
@@ -63,7 +63,7 @@ void UDialogWidgetBase::SetupDialog(UDialogWidgetDescriptorBase* Descriptor, FDi
 void UDialogWidgetBase::KillDialog()
 {
 	// 明确关闭对话框(无用户输入),以 Killed 结果通知调用方
-	CloseConfirmationWindow(AdvancedUITags::TAG_AdvancedUI_Dialog_Killed);
+	CloseConfirmationWindow(GameUITags::TAG_GameUI_Dialog_Killed);
 }
 
 #if WITH_EDITOR
@@ -96,7 +96,7 @@ FEventReply UDialogWidgetBase::HandleTapToCloseZoneMouseButtonDown(FGeometry MyG
 
 	if (MouseEvent.IsTouchEvent() || MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		CloseConfirmationWindow(AdvancedUITags::TAG_AdvancedUI_Dialog_Declined);
+		CloseConfirmationWindow(GameUITags::TAG_GameUI_Dialog_Declined);
 		Reply.NativeReply = FReply::Handled();
 	}
 

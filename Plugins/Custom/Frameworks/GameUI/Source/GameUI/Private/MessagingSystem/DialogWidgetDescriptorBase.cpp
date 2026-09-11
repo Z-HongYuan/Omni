@@ -3,7 +3,7 @@
 
 #include "MessagingSystem/DialogWidgetDescriptorBase.h"
 
-#include "System/AdvancedUIGameplayTags.h"
+#include "System/GameUIGameplayTags.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(DialogWidgetDescriptorBase)
 
@@ -14,7 +14,7 @@ UDialogWidgetDescriptorBase* UDialogWidgetDescriptorBase::CreateConfirmationOk(c
 	Descriptor->Body = Body;
 
 	FConfirmationDialogAction ConfirmAction;
-	ConfirmAction.ActionResult = AdvancedUITags::TAG_AdvancedUI_Dialog_Confirmed;
+	ConfirmAction.ActionResult = GameUITags::TAG_GameUI_Dialog_Confirmed;
 	ConfirmAction.OptionalDisplayText = NSLOCTEXT("AdvancedMessaging", "Ok", "Ok");
 
 	Descriptor->ButtonActions.Add(ConfirmAction);
@@ -29,11 +29,11 @@ UDialogWidgetDescriptorBase* UDialogWidgetDescriptorBase::CreateConfirmationOkCa
 	Descriptor->Body = Body;
 
 	FConfirmationDialogAction ConfirmAction;
-	ConfirmAction.ActionResult = AdvancedUITags::TAG_AdvancedUI_Dialog_Confirmed;
+	ConfirmAction.ActionResult = GameUITags::TAG_GameUI_Dialog_Confirmed;
 	ConfirmAction.OptionalDisplayText = NSLOCTEXT("AdvancedMessaging", "Ok", "Ok");
 
 	FConfirmationDialogAction CancelAction;
-	CancelAction.ActionResult = AdvancedUITags::TAG_AdvancedUI_Dialog_Cancelled;
+	CancelAction.ActionResult = GameUITags::TAG_GameUI_Dialog_Cancelled;
 	CancelAction.OptionalDisplayText = NSLOCTEXT("AdvancedMessaging", "Cancel", "Cancel");
 
 	Descriptor->ButtonActions.Add(ConfirmAction);
@@ -49,11 +49,11 @@ UDialogWidgetDescriptorBase* UDialogWidgetDescriptorBase::CreateConfirmationYesN
 	Descriptor->Body = Body;
 
 	FConfirmationDialogAction ConfirmAction;
-	ConfirmAction.ActionResult = AdvancedUITags::TAG_AdvancedUI_Dialog_Confirmed;
+	ConfirmAction.ActionResult = GameUITags::TAG_GameUI_Dialog_Confirmed;
 	ConfirmAction.OptionalDisplayText = NSLOCTEXT("AdvancedMessaging", "Yes", "Yes");
 
 	FConfirmationDialogAction DeclineAction;
-	DeclineAction.ActionResult = AdvancedUITags::TAG_AdvancedUI_Dialog_Declined;
+	DeclineAction.ActionResult = GameUITags::TAG_GameUI_Dialog_Declined;
 	DeclineAction.OptionalDisplayText = NSLOCTEXT("AdvancedMessaging", "No", "No");
 
 	Descriptor->ButtonActions.Add(ConfirmAction);
@@ -69,15 +69,15 @@ UDialogWidgetDescriptorBase* UDialogWidgetDescriptorBase::CreateConfirmationYesN
 	Descriptor->Body = Body;
 
 	FConfirmationDialogAction ConfirmAction;
-	ConfirmAction.ActionResult = AdvancedUITags::TAG_AdvancedUI_Dialog_Confirmed;
+	ConfirmAction.ActionResult = GameUITags::TAG_GameUI_Dialog_Confirmed;
 	ConfirmAction.OptionalDisplayText = NSLOCTEXT("AdvancedMessaging", "Yes", "Yes");
 
 	FConfirmationDialogAction DeclineAction;
-	DeclineAction.ActionResult = AdvancedUITags::TAG_AdvancedUI_Dialog_Declined;
+	DeclineAction.ActionResult = GameUITags::TAG_GameUI_Dialog_Declined;
 	DeclineAction.OptionalDisplayText = NSLOCTEXT("AdvancedMessaging", "No", "No");
 
 	FConfirmationDialogAction CancelAction;
-	CancelAction.ActionResult = AdvancedUITags::TAG_AdvancedUI_Dialog_Cancelled;
+	CancelAction.ActionResult = GameUITags::TAG_GameUI_Dialog_Cancelled;
 	CancelAction.OptionalDisplayText = NSLOCTEXT("AdvancedMessaging", "Cancel", "Cancel");
 
 	Descriptor->ButtonActions.Add(ConfirmAction);

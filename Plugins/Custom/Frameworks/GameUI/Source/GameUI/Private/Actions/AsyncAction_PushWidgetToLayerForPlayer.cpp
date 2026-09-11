@@ -5,7 +5,7 @@
 
 #include "Engine/Engine.h"
 #include "Engine/StreamableManager.h"
-#include "LogAdvancedUI.h"
+#include "LogGameUI.h"
 #include "Widgets/GameRootLayoutWidget.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(AsyncAction_PushWidgetToLayerForPlayer)
@@ -42,7 +42,7 @@ void UAsyncAction_PushWidgetToLayerForPlayer::Activate()
 	UGameRootLayoutWidget* RootLayout = UGameRootLayoutWidget::GetRootLayoutWidget(OwningPlayerPtr.Get());
 	if (!RootLayout)
 	{
-		UE_LOG(LogAdvancedUI, Warning, TEXT("PushWidgetToLayerForPlayer: 无法获取层 [%s] 的根布局，推送已取消。"), *LayerName.ToString());
+		UE_LOG(LogGameUI, Warning, TEXT("PushWidgetToLayerForPlayer: 无法获取层 [%s] 的根布局，推送已取消。"), *LayerName.ToString());
 		Cancel();
 		return;
 	}

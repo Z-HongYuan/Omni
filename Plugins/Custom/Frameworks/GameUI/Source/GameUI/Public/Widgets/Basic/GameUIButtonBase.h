@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CommonButtonBase.h"
-#include "AdvancedButtonBase.generated.h"
+#include "GameUIButtonBase.generated.h"
 
 #define UE_API GAMEUI_API
 
@@ -11,7 +11,7 @@
  * 最基础的按钮按键
  */
 UCLASS(MinimalAPI, Abstract)
-class UAdvancedButtonBase : public UCommonButtonBase
+class UGameUIButtonBase : public UCommonButtonBase
 {
 	GENERATED_BODY()
 

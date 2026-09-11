@@ -4,4 +4,4 @@
 
 #include "Logging/LogCategory.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogAdvancedUI, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogGameUI, Log, All);

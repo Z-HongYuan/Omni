@@ -5,7 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "Engine/DeveloperSettings.h"
 #include "UObject/SoftObjectPtr.h"
-#include "AdvancedUISettings.generated.h"
+#include "GameUISettings.generated.h"
 
 #define UE_API GAMEUI_API
 
@@ -14,7 +14,7 @@ class UUIPolicy;
 
 /** 配置默认 UI 策略，以及对话框标签到控件类的映射。 */
 UCLASS(MinimalAPI, Config=Game, DefaultConfig, meta=(DisplayName="Game UI Settings"))
-class UAdvancedUISettings : public UDeveloperSettings
+class UGameUISettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
 

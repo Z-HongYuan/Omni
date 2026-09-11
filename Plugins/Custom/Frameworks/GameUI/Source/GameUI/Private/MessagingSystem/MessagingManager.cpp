@@ -2,23 +2,23 @@
 
 
 #include "MessagingSystem/MessagingManager.h"
-#include "AdvancedUISettings.h"
+#include "GameUISettings.h"
 #include "Engine/GameInstance.h"
-#include "LogAdvancedUI.h"
+#include "LogGameUI.h"
 #include "MessagingSystem/DialogWidgetBase.h"
-#include "System/AdvancedUIGameplayTags.h"
+#include "System/GameUIGameplayTags.h"
 #include "System/UIManager.h"
 #include "System/UIPolicy.h"
 #include "Widgets/GameRootLayoutWidget.h"
 
-#include UE_INLINE_GENERATED_CPP_BY_NAME(AdvancedUISettings)
+#include UE_INLINE_GENERATED_CPP_BY_NAME(GameUISettings)
 #include UE_INLINE_GENERATED_CPP_BY_NAME(MessagingManager)
 
 void UMessagingManager::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	const UAdvancedUISettings* Settings = GetDefault<UAdvancedUISettings>();
+	const UGameUISettings* Settings = GetDefault<UGameUISettings>();
 	for (const auto& DialogSoftClass : Settings->DialogSoftClasses)
 	{
 		DialogClassMap.Add(DialogSoftClass.Key, DialogSoftClass.Value.LoadSynchronous());
@@ -53,7 +53,7 @@ void UMessagingManager::ShowDialogInternal(FGameplayTag InWidgetTag, UDialogWidg
 	// 展示前的所有失败出口均返回空结果，避免异步调用方一直等待。
 	const auto Fail = [&ResultCallback, InWidgetTag](const TCHAR* Reason)
 	{
-		UE_LOG(LogAdvancedUI, Warning, TEXT("UMessagingManager::ShowDialogInternal: 无法展示 [%s]：%s"), *InWidgetTag.ToString(), Reason);
+		UE_LOG(LogGameUI, Warning, TEXT("UMessagingManager::ShowDialogInternal: 无法展示 [%s]：%s"), *InWidgetTag.ToString(), Reason);
 		ResultCallback.ExecuteIfBound(FGameplayTag::EmptyTag);
 	};
 
@@ -82,7 +82,7 @@ void UMessagingManager::ShowDialogInternal(FGameplayTag InWidgetTag, UDialogWidg
 	}
 
 	UDialogWidgetBase* Dialog = RootLayout->PushWidgetToLayerStack<UDialogWidgetBase>(
-		AdvancedUITags::TAG_AdvancedUI_UIStack_Modal,
+		GameUITags::TAG_GameUI_UIStack_Modal,
 		DialogClass,
 		[DialogDescriptor, ResultCallback](UDialogWidgetBase& DialogWidget)
 		{

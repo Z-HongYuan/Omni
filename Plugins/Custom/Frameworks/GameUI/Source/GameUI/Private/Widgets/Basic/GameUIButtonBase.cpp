@@ -1,20 +1,20 @@
 ﻿// Copyright © 2026 张鸿源. All Rights Reserved.
 
 
-#include "Widgets/Basic/AdvancedButtonBase.h"
+#include "Widgets/Basic/GameUIButtonBase.h"
 
 #include "CommonActionWidget.h"
 
-#include UE_INLINE_GENERATED_CPP_BY_NAME(AdvancedButtonBase)
+#include UE_INLINE_GENERATED_CPP_BY_NAME(GameUIButtonBase)
 
-void UAdvancedButtonBase::SetButtonText(const FText& InText)
+void UGameUIButtonBase::SetButtonText(const FText& InText)
 {
 	bOverride_ButtonText = InText.IsEmpty();
 	ButtonText = InText;
 	RefreshButtonText();
 }
 
-void UAdvancedButtonBase::NativePreConstruct()
+void UGameUIButtonBase::NativePreConstruct()
 {
 	Super::NativePreConstruct();
 
@@ -22,7 +22,7 @@ void UAdvancedButtonBase::NativePreConstruct()
 	RefreshButtonText();
 }
 
-void UAdvancedButtonBase::UpdateInputActionWidget()
+void UGameUIButtonBase::UpdateInputActionWidget()
 {
 	Super::UpdateInputActionWidget();
 
@@ -30,14 +30,14 @@ void UAdvancedButtonBase::UpdateInputActionWidget()
 	RefreshButtonText();
 }
 
-void UAdvancedButtonBase::OnInputMethodChanged(ECommonInputType CurrentInputType)
+void UGameUIButtonBase::OnInputMethodChanged(ECommonInputType CurrentInputType)
 {
 	Super::OnInputMethodChanged(CurrentInputType);
 
 	UpdateButtonStyle();
 }
 
-void UAdvancedButtonBase::RefreshButtonText()
+void UGameUIButtonBase::RefreshButtonText()
 {
 	if (bOverride_ButtonText || ButtonText.IsEmpty())
 	{

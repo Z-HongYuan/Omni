@@ -3,7 +3,7 @@
 
 #include "System/UIPolicy.h"
 
-#include "LogAdvancedUI.h"
+#include "LogGameUI.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Framework/Application/SlateApplication.h"
@@ -62,7 +62,7 @@ void UUIPolicy::RequestPrimaryControl(UGameRootLayoutWidget* Layout)
 
 void UUIPolicy::AddLayoutToViewport(ULocalPlayer* LocalPlayer, UGameRootLayoutWidget* Layout)
 {
-	UE_LOG(LogAdvancedUI, Log, TEXT("[%s] is adding player [%s]'s root layout [%s] to the viewport"), *GetName(), *GetNameSafe(LocalPlayer), *GetNameSafe(Layout));
+	UE_LOG(LogGameUI, Log, TEXT("[%s] is adding player [%s]'s root layout [%s] to the viewport"), *GetName(), *GetNameSafe(LocalPlayer), *GetNameSafe(Layout));
 
 	// 设置关联的 LocalPlayer 并添加到视口
 	Layout->SetPlayerContext(FLocalPlayerContext(LocalPlayer));
@@ -76,12 +76,12 @@ void UUIPolicy::RemoveLayoutFromViewport(ULocalPlayer* LocalPlayer, UGameRootLay
 	TWeakPtr<SWidget> LayoutSlateWidget = Layout->GetCachedWidget();
 	if (LayoutSlateWidget.IsValid())
 	{
-		UE_LOG(LogAdvancedUI, Log, TEXT("[%s] is removing player [%s]'s root layout [%s] from the viewport"), *GetName(), *GetNameSafe(LocalPlayer), *GetNameSafe(Layout));
+		UE_LOG(LogGameUI, Log, TEXT("[%s] is removing player [%s]'s root layout [%s] from the viewport"), *GetName(), *GetNameSafe(LocalPlayer), *GetNameSafe(Layout));
 
 		Layout->RemoveFromParent();
 		if (LayoutSlateWidget.IsValid())
 		{
-			UE_LOG(LogAdvancedUI, Log, TEXT("Player [%s]'s root layout [%s] has been removed from the viewport, but other references to its underlying Slate widget still exist. Noting in case we leak it."), *GetNameSafe(LocalPlayer),
+			UE_LOG(LogGameUI, Log, TEXT("Player [%s]'s root layout [%s] has been removed from the viewport, but other references to its underlying Slate widget still exist. Noting in case we leak it."), *GetNameSafe(LocalPlayer),
 			       *GetNameSafe(Layout));
 		}
 
