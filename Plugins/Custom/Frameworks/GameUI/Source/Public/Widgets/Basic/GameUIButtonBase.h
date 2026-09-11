@@ -17,25 +17,25 @@ class UGameUIButtonBase : public UCommonButtonBase
 
 public:
 	UFUNCTION(BlueprintCallable, Category="GameUI")
-	void SetButtonText(const FText& InText);
+	UE_API void SetButtonText(const FText& InText);
 
 protected:
 	// UUserWidget 接口
-	virtual void NativePreConstruct() override;
+	UE_API virtual void NativePreConstruct() override;
 	// UUserWidget 接口结束
 
 	// UCommonButtonBase 接口
-	virtual void UpdateInputActionWidget() override;
-	virtual void OnInputMethodChanged(ECommonInputType CurrentInputType) override;
+	UE_API virtual void UpdateInputActionWidget() override;
+	UE_API virtual void OnInputMethodChanged(ECommonInputType CurrentInputType) override;
 	// UCommonButtonBase 接口结束
 
-	void RefreshButtonText();
+	UE_API void RefreshButtonText();
 
 	UFUNCTION(BlueprintImplementableEvent)
-	void UpdateButtonText(const FText& InText);
+	UE_API void UpdateButtonText(const FText& InText);
 
 	UFUNCTION(BlueprintImplementableEvent)
-	void UpdateButtonStyle();
+	UE_API void UpdateButtonStyle();
 
 private:
 	UPROPERTY(EditAnywhere, Category="Button", meta=(InlineEditConditionToggle))
@@ -44,6 +44,5 @@ private:
 	UPROPERTY(EditAnywhere, Category="Button", meta=(Editcondition="bOverride_ButtonText" ))
 	FText ButtonText;
 };
-
 
 #undef UE_API
