@@ -13,7 +13,7 @@ public class ExperienceSystem : ModuleRules
 			{
 				"Core",
 				"GameFeatures", "ModularGameplay", "ModularGameplayActors", //模块化核心
-				"GameplayAbilities", "GameplayTags", "CustomAbilitySystem", //自定义能力系统核心
+				"GameplayAbilities", "GameplayTags", "GameAbilitySystem", //自定义能力系统核心
 				"AIModule", //AI模块
 				"LoadingScreen", //加载屏模块
 				"GameplayCameras", //游戏摄像机
@@ -27,7 +27,7 @@ public class ExperienceSystem : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"EnhancedInput", "CustomInputSystem", //自定义输入系统
+				"EnhancedInput", "GameInputSystem", //自定义输入系统
 				"DeveloperSettings", //开发者设置模块
 				"NetCore", //网络核心模块
 			}

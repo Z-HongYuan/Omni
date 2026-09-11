@@ -22,7 +22,7 @@
   ],
   "Plugins": [
     {
-      "Name": "CustomAbilitySystem",
+      "Name": "GameAbilitySystem",
       "Enabled": true
     }
   ]

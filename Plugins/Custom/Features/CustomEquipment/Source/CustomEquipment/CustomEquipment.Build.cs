@@ -13,7 +13,7 @@ public class CustomEquipment : ModuleRules
 			{
 				"Core",
 				"ModularGameplay",
-				"GameplayAbilities", "GameplayTags", "CustomAbilitySystem",
+				"GameplayAbilities", "GameplayTags", "GameAbilitySystem",
 				"CustomInventory",
 				"Niagara",
 				"MessageRouters"

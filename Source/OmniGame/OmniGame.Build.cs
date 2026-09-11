@@ -14,11 +14,11 @@ public class OmniGame : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"CommonUI",
-			"UMG", "AdvancedUI", "AdvancedUIExtension", // UI系统
+			"UMG", "GameUI", "GameUIExtension", // UI系统
 			"GameCoreExtension",
 			"ModularGameplayActors", "ExperienceSystem", "AIModule",
-			"GameplayAbilities", "GameplayTags", "GameplayTasks", "CustomAbilitySystem", //角色需要转发 ASC 与实现 IAbilitySystemInterface
-			"CustomInputSystem", //输入组件
+			"GameplayAbilities", "GameplayTags", "GameplayTasks", "GameAbilitySystem", //角色需要转发 ASC 与实现 IAbilitySystemInterface
+			"GameInputSystem", //输入组件
 			"GameplayCameras", //相机系统
 			"ModularGameplay", "GameFeatures"
 		});

@@ -38,7 +38,7 @@
       "Enabled": true
     },
     {
-      "Name": "CustomAbilitySystem",
+      "Name": "GameAbilitySystem",
       "Enabled": true
     },
     {
@@ -50,7 +50,7 @@
       "Enabled": true
     },
     {
-      "Name": "CustomInputSystem",
+      "Name": "GameInputSystem",
       "Enabled": true
     },
     {

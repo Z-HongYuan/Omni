@@ -12,7 +12,7 @@ public class CustomInventory : ModuleRules
 			new string[]
 			{
 				"Core",
-				"GameplayTags", "GameplayTasks", "CustomAbilitySystem",
+				"GameplayTags", "GameplayTasks", "GameAbilitySystem",
 				"NetCore",
 				"IrisCore",
 				"MessageRouters"

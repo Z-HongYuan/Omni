@@ -23,7 +23,7 @@ public class GameCoreExtension : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"CommonUI", "AdvancedUI", //增强UI核心
+				"CommonUI", "GameUI", //增强UI核心
 				"GameUser", //用户管理模块
 				"GameplayTags", //游戏标签模块
 			}

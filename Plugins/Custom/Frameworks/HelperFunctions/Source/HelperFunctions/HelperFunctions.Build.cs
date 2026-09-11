@@ -11,7 +11,7 @@ public class HelperFunctions : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"GameplayTags", "CustomAbilitySystem",
+				"GameplayTags", "GameAbilitySystem",
 			}
 		);
 
