@@ -8,7 +8,8 @@
 #define UE_API OMNIEDITOR_API
 
 /**
- * 项目编辑器使用的引擎类
+ * 项目编辑器及 PIE 使用的引擎类。
+ * 当前负责初始化时显示插件内容；独立游戏进程使用 OmniGameEngine。
  */
 UCLASS(MinimalAPI)
 class UOmniEditorEngine : public UUnrealEdEngine

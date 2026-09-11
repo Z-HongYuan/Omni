@@ -11,18 +11,17 @@ public class OmniEditor : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
 			"Core",
-			"CoreUObject"
+			"CoreUObject",
+			"Engine", "UnrealEd" //公开的编辑器引擎类依赖
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"Engine",
 			"OmniGame",
 			"Projects",
 			"Slate",
 			"SlateCore",
-			"ToolMenus",
-			"UnrealEd"
+			"ToolMenus"
 		});
 	}
 }
