@@ -8,27 +8,15 @@ public class OmniGame : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		// Modules whose headers are exposed through Public/
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
-			"Core",
-			"CoreUObject",
-			"Engine"
+			"Core", "CoreUObject", "Engine", //基础模块
+			"GameplayTags", //
 		});
 
-		// Modules only used by implementation files in Private/
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"InputCore",
-			"EnhancedInput"
+			"InputCore", "EnhancedInput", //
 		});
-
-		// Uncomment if you are using Slate UI
-		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-
-		// Uncomment if you are using online features
-		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
-
-		// To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
 	}
 }
