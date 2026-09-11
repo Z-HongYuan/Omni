@@ -2,7 +2,7 @@
   "FileVersion": 3,
   "Version": 1,
   "VersionName": "1.0",
-  "FriendlyName": "共享内容",
+  "FriendlyName": "SharedContent",
   "Description": "供正式项目复用的共享资源插件",
   "Category": "ZHY|Content",
   "CreatedBy": "张鸿源",
