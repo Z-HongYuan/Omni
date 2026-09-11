@@ -8,20 +8,15 @@ public class ModularGameplayActors : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
+		// 公开基类需要这些模块；ModularGameplay 同时提供接收器管理和组件扩展接口。
 		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"ModularGameplay",
-			}
-		);
-
-		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",
 				"CoreUObject",
 				"Engine",
-				"AIModule",
+				"ModularGameplay",
+				"AIModule"
 			}
 		);
 	}

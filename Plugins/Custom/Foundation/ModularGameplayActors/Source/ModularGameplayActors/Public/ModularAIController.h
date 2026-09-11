@@ -2,26 +2,26 @@
 
 #pragma once
 
-#include "GameFramework/Pawn.h"
+#include "AIController.h"
 
-#include "ModularPawn.generated.h"
+#include "ModularAIController.generated.h"
 
 #define UE_API MODULARGAMEPLAYACTORS_API
 
 class UObject;
 
-/** 支持游戏扩展功能插件的最小类 */
+/** 模块化 AI 控制器，负责注册组件接收器，并在父类 BeginPlay 前发送 GameActorReady。 */
 UCLASS(MinimalAPI, Blueprintable)
-class AModularPawn : public APawn
+class AModularAIController : public AAIController
 {
 	GENERATED_BODY()
 
 public:
-	//~ Begin AActor interface
+	//~AActor 接口
 	UE_API virtual void PreInitializeComponents() override;
 	UE_API virtual void BeginPlay() override;
 	UE_API virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	//~ End AActor interface
+	//~AActor 接口结束
 };
 
 #undef UE_API

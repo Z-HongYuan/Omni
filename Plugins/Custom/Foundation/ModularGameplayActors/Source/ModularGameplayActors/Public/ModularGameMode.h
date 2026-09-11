@@ -10,7 +10,10 @@
 
 class UObject;
 
-/** 模块化的 GameModeBase */
+/**
+ * 与 AModularGameStateBase 配套使用，默认选用模块化控制器、玩家状态、Pawn 和 HUD。
+ * 本类负责设置默认类型，不注册 GameMode 自身为组件接收器。
+ */
 UCLASS(MinimalAPI, Blueprintable)
 class AModularGameModeBase : public AGameModeBase
 {
@@ -20,7 +23,7 @@ public:
 	UE_API AModularGameModeBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 };
 
-/** 模块化的 GameMode */
+/** 与 AModularGameState 配套使用，提供带比赛状态机的模块化默认类型组合。 */
 UCLASS(MinimalAPI, Blueprintable)
 class AModularGameMode : public AGameMode
 {

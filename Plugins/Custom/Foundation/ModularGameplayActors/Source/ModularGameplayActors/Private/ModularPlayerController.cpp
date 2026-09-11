@@ -23,12 +23,12 @@ void AModularPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AModularPlayerController::ReceivedPlayer()
 {
-	// 玩家控制器总是会被分配到一个玩家，在那之前不能做太多事情
+	// 控制器关联玩家后再通知扩展方就绪，使依赖玩家信息的组件能够安全接入。
 	UGameFrameworkComponentManager::SendGameFrameworkComponentExtensionEvent(this, UGameFrameworkComponentManager::NAME_GameActorReady);
 
 	Super::ReceivedPlayer();
 
-	TArray<UControllerComponent*> ModularComponents;
+	TInlineComponentArray<UControllerComponent*> ModularComponents;
 	GetComponents(ModularComponents);
 	for (UControllerComponent* Component : ModularComponents)
 	{
@@ -40,7 +40,8 @@ void AModularPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
-	TArray<UControllerComponent*> ModularComponents;
+	// 每帧重新收集以兼容动态组件；少量组件使用内联存储，减少临时堆分配。
+	TInlineComponentArray<UControllerComponent*> ModularComponents;
 	GetComponents(ModularComponents);
 	for (UControllerComponent* Component : ModularComponents)
 	{

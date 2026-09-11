@@ -2,26 +2,26 @@
 
 #pragma once
 
-#include "AIController.h"
+#include "GameFramework/Character.h"
 
-#include "ModularAIController.generated.h"
+#include "ModularCharacter.generated.h"
 
 #define UE_API MODULARGAMEPLAYACTORS_API
 
 class UObject;
 
-/** 支持游戏扩展功能插件的最小类 */
+/** 模块化角色，负责组件接收器的注册、就绪通知与退出清理，具体玩法由组件扩展。 */
 UCLASS(MinimalAPI, Blueprintable)
-class AModularAIController : public AAIController
+class AModularCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
 public:
-	//~ Begin AActor Interface
+	//~AActor 接口
 	UE_API virtual void PreInitializeComponents() override;
 	UE_API virtual void BeginPlay() override;
 	UE_API virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	//~ End AActor Interface
+	//~AActor 接口结束
 };
 
 #undef UE_API

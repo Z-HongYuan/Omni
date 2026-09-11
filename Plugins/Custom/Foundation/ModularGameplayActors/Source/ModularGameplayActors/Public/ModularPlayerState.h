@@ -15,24 +15,24 @@ namespace EEndPlayReason
 
 class UObject;
 
-/** 支持游戏扩展功能插件的最小类 */
+/** 模块化玩家状态，支持组件扩展，并向玩家状态组件转发重置与属性复制。 */
 UCLASS(MinimalAPI, Blueprintable)
 class AModularPlayerState : public APlayerState
 {
 	GENERATED_BODY()
 
 public:
-	//~ Begin AActor interface
+	//~AActor 接口
 	UE_API virtual void PreInitializeComponents() override;
 	UE_API virtual void BeginPlay() override;
 	UE_API virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	UE_API virtual void Reset() override;
-	//~ End AActor interface
+	//~AActor 接口结束
 
 protected:
-	//~ Begin APlayerState interface
+	//~APlayerState 接口
 	UE_API virtual void CopyProperties(APlayerState* PlayerState) override;
-	//~ End APlayerState interface
+	//~APlayerState 接口结束
 };
 
 #undef UE_API

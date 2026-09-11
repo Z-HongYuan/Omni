@@ -32,7 +32,7 @@ void AModularPlayerState::Reset()
 {
 	Super::Reset();
 
-	TArray<UPlayerStateComponent*> ModularComponents;
+	TInlineComponentArray<UPlayerStateComponent*> ModularComponents;
 	GetComponents(ModularComponents);
 	for (UPlayerStateComponent* Component : ModularComponents)
 	{
@@ -44,6 +44,7 @@ void AModularPlayerState::CopyProperties(APlayerState* PlayerState)
 {
 	Super::CopyProperties(PlayerState);
 
+	// 仅向目标玩家状态中已存在且同名、类型匹配的组件复制属性。
 	TInlineComponentArray<UPlayerStateComponent*> PlayerStateComponents;
 	GetComponents(PlayerStateComponents);
 	for (UPlayerStateComponent* SourcePSComp : PlayerStateComponents)

@@ -10,39 +10,39 @@
 
 class UObject;
 
-/** 模块化的 GameStateBase */
+/** 与 AModularGameModeBase 配套使用，提供组件扩展的接收器生命周期。 */
 UCLASS(MinimalAPI, Blueprintable)
 class AModularGameStateBase : public AGameStateBase
 {
 	GENERATED_BODY()
 
 public:
-	//~ Begin AActor interface
+	//~AActor 接口
 	UE_API virtual void PreInitializeComponents() override;
 	UE_API virtual void BeginPlay() override;
 	UE_API virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	//~ End AActor interface
+	//~AActor 接口结束
 };
 
 
-/** 模块化的 GameState */
+/** 与 AModularGameMode 配套使用，并向游戏状态组件转发比赛开始与结束事件。 */
 UCLASS(MinimalAPI, Blueprintable)
 class AModularGameState : public AGameState
 {
 	GENERATED_BODY()
 
 public:
-	//~ Begin AActor interface
+	//~AActor 接口
 	UE_API virtual void PreInitializeComponents() override;
 	UE_API virtual void BeginPlay() override;
 	UE_API virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	//~ End AActor interface
+	//~AActor 接口结束
 
 protected:
-	//~ Begin AGameState interface
+	//~AGameState 接口
 	UE_API virtual void HandleMatchHasStarted() override;
 	UE_API virtual void HandleMatchHasEnded() override;
-	//~ Begin AGameState interface
+	//~AGameState 接口结束
 };
 
 #undef UE_API

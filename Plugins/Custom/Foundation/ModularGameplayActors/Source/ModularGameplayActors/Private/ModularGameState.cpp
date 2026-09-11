@@ -54,7 +54,7 @@ void AModularGameState::HandleMatchHasStarted()
 {
 	Super::HandleMatchHasStarted();
 
-	TArray<UGameStateComponent*> ModularComponents;
+	TInlineComponentArray<UGameStateComponent*> ModularComponents;
 	GetComponents(ModularComponents);
 	for (UGameStateComponent* Component : ModularComponents)
 	{
@@ -66,7 +66,7 @@ void AModularGameState::HandleMatchHasEnded()
 {
 	Super::HandleMatchHasEnded();
 
-	TArray<UGameStateComponent*> ModularComponents;
+	TInlineComponentArray<UGameStateComponent*> ModularComponents;
 	GetComponents(ModularComponents);
 	for (UGameStateComponent* Component : ModularComponents)
 	{
