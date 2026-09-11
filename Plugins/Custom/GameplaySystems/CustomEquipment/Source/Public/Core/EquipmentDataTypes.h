@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Data/CustomAbilitySet.h"
+#include "Data/ExtAbilitySet.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "EquipmentDataTypes.generated.h"
 
@@ -34,7 +34,7 @@ private:
 
 	// Authority-only list of granted handles
 	UPROPERTY(NotReplicated)
-	FCustomAbilitySet_GrantedHandles GrantedHandles;
+	FExtAbilitySet_GrantedHandles GrantedHandles;
 };
 
 
@@ -64,7 +64,7 @@ public:
 	void RemoveEntry(UEquipmentInstance* Instance);
 
 private:
-	UCustomAbilitySystemComponent* GetAbilitySystemComponent() const;
+	UExtAbilitySystemComponent* GetAbilitySystemComponent() const;
 
 	friend UEquipmentManager;
 

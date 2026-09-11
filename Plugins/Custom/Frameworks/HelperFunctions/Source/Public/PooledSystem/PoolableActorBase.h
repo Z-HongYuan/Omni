@@ -3,7 +3,7 @@
 #pragma once
 
 #include "PoolableObjectInterface.h"
-#include "System/CustomTaggedActor.h"
+#include "System/ExtTaggedActor.h"
 #include "PoolableActorBase.generated.h"
 
 #define UE_API HELPERFUNCTIONS_API
@@ -12,7 +12,7 @@
  * 池化Actor的基类
  */
 UCLASS(MinimalAPI)
-class APoolableActorBase : public ACustomTaggedActor, public IPoolableObjectInterface
+class APoolableActorBase : public AExtTaggedActor, public IPoolableObjectInterface
 {
 	GENERATED_BODY()
 

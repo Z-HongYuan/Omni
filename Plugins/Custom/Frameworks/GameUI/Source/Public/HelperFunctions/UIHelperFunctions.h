@@ -37,13 +37,13 @@ public:
 	// 同步推送控件到指定本地玩家 并获取控件引用
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GameUI")
 	static UE_API UCommonActivatableWidget* PushWidgetToLayerForPlayer(const ULocalPlayer* LocalPlayer,
-	                                                                   UPARAM(meta = (Categories = "AdvancedUI.UIStack")) FGameplayTag LayerName,
+	                                                                   UPARAM(meta = (Categories = "GameUI.UIStack")) FGameplayTag LayerName,
 	                                                                   UPARAM(meta = (AllowAbstract = false)) TSubclassOf<UCommonActivatableWidget> WidgetClass);
 
 	// 异步推送控件到指定本地玩家
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GameUI")
 	static UE_API void PushSoftWidgetToLayerForPlayer(const ULocalPlayer* LocalPlayer,
-	                                                  UPARAM(meta = (Categories = "AdvancedUI.UIStack")) FGameplayTag LayerName,
+	                                                  UPARAM(meta = (Categories = "GameUI.UIStack")) FGameplayTag LayerName,
 	                                                  UPARAM(meta = (AllowAbstract = false)) TSoftClassPtr<UCommonActivatableWidget> WidgetClass);
 
 	// 在所有堆栈中寻找并删除指定的控件

@@ -30,7 +30,7 @@ Custom/
 | 目录 | 插件 |
 |---|---|
 | Foundation | AsyncLoadMixin、GameSettings、GameSubtitles、GameUser、LoadingScreen、MessageRouters、ModularGameplayActors、PocketWorlds、StartupLoadingScreen |
-| Frameworks | GameUI、GameUIExtension、GameAbilitySystem、GameInputSystem、ExperienceSystem、GameCoreExtension、HelperFunctions |
+| Frameworks | GameUI、GameUIExtension、AbilityExtension、ExperienceSystem、CoreExtension、HelperFunctions |
 | GameplaySystems | CustomCosmetics、CustomEquipment、CustomIndicator、CustomInteraction、CustomInventory、CustomTeam |
 | Content | SharedContent（共享内容）：正式共享资源；ExampleContent（示例内容）：插件使用展示 |
 
@@ -67,7 +67,7 @@ flowchart TD
 6. **资产也遵守依赖方向。** 蓝图父类、数据资产、材质、软引用和字符串加载路径都可能建立实际耦合。改用软引用或消息通信，不代表可以绕过层级约束；还要检查被引用的数据类型和资源来自哪里。
 7. **运行时与编辑器职责分离。** 仅用于编辑器或开发工具的实现放在适合该用途的模块中，运行时模块不依赖编辑器模块。
 
-例如，`ExperienceSystem → GameInputSystem` 在两者同属 Frameworks 时是合理组合；若输入系统归入 GameplaySystems，就会违反框架层不依赖玩法系统层的约定。
+例如，`ExperienceSystem → AbilityExtension` 在两者同属 Frameworks 时是合理组合；AbilityExtension 已合并输入绑定；若将它归入 GameplaySystems，就会违反框架层不依赖玩法系统层的约定。
 
 ## 3. 正式共享内容与示例插件
 
@@ -98,7 +98,7 @@ Content 与示例是按用途划分的类别，不是第四、第五个代码层
 
 - **目录与元数据一致。** 调整归属后，对应 `.uplugin` 的 Category 应同步为 `ZHY|Foundation`、`ZHY|Frameworks`、`ZHY|GameplaySystems` 或 `ZHY|Content`。FriendlyName、Description 应准确描述插件本身。
 - **按最终目录继续完善。** 当前已完成目录调整；部分 Category 仍使用 BasicExpand、Features 等旧值，留待后续统一，不能仅凭插件浏览器的旧分类判断实际层级。
-- **HelperFunctions 继续梳理职责。** 当前包含对象池和脸部 SDF 阴影组件；对象池 Actor 通过 CustomTaggedActor 依赖 GameAbilitySystem。在解除相应依赖前保持其 Frameworks 归属，后续再按职责整理，避免直接下移造成反向依赖。
+- **HelperFunctions 继续梳理职责。** 当前包含对象池和脸部 SDF 阴影组件；对象池 Actor 通过 ExtTaggedActor 依赖 AbilityExtension。在解除相应依赖前保持其 Frameworks 归属，后续再按职责整理，避免直接下移造成反向依赖。
 - **飞书云文档统一重建。** 待本轮插件完善全部完成后，基于最终代码、目录与本约定重新生成一份飞书云文档。
 - **最后逐个对照 Lyra 5.8。** 届时分别核对职责边界、接口与实现差异、接入流程、示例和验证结果；不将目录归类完成等同于功能对照完成。
 

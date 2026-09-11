@@ -8,7 +8,7 @@
 
 #define UE_API CUSTOMEQUIPMENT_API
 
-class UCustomAbilitySet;
+class UExtAbilitySet;
 class UEquipmentInstance;
 
 USTRUCT()
@@ -49,7 +49,7 @@ public:
 
 	// 装备后会获得游戏能力集
 	UPROPERTY(EditDefaultsOnly, Category=Equipment)
-	TArray<TObjectPtr<const UCustomAbilitySet>> AbilitySetsToGrant;
+	TArray<TObjectPtr<const UExtAbilitySet>> AbilitySetsToGrant;
 
 	// 当角色装备后会生成在角色身上的Actor
 	UPROPERTY(EditDefaultsOnly, Category=Equipment)
