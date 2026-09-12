@@ -95,13 +95,12 @@ void UExpManagerComponent::SetCurrentExperience(const FPrimaryAssetId& Experienc
 	// 使用 ID 从资产管理器加载体验定义
 	UAssetManager& AssetManager = UAssetManager::Get();
 	FSoftObjectPath AssetPath = AssetManager.GetPrimaryAssetPath(ExperienceId);
-	TSubclassOf<UExpDefinition> AssetClass = Cast<UClass>(AssetPath.TryLoad());
-	check(AssetClass);
-	// 获取 CDO 实例
-	const UExpDefinition* Experience = GetDefault<UExpDefinition>(AssetClass);
+	// 定义为普通数据资产，直接读取资产对象，不加载蓝图类或访问 CDO。
+	const UExpDefinition* Experience = Cast<UExpDefinition>(AssetPath.TryLoad());
 
 	// 检查是否有效 且 未加载过,只能设置一次当前体验
-	check(Experience != nullptr);
+	checkf(Experience != nullptr, TEXT("Experience %s at %s must be an ExpDefinition data asset; disable Has Blueprint Classes in AssetManager settings."),
+	       *ExperienceId.ToString(), *AssetPath.ToString());
 	check(CurrentExperience == nullptr);
 
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, CurrentExperience, this);

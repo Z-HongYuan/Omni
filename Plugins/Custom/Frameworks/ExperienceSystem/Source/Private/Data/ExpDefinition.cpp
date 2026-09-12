@@ -31,29 +31,6 @@ EDataValidationResult UExpDefinition::IsDataValid(class FDataValidationContext& 
 		++EntryIndex;
 	}
 
-	// 强制仅能继承一次
-	if (!GetClass()->IsNative())
-	{
-		const UClass* ParentClass = GetClass()->GetSuperClass();
-
-		// 查找第一个本地父类
-		const UClass* FirstNativeParent = ParentClass;
-		while ((FirstNativeParent != nullptr) && !FirstNativeParent->IsNative())
-		{
-			FirstNativeParent = FirstNativeParent->GetSuperClass();
-		}
-
-		if (FirstNativeParent != ParentClass)
-		{
-			Context.AddError(FText::Format(NSLOCTEXT("ExperienceDefinition", "ExperienceInheritenceIsUnsupported",
-			                                         "Blueprint subclasses of Blueprint experiences is not currently supported (use composition via ActionSets instead). Parent class was {0} but should be {1}."),
-			                               FText::AsCultureInvariant(GetPathNameSafe(ParentClass)),
-			                               FText::AsCultureInvariant(GetPathNameSafe(FirstNativeParent))
-			));
-			Result = EDataValidationResult::Invalid;
-		}
-	}
-
 	return Result;
 }
 #endif

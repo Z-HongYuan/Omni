@@ -36,8 +36,8 @@ public:
 	UE_API FPrimaryAssetId GetDefaultGameplayExperience() const;
 
 protected:
-	//如果服务器打开关卡时没有被UI体验覆盖，则使用的默认体验
+	// 如果服务器打开关卡时没有被 UI 体验覆盖，则使用此数据资产；引用对象而非蓝图类。
 	UPROPERTY(EditDefaultsOnly, Category=GameMode)
-	TSoftClassPtr<UExpDefinition> DefaultGameplayExperience;
+	TSoftObjectPtr<UExpDefinition> DefaultGameplayExperience;
 };
 #undef UE_API
