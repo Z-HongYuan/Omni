@@ -12,6 +12,7 @@ public class OmniEditor : ModuleRules
 		{
 			"Core",
 			"CoreUObject",
+			"EditorSubsystem",
 			"Engine", "UnrealEd" //公开的编辑器引擎类依赖
 		});
 
@@ -19,6 +20,7 @@ public class OmniEditor : ModuleRules
 		{
 			"OmniGame",
 			"Projects",
+			"AssetRegistry", "CollectionManager", //外部固定引用资产移动、重命名提醒
 			"Slate",
 			"SlateCore",
 			"ToolMenus"
