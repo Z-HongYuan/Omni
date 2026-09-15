@@ -14,6 +14,7 @@ public class OmniGame : ModuleRules
 			"GameplayTags", //
 			"GameplayAbilities", //Character 公开 ASC 接口
 			"ModularGameplay", //Pawn 初始化状态接口
+			"GameFeatures", //项目 GF 动作基类
 			"EnhancedInput", "GameplayCameras", //公开输入事件与 GameplayCamera 接口
 			"CoreExtension", //项目游戏实例、本地玩家与控制器继承插件基础类
 			"ExperienceSystem", //项目游戏模式继承体验驱动流程
