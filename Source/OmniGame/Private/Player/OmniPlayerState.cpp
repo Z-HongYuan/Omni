@@ -3,6 +3,7 @@
 
 #include "Player/OmniPlayerState.h"
 
+#include "Attributes/ExtHealthSet.h"
 #include "Data/ExpPawnData.h"
 #include "OmniGame/OmniGameLogChannel.h"
 
@@ -11,6 +12,7 @@
 AOmniPlayerState::AOmniPlayerState(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	HealthSet = CreateDefaultSubobject<UExtHealthSet>(TEXT("HealthSet"));
 }
 
 void AOmniPlayerState::OnExperienceLoaded(const UExpDefinition* CurrentExperience)

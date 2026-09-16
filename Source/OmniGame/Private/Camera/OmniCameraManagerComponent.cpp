@@ -3,6 +3,7 @@
 
 #include "Camera/OmniCameraManagerComponent.h"
 
+#include "CineCameraComponent.h"
 #include "Components/ExpPawnExtensionComponent.h"
 #include "Components/GameFrameworkComponentManager.h"
 #include "Data/ExpPawnData.h"
@@ -151,6 +152,10 @@ void UOmniCameraManagerComponent::UpdateCamera()
 
 	// 使用当前玩家，避免分屏时落到 Player0；视角目标仍由 PC/玩法管理。
 	Camera->ActivateCameraForPlayerController(Controller);
+
+	// UE 5.8 的指定玩家激活接口不会重新启用已有输出相机，否则视点会退回 Pawn 眼睛位置。(修复客户端中的摄像机问题)
+	if (UCineCameraComponent* OutputCamera = Camera->GetOutputCameraComponent()) OutputCamera->Activate();
+
 	CameraComponent = Camera;
 	CameraController = Controller;
 }

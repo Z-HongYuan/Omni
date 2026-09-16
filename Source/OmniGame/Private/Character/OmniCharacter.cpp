@@ -4,6 +4,7 @@
 #include "Character/OmniCharacter.h"
 
 #include "Character/OmniPawnInitializationComponent.h"
+#include "Component/ExtHealthComponent.h"
 #include "Components/ExpPawnExtensionComponent.h"
 #include "System/ExtAbilitySystemComponent.h"
 
@@ -14,11 +15,31 @@ AOmniCharacter::AOmniCharacter(const FObjectInitializer& ObjectInitializer)
 {
 	PawnExtensionComponent = CreateDefaultSubobject<UExpPawnExtensionComponent>(TEXT("PawnExtensionComponent"));
 	PawnInitializationComponent = CreateDefaultSubobject<UOmniPawnInitializationComponent>(TEXT("PawnInitializationComponent"));
+	HealthComponent = CreateDefaultSubobject<UExtHealthComponent>(TEXT("HealthComponent"));
+
+	// 主项目负责接线，生命插件只认识传入的 ASC。
+	PawnExtensionComponent->CallOrRegister_AbilitySystemInitialized(FSimpleDelegate::CreateUObject(this, &ThisClass::OnAbilitySystemInitialized));
+	PawnExtensionComponent->Register_AbilitySystemUninitialized(FSimpleDelegate::CreateUObject(this, &ThisClass::OnAbilitySystemUninitialized));
+}
+
+void AOmniCharacter::OnAbilitySystemInitialized()
+{
+	HealthComponent->InitializeWithAbilitySystem(GetExtAbilitySystemComponent());
+}
+
+void AOmniCharacter::OnAbilitySystemUninitialized()
+{
+	HealthComponent->UninitializeFromAbilitySystem();
+}
+
+UExtAbilitySystemComponent* AOmniCharacter::GetExtAbilitySystemComponent() const
+{
+	return PawnExtensionComponent ? PawnExtensionComponent->GetExtAbilitySystemComponent() : nullptr;
 }
 
 UAbilitySystemComponent* AOmniCharacter::GetAbilitySystemComponent() const
 {
-	return PawnExtensionComponent->GetExtAbilitySystemComponent();
+	return GetExtAbilitySystemComponent();
 }
 
 void AOmniCharacter::PossessedBy(AController* NewController)

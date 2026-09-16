@@ -24,6 +24,14 @@ public:
 
 	UPROPERTY(EditAnywhere, Config, Category = "AbilitySystem")
 	TSubclassOf<UGameplayEffect> DynamicTagGameplayEffect;
+
+	// 通用伤害 GE：通过 SetByCaller 传入本次伤害量，修改 MetaDamage。
+	UPROPERTY(EditAnywhere, Config, Category = "AbilitySystem")
+	TSubclassOf<UGameplayEffect> DamageGameplayEffect_SetByCaller;
+
+	// 通用治疗 GE：通过 SetByCaller 传入本次治疗量，修改 MetaHealing。
+	UPROPERTY(EditAnywhere, Config, Category = "AbilitySystem")
+	TSubclassOf<UGameplayEffect> HealGameplayEffect_SetByCaller;
 };
 
 #undef UE_API

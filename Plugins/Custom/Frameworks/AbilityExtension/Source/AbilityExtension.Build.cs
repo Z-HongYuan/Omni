@@ -12,6 +12,7 @@ public class AbilityExtension : ModuleRules
 			new string[]
 			{
 				"Core",
+				"ModularGameplay", //生命组件继承 GameFrameworkComponent
 				"GameplayAbilities", "GameplayTags", "GameplayTasks",
 				"MessageRouters",
 				"EnhancedInput",

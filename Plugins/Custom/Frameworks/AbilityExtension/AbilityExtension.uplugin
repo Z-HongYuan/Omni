@@ -22,6 +22,10 @@
   ],
   "Plugins": [
     {
+      "Name": "ModularGameplay",
+      "Enabled": true
+    },
+    {
       "Name": "EnhancedInput",
       "Enabled": true
     },

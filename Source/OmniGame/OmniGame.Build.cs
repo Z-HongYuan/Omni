@@ -13,6 +13,7 @@ public class OmniGame : ModuleRules
 			"Core", "CoreUObject", "Engine", //基础模块
 			"GameplayTags", //
 			"GameplayAbilities", //Character 公开 ASC 接口
+			"AbilityExtension", //公开项目能力基类
 			"ModularGameplay", //Pawn 初始化状态接口
 			"GameFeatures", //项目 GF 动作基类
 			"EnhancedInput", "GameplayCameras", //公开输入事件与 GameplayCamera 接口
@@ -25,7 +26,8 @@ public class OmniGame : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			"InputCore", //
-			"AbilityExtension", //访问插件 ASC 实现
+			"CinematicCamera", //重新启用 GameplayCamera 的输出相机
+			"GameplayTasks", //跳跃能力等待输入松开
 		});
 	}
 }
