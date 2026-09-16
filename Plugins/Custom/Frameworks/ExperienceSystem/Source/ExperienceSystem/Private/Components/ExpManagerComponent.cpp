@@ -1,4 +1,4 @@
-﻿// Copyright © 2026 张鸿源. All Rights Reserved.
+// Copyright © 2026 张鸿源. All Rights Reserved.
 
 
 #include "Components/ExpManagerComponent.h"
@@ -9,6 +9,7 @@
 #include "Data/ExpActionSet.h"
 #include "Data/ExpDefinition.h"
 #include "Engine/AssetManager.h"
+#include "Gameplay/ExpPluginCountManager.h"
 #include "Logs/LogExpSystem.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
@@ -268,7 +269,7 @@ void UExpManagerComponent::OnAssetLoadComplete()
 		CurrentLoadState = EExpLoadState::LoadingGameFeatures;
 		for (const FString& PluginURL : GameFeaturePluginURLs)
 		{
-			// UExperienceManager::NotifyOfPluginActivation(PluginURL); 在编辑器中防止多PIE环境卸载插件
+			UExpPluginCountManager::NotifyOfPluginActivation(PluginURL);
 			UGameFeaturesSubsystem::Get().LoadAndActivateGameFeaturePlugin(
 				PluginURL,
 				FGameFeaturePluginLoadComplete::CreateUObject(this, &ThisClass::OnGameFeaturePluginLoadComplete)
@@ -391,8 +392,10 @@ void UExpManagerComponent::CloseExperience()
 	for (const FString& PluginURL : GameFeaturePluginURLs)
 	{
 		// 防止多个PIE的情况下,直接就关闭了插件
-		// if (UExperienceManager::RequestToDeactivatePlugin(PluginURL))
-		UGameFeaturesSubsystem::Get().DeactivateGameFeaturePlugin(PluginURL);
+		if (UExpPluginCountManager::RequestToDeactivatePlugin(PluginURL))
+		{
+			UGameFeaturesSubsystem::Get().DeactivateGameFeaturePlugin(PluginURL);
+		}
 	}
 
 	// 确保当前状态是已加载状态

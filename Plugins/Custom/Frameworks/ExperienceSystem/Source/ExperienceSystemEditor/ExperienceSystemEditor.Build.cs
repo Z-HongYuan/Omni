@@ -7,6 +7,13 @@ public class ExperienceSystemEditor : ModuleRules
 	public ExperienceSystemEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-		PrivateDependencyModuleNames.Add("Core");
+		PrivateDependencyModuleNames.AddRange(new[]
+		{
+			"Core",
+			"CoreUObject",
+			"Engine",
+			"UnrealEd",
+			"ExperienceSystem"
+		});
 	}
 }
