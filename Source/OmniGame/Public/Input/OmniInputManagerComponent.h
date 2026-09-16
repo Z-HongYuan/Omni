@@ -39,6 +39,10 @@ public:
 	UE_API virtual void OnActorInitStateChanged(const FActorInitStateChangedParams& Params) override;
 	UE_API virtual void CheckDefaultInitialization() override;
 
+protected:
+	// 派生玩法替换原生动作，ASC 输入转发及句柄清理仍沿用同一条生命周期。
+	UE_API virtual void BindNativeInputActions(UExtInputComponent* Input, const UExtInputConfig* Config, TArray<uint32>& Handles);
+
 private:
 	void RefreshInputBind();
 	void ReleaseInputBind();

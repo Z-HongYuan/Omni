@@ -146,19 +146,23 @@ void UOmniInputManagerComponent::RefreshInputBind()
 	// 插件按 Triggered/Completed 绑定能力 Tag，与原生输入共用句柄数组。
 	InputComp->BindAbilityActions(BoundInputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindingHandles);
 
-	// 原生的手动添加到Handle中
-	if (const UInputAction* MoveAction = BoundInputConfig->FindNativeInputActionForTag(OmniTags::TAG_InputTag_Move, false))
-	{
-		BindingHandles.Add(InputComp->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ThisClass::Input_Move).GetHandle());
-	}
-	if (const UInputAction* LookAction = BoundInputConfig->FindNativeInputActionForTag(OmniTags::TAG_InputTag_Look_Mouse, false))
-	{
-		BindingHandles.Add(InputComp->BindAction(LookAction, ETriggerEvent::Triggered, this, &ThisClass::Input_LookMouse).GetHandle());
-	}
+	BindNativeInputActions(InputComp, BoundInputConfig, BindingHandles);
 
 	// 输入绑定完成，通知项目 GF 动作接入。
 	UGameFrameworkComponentManager::SendGameFrameworkComponentExtensionEvent(Controller, NAME_BindInputsNow);
 	UGameFrameworkComponentManager::SendGameFrameworkComponentExtensionEvent(Pawn, NAME_BindInputsNow);
+}
+
+void UOmniInputManagerComponent::BindNativeInputActions(UExtInputComponent* Input, const UExtInputConfig* Config, TArray<uint32>& Handles)
+{
+	if (const UInputAction* Move = Config->FindNativeInputActionForTag(OmniTags::TAG_InputTag_Move, false))
+	{
+		Handles.Add(Input->BindAction(Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move).GetHandle());
+	}
+	if (const UInputAction* Look = Config->FindNativeInputActionForTag(OmniTags::TAG_InputTag_Look_Mouse, false))
+	{
+		Handles.Add(Input->BindAction(Look, ETriggerEvent::Triggered, this, &ThisClass::Input_LookMouse).GetHandle());
+	}
 }
 
 void UOmniInputManagerComponent::ReleaseInputBind()
