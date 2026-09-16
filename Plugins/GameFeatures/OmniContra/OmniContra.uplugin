@@ -1,0 +1,54 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.1",
+  "FriendlyName": "Omni Contra",
+  "Description": "Omni 首个横版战斗灰盒体验。",
+  "Category": "Game Features",
+  "CanContainContent": true,
+  "IsBetaVersion": true,
+  "ExplicitlyLoaded": true,
+  "BuiltInInitialFeatureState": "Registered",
+  "Modules": [
+    {
+      "Name": "OmniContraRuntime",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    },
+    {
+      "Name": "OmniContraEditor",
+      "Type": "Editor",
+      "LoadingPhase": "Default"
+    }
+  ],
+  "Plugins": [
+    {
+      "Name": "GameFeatures",
+      "Enabled": true
+    },
+    {
+      "Name": "ExperienceSystem",
+      "Enabled": true
+    },
+    {
+      "Name": "AbilityExtension",
+      "Enabled": true
+    },
+    {
+      "Name": "GameplayCameras",
+      "Enabled": true
+    },
+    {
+      "Name": "GameplayAbilities",
+      "Enabled": true
+    },
+    {
+      "Name": "EnhancedInput",
+      "Enabled": true
+    },
+    {
+      "Name": "ModularGameplay",
+      "Enabled": true
+    }
+  ]
+}
