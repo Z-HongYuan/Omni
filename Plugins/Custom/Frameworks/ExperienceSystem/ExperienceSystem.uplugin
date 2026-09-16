@@ -18,6 +18,11 @@
       "Name": "ExperienceSystem",
       "Type": "Runtime",
       "LoadingPhase": "Default"
+    },
+    {
+      "Name": "ExperienceSystemEditor",
+      "Type": "Editor",
+      "LoadingPhase": "Default"
     }
   ],
   "Plugins": [
