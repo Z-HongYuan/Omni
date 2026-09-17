@@ -54,6 +54,8 @@ public:
 				if (ReleasedFunc)
 				{
 					BindHandles.Add(BindAction(Action.InputAction, ETriggerEvent::Completed, Object, ReleasedFunc, Action.InputTag).GetHandle());
+					// 条件取消也必须松开能力输入，例如 Hold 未完成或 IMC 被撤销。
+					BindHandles.Add(BindAction(Action.InputAction, ETriggerEvent::Canceled, Object, ReleasedFunc, Action.InputTag).GetHandle());
 				}
 			}
 		}
