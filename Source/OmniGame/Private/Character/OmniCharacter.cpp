@@ -3,6 +3,7 @@
 
 #include "Character/OmniCharacter.h"
 
+#include "Character/OmniCMC.h"
 #include "Character/OmniPawnInitializationComponent.h"
 #include "Component/ExtHealthComponent.h"
 #include "Components/ExpPawnExtensionComponent.h"
@@ -11,7 +12,7 @@
 #include UE_INLINE_GENERATED_CPP_BY_NAME(OmniCharacter)
 
 AOmniCharacter::AOmniCharacter(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UOmniCMC>(ACharacter::CharacterMovementComponentName))
 {
 	PawnExtensionComponent = CreateDefaultSubobject<UExpPawnExtensionComponent>(TEXT("PawnExtensionComponent"));
 	PawnInitializationComponent = CreateDefaultSubobject<UOmniPawnInitializationComponent>(TEXT("PawnInitializationComponent"));

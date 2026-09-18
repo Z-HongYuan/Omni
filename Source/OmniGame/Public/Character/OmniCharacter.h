@@ -14,13 +14,13 @@ class UExtHealthComponent;
 class UOmniPawnInitializationComponent;
 
 /**
- * 项目角色基类，沿用 Character 的胶囊、骨骼网格和移动组件，外观及具体操控后续配置。
+ * 项目角色基类，保留 Character 的胶囊和主 Mesh，项目移动组件额外提供地面信息。
  * 通过初始化组件复用 PlayerState 上的 ASC，并向插件转发控制器、玩家状态和输入事件。
  *
  * 对照 Lyra 5.8，后续按需评估迁入：
  * - 相机和输入管理器由 GF 游戏动作添加，Character 不默认挂载；IMC 由玩法配置。
  * - GameplayTag/GameplayCue 接口、队伍状态与死亡流程；生命组件已接入 ASC 生命周期。
- * - 自定义移动组件、移动状态标签、加速度压缩与共享移动复制。
+ * - 移动状态标签、加速度压缩与共享移动复制。
  */
 UCLASS(MinimalAPI, Config = Game)
 class AOmniCharacter : public AModularCharacter, public IAbilitySystemInterface
