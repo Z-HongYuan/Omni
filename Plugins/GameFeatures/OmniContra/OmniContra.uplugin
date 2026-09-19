@@ -20,6 +20,10 @@
     {
       "Name": "GameFeatures",
       "Enabled": true
+    },
+    {
+      "Name": "ExperienceSystem",
+      "Enabled": true
     }
   ]
 }

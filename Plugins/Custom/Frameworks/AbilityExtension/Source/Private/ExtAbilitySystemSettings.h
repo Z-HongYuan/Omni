@@ -3,7 +3,6 @@
 #pragma once
 
 #include "Engine/DeveloperSettings.h"
-#include "GameplayTagContainer.h"
 #include "Templates/SubclassOf.h"
 #include "ExtAbilitySystemSettings.generated.h"
 
@@ -33,11 +32,6 @@ public:
 	// 通用治疗 GE：通过 SetByCaller 传入本次治疗量，修改 MetaHealing。
 	UPROPERTY(EditAnywhere, Config, Category = "AbilitySystem")
 	TSubclassOf<UGameplayEffect> HealGameplayEffect_SetByCaller;
-
-	UPROPERTY(EditAnywhere, Config, Category = "AbilitySystem")
-	FGameplayTag DamageSetByCallerTag;
-	UPROPERTY(EditAnywhere, Config, Category = "AbilitySystem")
-	FGameplayTag HealSetByCallerTag;
 };
 
 #undef UE_API

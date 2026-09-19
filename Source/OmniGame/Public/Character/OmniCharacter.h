@@ -11,7 +11,6 @@
 class UExpPawnExtensionComponent;
 class UExtAbilitySystemComponent;
 class UExtHealthComponent;
-class UExtDeathComponent;
 class UOmniPawnInitializationComponent;
 
 /**
@@ -20,7 +19,7 @@ class UOmniPawnInitializationComponent;
  *
  * 对照 Lyra 5.8，后续按需评估迁入：
  * - 相机和输入管理器由 GF 游戏动作添加，Character 不默认挂载；IMC 由玩法配置。
- * - GameplayTag/GameplayCue 接口与队伍状态；生命和死亡组件已接入 ASC 生命周期，重生规则由玩法决定。
+ * - GameplayTag/GameplayCue 接口、队伍状态与死亡流程；生命组件已接入 ASC 生命周期。
  * - 移动状态标签、加速度压缩与共享移动复制。
  */
 UCLASS(MinimalAPI, Config = Game)
@@ -41,25 +40,10 @@ public:
 	UE_API virtual void OnRep_Controller() override;
 	UE_API virtual void OnRep_PlayerState() override;
 	UE_API virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
-	UE_API virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
-	UFUNCTION(BlueprintPure, Category = "Omni|Health")
-	UExtHealthComponent* GetHealthComponent() const { return HealthComponent; }
-
-	UFUNCTION(BlueprintPure, Category = "Omni|Death")
-	UExtDeathComponent* GetDeathComponent() const { return DeathComponent; }
 
 private:
 	void OnAbilitySystemInitialized();
 	void OnAbilitySystemUninitialized();
-
-	UFUNCTION()
-	void OnOutOfHealth(UExtHealthComponent* Component, float OldValue, float NewValue, AActor* InstigatorActor);
-	UFUNCTION()
-	void OnDeathStarted(AActor* OwningActor);
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Omni|Death", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UExtDeathComponent> DeathComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Omni|Health", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UExtHealthComponent> HealthComponent;
