@@ -18,7 +18,8 @@ namespace ExtAbilitySystemTags
 
 	UE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Status_Death)
 
-	UE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Behavior_SurvivesDeath)
+	// 豁免死亡开始和 Pawn 注销 ASC 时的批量取消，不影响技能授予或其他取消规则。
+	UE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Behavior_AvoidDeathClear)
 }
 
 #undef UE_API
