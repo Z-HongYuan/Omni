@@ -16,7 +16,4 @@ namespace ExpSystemTags
 		ExpSystemTags::TAG_InitState_DataInitialized,
 		ExpSystemTags::TAG_InitState_GameplayReady,
 	};
-
-	// 技能的特性/能力标签
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_Ability_Behavior_AvoidDeathClear, "Ability.Behavior.AvoidDeathClear", "能力会在Pawn卸载时避免清除,意味着能力需要手动移除")
 }

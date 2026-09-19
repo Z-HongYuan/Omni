@@ -14,9 +14,6 @@ namespace ExpSystemTags
 	UE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_InitState_DataInitialized)
 	UE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_InitState_GameplayReady)
 	UE_API extern const TArray<FGameplayTag> ComponentStateChain;
-
-	// 技能的特性/能力标签
-	UE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Ability_Behavior_AvoidDeathClear)
 }
 
 #undef UE_API

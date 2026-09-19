@@ -4,6 +4,7 @@
 #include "Components/ExpPawnExtensionComponent.h"
 
 #include "Components/GameFrameworkComponentManager.h"
+#include "Data/ExtAbilitySystemTags.h"
 #include "Data/ExpSystemTags.h"
 #include "Data/ExpPawnData.h"
 #include "Logs/LogExpSystem.h"
@@ -249,9 +250,9 @@ void UExpPawnExtensionComponent::UninitializeAbilitySystem()
 	// 确保 ASC 的化身就是 当前Pawn
 	if (AbilitySystemComponent->GetAvatarActor() == GetOwner())
 	{
-		// 如果 技能附带有特定 Tag 将不会移除能力
+		// 与死亡技能共用豁免标签；这里只取消运行中的技能，不移除授予。
 		FGameplayTagContainer AbilityTypesToIgnore;
-		AbilityTypesToIgnore.AddTag(ExpSystemTags::TAG_Ability_Behavior_AvoidDeathClear);
+		AbilityTypesToIgnore.AddTag(ExtAbilitySystemTags::TAG_Ability_Behavior_AvoidDeathClear);
 
 		AbilitySystemComponent->CancelAbilities(nullptr, &AbilityTypesToIgnore);
 		AbilitySystemComponent->ClearAbilityInput();
