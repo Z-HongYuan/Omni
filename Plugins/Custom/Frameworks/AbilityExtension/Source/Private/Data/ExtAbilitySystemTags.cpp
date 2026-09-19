@@ -18,7 +18,7 @@ namespace ExtAbilitySystemTags
 
 	UE_API UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_Status_Death, "Status.Death", "技能系统: 死亡状态");
 
-	UE_API UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_Ability_Behavior_SurvivesDeath, "Ability.Behavior.SurvivesDeath", "技能系统: 技能持续存在,豁免死亡时清除");
+	UE_API UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_Ability_Behavior_AvoidDeathClear, "Ability.Behavior.AvoidDeathClear", "技能系统: 豁免死亡开始及 Pawn 注销 ASC 时的批量取消，不影响其他取消规则");
 }
 
 #undef UE_API
