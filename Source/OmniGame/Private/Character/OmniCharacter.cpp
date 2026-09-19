@@ -7,6 +7,7 @@
 #include "Character/OmniPawnInitializationComponent.h"
 #include "Component/ExtHealthComponent.h"
 #include "Components/ExpPawnExtensionComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "System/ExtAbilitySystemComponent.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(OmniCharacter)
@@ -14,6 +15,13 @@
 AOmniCharacter::AOmniCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UOmniCMC>(ACharacter::CharacterMovementComponentName))
 {
+	// 主 Mesh 只提供动画姿势；具体网格体和动画蓝图由角色蓝图指定。
+	USkeletalMeshComponent* SourceComponent = GetMesh();
+	SourceComponent->SetCollisionProfileName(TEXT("NoCollision"));
+	SourceComponent->SetGenerateOverlapEvents(false);
+	SourceComponent->SetSimulatePhysics(false);
+	SourceComponent->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+
 	PawnExtensionComponent = CreateDefaultSubobject<UExpPawnExtensionComponent>(TEXT("PawnExtensionComponent"));
 	PawnInitializationComponent = CreateDefaultSubobject<UOmniPawnInitializationComponent>(TEXT("PawnInitializationComponent"));
 	HealthComponent = CreateDefaultSubobject<UExtHealthComponent>(TEXT("HealthComponent"));

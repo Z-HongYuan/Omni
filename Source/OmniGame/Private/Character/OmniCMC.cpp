@@ -22,15 +22,17 @@ void UOmniCMC::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// 常规主 Mesh Tick 在 CMC 之后，读取本次移动完成后的快照。
+	// 移动完成后更新 GroundInfo，保存移动完成后的数据，供后续消费者读取。
 	UpdateGroundInfo();
 }
 
 void UOmniCMC::TickCharacterPose(float DeltaTime)
 {
-	// Root Motion / 网络移动可能在 CMC 内部提前更新姿势，先提供此时的地面信息。
+	// Root Motion / 网络移动可能在 CMC 内部提前更新姿势。
+	// 在 Super::TickCharacterPose 前更新 GroundInfo，给即将提前执行的动画提供此刻的数据。
 	// 不能按帧跳过后续刷新：同帧移动完成后的位置和 CurrentFloor 可能已经改变。
 	UpdateGroundInfo();
+
 	Super::TickCharacterPose(DeltaTime);
 }
 
