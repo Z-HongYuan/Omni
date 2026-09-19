@@ -77,7 +77,7 @@ void UOmniCMC::UpdateGroundInfo()
 		if (MovementMode == MOVE_NavWalking)
 			GroundInfo.GroundDistance = 0.0f;
 
-		if (HitResult.bBlockingHit)
+		else if (HitResult.bBlockingHit)
 			GroundInfo.GroundDistance = FMath::Max(HitResult.Distance - CapsuleHalfHeight, 0.0f);
 	}
 }
