@@ -13,6 +13,7 @@ public class OmniEditor : ModuleRules
 			"Core",
 			"CoreUObject",
 			"EditorSubsystem",
+			"InterchangeCore", //人物导入管线公开基类
 			"Engine", "UnrealEd" //公开的编辑器引擎类依赖
 		});
 
@@ -26,7 +27,10 @@ public class OmniEditor : ModuleRules
 			"AssetRegistry", "CollectionManager", //外部固定引用资产移动、重命名提醒
 			"Slate",
 			"SlateCore",
-			"ToolMenus"
+			"ToolMenus",
+			"InterchangeFactoryNodes", "InterchangeNodes", "InterchangeEngine",
+			"AssetTools", "MaterialEditor", "IKRig", "IKRigEditor",
+			"AnimGraph", "BlueprintGraph" //后处理动画蓝图输入姿势图
 		});
 	}
 }
