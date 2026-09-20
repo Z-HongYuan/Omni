@@ -43,6 +43,36 @@ UAbilitySystemComponent* AOmniCharacter::GetAbilitySystemComponent() const
 	return GetExtAbilitySystemComponent();
 }
 
+void AOmniCharacter::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
+{
+	if (const UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->GetOwnedGameplayTags(TagContainer);
+	}
+	else
+	{
+		TagContainer.Reset();
+	}
+}
+
+bool AOmniCharacter::HasMatchingGameplayTag(FGameplayTag TagToCheck) const
+{
+	const UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	return ASC ? ASC->HasMatchingGameplayTag(TagToCheck) : false;
+}
+
+bool AOmniCharacter::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer) const
+{
+	const UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	return ASC ? ASC->HasAllMatchingGameplayTags(TagContainer) : false;
+}
+
+bool AOmniCharacter::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer) const
+{
+	const UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	return ASC ? ASC->HasAnyMatchingGameplayTags(TagContainer) : false;
+}
+
 void AOmniCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
