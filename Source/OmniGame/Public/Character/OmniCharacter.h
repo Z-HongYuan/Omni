@@ -48,6 +48,14 @@ public:
 	UE_API virtual void OnRep_PlayerState() override;
 	UE_API virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
+	// 主动退场：触发继承的蓝图 OnReset，清理旧 Pawn；不产生伤害，也不请求重生。
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Omni|Character")
+	UE_API virtual void Reset() override;
+
+protected:
+	UE_API void DisableMovementAndCollision();
+	UE_API void UninitAndDestroy();
+
 private:
 	void OnAbilitySystemInitialized();
 	void OnAbilitySystemUninitialized();

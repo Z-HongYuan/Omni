@@ -6,6 +6,8 @@
 #include "Character/OmniCMC.h"
 #include "Character/OmniPawnInitializationComponent.h"
 #include "Component/ExtHealthComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Components/ExpPawnExtensionComponent.h"
 #include "System/ExtAbilitySystemComponent.h"
 
@@ -31,6 +33,45 @@ void AOmniCharacter::OnAbilitySystemInitialized()
 void AOmniCharacter::OnAbilitySystemUninitialized()
 {
 	HealthComponent->UninitializeFromAbilitySystem();
+}
+
+void AOmniCharacter::Reset()
+{
+	// 相对 Lyra 增加显式服务器约束，供玩法蓝图调用；客户端随角色销毁复制退场。
+	if (!HasAuthority()) return;
+
+	DisableMovementAndCollision();
+	K2_OnReset();
+	UninitAndDestroy();
+}
+
+void AOmniCharacter::DisableMovementAndCollision()
+{
+	StopJumping();
+	GetCharacterMovement()->StopMovementImmediately();
+	GetCharacterMovement()->DisableMovement();
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void AOmniCharacter::UninitAndDestroy()
+{
+	// 与 Lyra 的顺序差异：先注销，再解除控制；PC 的 OnUnPossess 会提前清空 Avatar。
+	if (UExtAbilitySystemComponent* ASC = GetExtAbilitySystemComponent())
+	{
+		// ASC 可能已交给新 Pawn，旧角色不能清理新 Avatar 的能力系统。
+		if (ASC->GetAvatarActor() == this)
+		{
+			PawnExtensionComponent->UninitializeAbilitySystem();
+		}
+	}
+
+	if (HasAuthority())
+	{
+		DetachFromControllerPendingDestroy();
+		SetLifeSpan(0.1f);
+	}
+
+	SetActorHiddenInGame(true);
 }
 
 UExtAbilitySystemComponent* AOmniCharacter::GetExtAbilitySystemComponent() const
