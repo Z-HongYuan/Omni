@@ -64,6 +64,24 @@ void UExtHealthComponent::UninitializeFromAbilitySystem()
 	AbilitySystemComponent = nullptr;
 }
 
+bool UExtHealthComponent::InitializeHealthForSpawn()
+{
+	if (!GetOwner()->HasAuthority()
+		|| bHasInitializedSpawnHealth
+		|| !AbilitySystemComponent
+		|| !HealthSet
+		|| AbilitySystemComponent->GetAvatarActor() != GetOwner())
+	{
+		return false;
+	}
+
+	// 沿用 Lyra 的基础值设置方式，但由项目出生流程显式调用，不放进 ASC 绑定。
+	// 先标记，避免属性通知中的重入再次初始化；已有 GE 的保留策略仍由玩法决定。
+	bHasInitializedSpawnHealth = true;
+	AbilitySystemComponent->SetNumericAttributeBase(UExtHealthSet::GetHealthAttribute(), GetMaxHealth());
+	return true;
+}
+
 float UExtHealthComponent::GetHealth() const
 {
 	return HealthSet ? HealthSet->GetHealth() : 0.0f;

@@ -35,6 +35,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AbilityExtension|Health")
 	UE_API void UninitializeFromAbilitySystem();
 
+	// 出生时显式调用一次；服务器恢复为当前最大生命，绑定和重绑本身不回血。
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "AbilityExtension|Health")
+	UE_API bool InitializeHealthForSpawn();
+
 	UFUNCTION(BlueprintPure, Category = "AbilityExtension|Health")
 	UE_API float GetHealth() const;
 	UFUNCTION(BlueprintPure, Category = "AbilityExtension|Health")
@@ -55,6 +59,9 @@ protected:
 	UE_API virtual void OnUnregister() override;
 
 private:
+	// 属于当前 Pawn 的出生过程，注销 ASC 不重置，避免重绑变成免费治疗。
+	bool bHasInitializedSpawnHealth = false;
+
 	void HandleHealthChanged(const FOnAttributeChangeData& Data);
 	void HandleMaxHealthChanged(const FOnAttributeChangeData& Data);
 

@@ -3,6 +3,7 @@
 
 #include "Character/OmniPawnInitializationComponent.h"
 
+#include "Component/ExtHealthComponent.h"
 #include "Components/ExpPawnExtensionComponent.h"
 #include "Components/GameFrameworkComponentManager.h"
 #include "Data/ExpSystemTags.h"
@@ -92,6 +93,16 @@ void UOmniPawnInitializationComponent::HandleChangeInitState(UGameFrameworkCompo
 		{
 			// ASC 属于 PS；插件统一处理旧 Avatar、ActorInfo、关系映射及初始化广播。
 			Extension->InitializeAbilitySystem(PlayerState->GetExtAbilitySystemComponent(), PlayerState);
+
+			if (Pawn->HasAuthority())
+			{
+				// 只在新 Pawn 的数据初始化阶段恢复生命，普通 ASC 重绑不经过此入口。
+				if (UExtHealthComponent* HealthComponent = UExtHealthComponent::FindHealthComponent(Pawn))
+				{
+					HealthComponent->InitializeHealthForSpawn();
+				}
+			}
+
 			UE_LOG(LogOmniGame, Log, TEXT("OmniPawn ASC initialized: Pawn=%s, PlayerState=%s"), *GetPathNameSafe(Pawn), *GetPathNameSafe(PlayerState));
 		}
 	}
