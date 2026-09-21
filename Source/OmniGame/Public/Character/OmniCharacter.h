@@ -20,7 +20,8 @@ class UOmniPawnInitializationComponent;
  *
  * 对照 Lyra 5.8，后续按需评估迁入：
  * - 相机和输入管理器由 GF 游戏动作添加，Character 不默认挂载；IMC 由玩法配置。
- * - GameplayCue 接口、队伍状态与死亡流程；生命组件已接入 ASC 生命周期。
+ * - GameplayCue 接口与队伍状态；出生阶段恢复生命，重生时机由玩法决定。
+ * - 死亡收尾沿用 Lyra；本项目在解除控制前注销 ASC，避免 PC 提前清空 Avatar 后漏掉注销通知。
  * - 移动状态标签、加速度压缩与共享移动复制。
  */
 UCLASS(MinimalAPI, Config = Game)
@@ -47,14 +48,29 @@ public:
 	UE_API virtual void OnRep_Controller() override;
 	UE_API virtual void OnRep_PlayerState() override;
 	UE_API virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	UE_API virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	UE_API virtual void FellOutOfWorld(const UDamageType& DamageType) override;
 
 	// 主动退场：触发继承的蓝图 OnReset，清理旧 Pawn；不产生伤害，也不请求重生。
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Omni|Character")
 	UE_API virtual void Reset() override;
 
+	UFUNCTION(BlueprintPure, Category = "Omni|Health")
+	UExtHealthComponent* GetHealthComponent() const { return HealthComponent; }
+
 protected:
+	UFUNCTION()
+	UE_API virtual void OnDeathStarted(AActor* OwningActor);
+	UFUNCTION()
+	UE_API virtual void OnDeathFinished(AActor* OwningActor);
+
+	UE_API void DestroyDueToDeath();
 	UE_API void DisableMovementAndCollision();
 	UE_API void UninitAndDestroy();
+
+	// 在下一帧、实际清理角色之前通知蓝图，与 Lyra 一致。
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "OnDeathFinished"))
+	UE_API void K2_OnDeathFinished();
 
 private:
 	void OnAbilitySystemInitialized();

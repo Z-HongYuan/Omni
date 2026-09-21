@@ -47,6 +47,11 @@ void UExtHealthSet::PostAttributeChange(const FGameplayAttribute& Attribute, flo
 {
 	Super::PostAttributeChange(Attribute, OldValue, NewValue);
 
+	if (bOutOfHealth && GetHealth() > 0.0f)
+	{
+		bOutOfHealth = false;
+	}
+
 	// 降低上限时压低当前生命；提高上限不自动治疗。
 	if (Attribute == GetMaxHealthAttribute() && GetHealth() > NewValue)
 	{
@@ -55,6 +60,14 @@ void UExtHealthSet::PostAttributeChange(const FGameplayAttribute& Attribute, flo
 			ASC->ApplyModToAttribute(GetHealthAttribute(), EGameplayModOp::Override, NewValue);
 		}
 	}
+}
+
+bool UExtHealthSet::PreGameplayEffectExecute(FGameplayEffectModCallbackData& Data)
+{
+	if (!Super::PreGameplayEffectExecute(Data)) return false;
+
+	HealthBeforeAttributeChange = GetHealth();
+	return true;
 }
 
 void UExtHealthSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
@@ -82,6 +95,18 @@ void UExtHealthSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackDa
 	{
 		SetHealth(FMath::Clamp(GetHealth(), 0.0f, GetMaxHealth()));
 	}
+
+	// 进入死亡状态,并且广播此次的GE上下文
+	if (GetHealth() <= 0.0f && !bOutOfHealth)
+	{
+		// 先标记，避免监听者同步施加另一个 GE 时重复发送归零事件。
+		bOutOfHealth = true;
+		const FGameplayEffectContextHandle& Context = Data.EffectSpec.GetEffectContext();
+		OnOutOfHealth.Broadcast(Context.GetOriginalInstigator(), Context.GetEffectCauser(), &Data.EffectSpec, Data.EvaluatedData.Magnitude, HealthBeforeAttributeChange, GetHealth());
+	}
+
+	// 监听者可能治疗了目标，以回调后的生命值为准。
+	bOutOfHealth = GetHealth() <= 0.0f;
 }
 
 void UExtHealthSet::ClampAttribute(const FGameplayAttribute& Attribute, float& NewValue) const

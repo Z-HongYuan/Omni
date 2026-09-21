@@ -11,6 +11,7 @@
 /**
  * 最小生命属性集，伤害与治疗在结算后归零，生命值由服务器复制。
  * 对照 Lyra：保留四个生命属性及范围约束；允许简单 GE 直接修改 MetaDamage/MetaHealing。
+ * GE 结算归零时，通过原生委托传递完整效果上下文，供 Health 触发死亡技能。
  * 后续按需添加伤害 Execution、免疫与自毁规则、伤害消息。
  */
 UCLASS(MinimalAPI, BlueprintType)
@@ -27,6 +28,10 @@ public:
 	ATTRIBUTE_ACCESSORS(UExtHealthSet, MetaDamage)
 	ATTRIBUTE_ACCESSORS(UExtHealthSet, MetaHealing)
 
+	// 只在 GE 结算时发送；直接设置属性仍由 ASC 属性变化委托通知 UI。
+	mutable FExtAttributeEvent OnOutOfHealth;
+
+	UE_API virtual bool PreGameplayEffectExecute(FGameplayEffectModCallbackData& Data) override;
 	UE_API virtual void PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const override;
 	UE_API virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
 	UE_API virtual void PostAttributeChange(const FGameplayAttribute& Attribute, float OldValue, float NewValue) override;
@@ -40,6 +45,9 @@ protected:
 
 private:
 	void ClampAttribute(const FGameplayAttribute& Attribute, float& NewValue) const;
+
+	bool bOutOfHealth = false;
+	float HealthBeforeAttributeChange = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Health, Category = "AbilityExtension|Health", meta = (AllowPrivateAccess = "true"))
 	FGameplayAttributeData Health;

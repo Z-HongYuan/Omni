@@ -10,6 +10,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/ExpPawnExtensionComponent.h"
 #include "System/ExtAbilitySystemComponent.h"
+#include "TimerManager.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(OmniCharacter)
 
@@ -17,12 +18,15 @@ AOmniCharacter::AOmniCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UOmniCMC>(ACharacter::CharacterMovementComponentName))
 {
 	PawnExtensionComponent = CreateDefaultSubobject<UExpPawnExtensionComponent>(TEXT("PawnExtensionComponent"));
-	PawnInitializationComponent = CreateDefaultSubobject<UOmniPawnInitializationComponent>(TEXT("PawnInitializationComponent"));
-	HealthComponent = CreateDefaultSubobject<UExtHealthComponent>(TEXT("HealthComponent"));
 
+	PawnInitializationComponent = CreateDefaultSubobject<UOmniPawnInitializationComponent>(TEXT("PawnInitializationComponent"));
 	// 主项目负责接线，生命插件只认识传入的 ASC。
 	PawnExtensionComponent->CallOrRegister_AbilitySystemInitialized(FSimpleDelegate::CreateUObject(this, &ThisClass::OnAbilitySystemInitialized));
 	PawnExtensionComponent->Register_AbilitySystemUninitialized(FSimpleDelegate::CreateUObject(this, &ThisClass::OnAbilitySystemUninitialized));
+
+	HealthComponent = CreateDefaultSubobject<UExtHealthComponent>(TEXT("HealthComponent"));
+	HealthComponent->OnDeathStarted.AddDynamic(this, &ThisClass::OnDeathStarted);
+	HealthComponent->OnDeathFinished.AddDynamic(this, &ThisClass::OnDeathFinished);
 }
 
 void AOmniCharacter::OnAbilitySystemInitialized()
@@ -33,6 +37,17 @@ void AOmniCharacter::OnAbilitySystemInitialized()
 void AOmniCharacter::OnAbilitySystemUninitialized()
 {
 	HealthComponent->UninitializeFromAbilitySystem();
+}
+
+void AOmniCharacter::FellOutOfWorld(const UDamageType& DamageType)
+{
+	// 沿用 Lyra：交给伤害和死亡技能流程，不调用父类直接销毁角色。
+	HealthComponent->DamageSelfDestruct(true);
+}
+
+void AOmniCharacter::OnDeathStarted(AActor* OwningActor)
+{
+	DisableMovementAndCollision();
 }
 
 void AOmniCharacter::Reset()
@@ -51,6 +66,18 @@ void AOmniCharacter::DisableMovementAndCollision()
 	GetCharacterMovement()->StopMovementImmediately();
 	GetCharacterMovement()->DisableMovement();
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void AOmniCharacter::OnDeathFinished(AActor* OwningActor)
+{
+	// 等死亡技能结束及本帧通知处理完，再清理 Pawn。
+	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &ThisClass::DestroyDueToDeath);
+}
+
+void AOmniCharacter::DestroyDueToDeath()
+{
+	K2_OnDeathFinished();
+	UninitAndDestroy();
 }
 
 void AOmniCharacter::UninitAndDestroy()
@@ -72,6 +99,16 @@ void AOmniCharacter::UninitAndDestroy()
 	}
 
 	SetActorHiddenInGame(true);
+}
+
+void AOmniCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	OnAbilitySystemUninitialized();
+
+	// 在父类解除占有前通知旧 Avatar 的消费者，避免 PC 先清空 Avatar 后漏掉注销广播。
+	PawnExtensionComponent->UninitializeAbilitySystem();
+
+	Super::EndPlay(EndPlayReason);
 }
 
 UExtAbilitySystemComponent* AOmniCharacter::GetExtAbilitySystemComponent() const
