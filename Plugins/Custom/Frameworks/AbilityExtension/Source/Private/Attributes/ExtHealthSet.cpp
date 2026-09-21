@@ -3,6 +3,7 @@
 
 #include "Attributes/ExtHealthSet.h"
 
+#include "Data/ExtAbilitySystemTags.h"
 #include "GameplayEffectExtension.h"
 #include "Net/UnrealNetwork.h"
 
@@ -65,6 +66,17 @@ void UExtHealthSet::PostAttributeChange(const FGameplayAttribute& Attribute, flo
 bool UExtHealthSet::PreGameplayEffectExecute(FGameplayEffectModCallbackData& Data)
 {
 	if (!Super::PreGameplayEffectExecute(Data)) return false;
+
+	// 免疫只拦截正数伤害；自毁（含掉出世界）必须仍能进入死亡流程。
+	if (Data.EvaluatedData.Attribute == GetMetaDamageAttribute() && Data.EvaluatedData.Magnitude > 0.0f)
+	{
+		const bool bIsSelfDestruct = Data.EffectSpec.GetDynamicAssetTags().HasTagExact(ExtAbilitySystemTags::TAG_Gameplay_DamageSelfDestruct);
+		if (Data.Target.HasMatchingGameplayTag(ExtAbilitySystemTags::TAG_Gameplay_DamageImmunity) && !bIsSelfDestruct)
+		{
+			Data.EvaluatedData.Magnitude = 0.0f;
+			return false;
+		}
+	}
 
 	HealthBeforeAttributeChange = GetHealth();
 	return true;

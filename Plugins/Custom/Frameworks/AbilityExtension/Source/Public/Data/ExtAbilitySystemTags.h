@@ -23,6 +23,9 @@ namespace ExtAbilitySystemTags
 	 * 用于触发技能的 GameplayEvent事件Tag
 	 */
 	UE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_GameplayEvent_Death);
+
+	// 目标 ASC 上的伤害免疫状态；自毁伤害不受其限制。
+	UE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_Gameplay_DamageImmunity);
 	
 	/*
 	 * 在应用伤害性GE的时候,会根据原因向GE资产标签中附加对应的原因

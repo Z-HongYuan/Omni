@@ -13,6 +13,7 @@ namespace ExtAbilitySystemTags
 
 	UE_API UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_Gameplay_AbilityInputBlocked, "Gameplay.AbilityInputBlocked", "技能系统: 阻止所有的主动技能输入/触发");
 	UE_API UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_GameplayEvent_Death, "GameplayEvent.Death", "技能系统: 生命归零时触发死亡技能");
+	UE_API UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_Gameplay_DamageImmunity, "Gameplay.DamageImmunity", "生命系统: 免疫普通伤害，自毁除外");
 	UE_API UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_Gameplay_DamageSelfDestruct, "Gameplay.DamageSelfDestruct", "伤害 GE 来源: 自毁");
 	UE_API UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_Gameplay_FellOutOfWorld, "Gameplay.FellOutOfWorld", "伤害 GE 来源: 掉出世界");
 
