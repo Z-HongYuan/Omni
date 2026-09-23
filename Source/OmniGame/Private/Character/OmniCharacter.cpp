@@ -6,8 +6,11 @@
 #include "Character/OmniCMC.h"
 #include "Character/OmniPawnInitializationComponent.h"
 #include "Component/ExtHealthComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Components/ExpPawnExtensionComponent.h"
 #include "System/ExtAbilitySystemComponent.h"
+#include "TimerManager.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(OmniCharacter)
 
@@ -15,12 +18,15 @@ AOmniCharacter::AOmniCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UOmniCMC>(ACharacter::CharacterMovementComponentName))
 {
 	PawnExtensionComponent = CreateDefaultSubobject<UExpPawnExtensionComponent>(TEXT("PawnExtensionComponent"));
-	PawnInitializationComponent = CreateDefaultSubobject<UOmniPawnInitializationComponent>(TEXT("PawnInitializationComponent"));
-	HealthComponent = CreateDefaultSubobject<UExtHealthComponent>(TEXT("HealthComponent"));
 
+	PawnInitializationComponent = CreateDefaultSubobject<UOmniPawnInitializationComponent>(TEXT("PawnInitializationComponent"));
 	// 主项目负责接线，生命插件只认识传入的 ASC。
 	PawnExtensionComponent->CallOrRegister_AbilitySystemInitialized(FSimpleDelegate::CreateUObject(this, &ThisClass::OnAbilitySystemInitialized));
 	PawnExtensionComponent->Register_AbilitySystemUninitialized(FSimpleDelegate::CreateUObject(this, &ThisClass::OnAbilitySystemUninitialized));
+
+	HealthComponent = CreateDefaultSubobject<UExtHealthComponent>(TEXT("HealthComponent"));
+	HealthComponent->OnDeathStarted.AddDynamic(this, &ThisClass::OnDeathStarted);
+	HealthComponent->OnDeathFinished.AddDynamic(this, &ThisClass::OnDeathFinished);
 }
 
 void AOmniCharacter::OnAbilitySystemInitialized()
@@ -33,6 +39,78 @@ void AOmniCharacter::OnAbilitySystemUninitialized()
 	HealthComponent->UninitializeFromAbilitySystem();
 }
 
+void AOmniCharacter::FellOutOfWorld(const UDamageType& DamageType)
+{
+	// 沿用 Lyra：交给伤害和死亡技能流程，不调用父类直接销毁角色。
+	HealthComponent->DamageSelfDestruct(true);
+}
+
+void AOmniCharacter::OnDeathStarted(AActor* OwningActor)
+{
+	DisableMovementAndCollision();
+}
+
+void AOmniCharacter::Reset()
+{
+	// 相对 Lyra 增加显式服务器约束，供玩法蓝图调用；客户端随角色销毁复制退场。
+	if (!HasAuthority()) return;
+
+	DisableMovementAndCollision();
+	K2_OnReset();
+	UninitAndDestroy();
+}
+
+void AOmniCharacter::DisableMovementAndCollision()
+{
+	StopJumping();
+	GetCharacterMovement()->StopMovementImmediately();
+	GetCharacterMovement()->DisableMovement();
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void AOmniCharacter::OnDeathFinished(AActor* OwningActor)
+{
+	// 等死亡技能结束及本帧通知处理完，再清理 Pawn。
+	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &ThisClass::DestroyDueToDeath);
+}
+
+void AOmniCharacter::DestroyDueToDeath()
+{
+	K2_OnDeathFinished();
+	UninitAndDestroy();
+}
+
+void AOmniCharacter::UninitAndDestroy()
+{
+	// 与 Lyra 的顺序差异：先注销，再解除控制；PC 的 OnUnPossess 会提前清空 Avatar。
+	if (UExtAbilitySystemComponent* ASC = GetExtAbilitySystemComponent())
+	{
+		// ASC 可能已交给新 Pawn，旧角色不能清理新 Avatar 的能力系统。
+		if (ASC->GetAvatarActor() == this)
+		{
+			PawnExtensionComponent->UninitializeAbilitySystem();
+		}
+	}
+
+	if (HasAuthority())
+	{
+		DetachFromControllerPendingDestroy();
+		SetLifeSpan(0.1f);
+	}
+
+	SetActorHiddenInGame(true);
+}
+
+void AOmniCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	OnAbilitySystemUninitialized();
+
+	// 在父类解除占有前通知旧 Avatar 的消费者，避免 PC 先清空 Avatar 后漏掉注销广播。
+	PawnExtensionComponent->UninitializeAbilitySystem();
+
+	Super::EndPlay(EndPlayReason);
+}
+
 UExtAbilitySystemComponent* AOmniCharacter::GetExtAbilitySystemComponent() const
 {
 	return PawnExtensionComponent ? PawnExtensionComponent->GetExtAbilitySystemComponent() : nullptr;
@@ -41,6 +119,36 @@ UExtAbilitySystemComponent* AOmniCharacter::GetExtAbilitySystemComponent() const
 UAbilitySystemComponent* AOmniCharacter::GetAbilitySystemComponent() const
 {
 	return GetExtAbilitySystemComponent();
+}
+
+void AOmniCharacter::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const
+{
+	if (const UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+	{
+		ASC->GetOwnedGameplayTags(TagContainer);
+	}
+	else
+	{
+		TagContainer.Reset();
+	}
+}
+
+bool AOmniCharacter::HasMatchingGameplayTag(FGameplayTag TagToCheck) const
+{
+	const UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	return ASC ? ASC->HasMatchingGameplayTag(TagToCheck) : false;
+}
+
+bool AOmniCharacter::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer) const
+{
+	const UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	return ASC ? ASC->HasAllMatchingGameplayTags(TagContainer) : false;
+}
+
+bool AOmniCharacter::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer) const
+{
+	const UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	return ASC ? ASC->HasAnyMatchingGameplayTags(TagContainer) : false;
 }
 
 void AOmniCharacter::PossessedBy(AController* NewController)
