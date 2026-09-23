@@ -5,12 +5,21 @@ public class OmniContraRuntime : ModuleRules
 	public OmniContraRuntime(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
 			"Core",
 			"CoreUObject",
 			"Engine",
-			"ExperienceSystem"
+			"ExperienceSystem",
+			"OmniGame", "ModularGameplay"
+		});
+
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"AbilityExtension",
+			"EnhancedInput",
+			"GameplayTags"
 		});
 	}
 }
