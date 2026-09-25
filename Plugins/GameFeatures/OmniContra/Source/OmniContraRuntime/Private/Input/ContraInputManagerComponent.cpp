@@ -41,7 +41,7 @@ void UContraInputManagerComponent::Input_Move(const FInputActionValue& Value)
 			{
 				FRotator FacingRotation = Controller->GetControlRotation();
 				FacingRotation.Yaw = DirectionalInput.X > 0.0f ? 0.0f : 180.0f;
-				// Pawn 使用控制器 Yaw，朝向随 CharacterMovement 的移动数据同步。
+				// Pawn 使用控制器 Yaw，朝向随 CharacterMovement 的移动数据同步。同时关闭网络平滑以实现瞬间转向
 				Controller->SetControlRotation(FacingRotation);
 			}
 		}
