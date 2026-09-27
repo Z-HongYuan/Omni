@@ -38,7 +38,7 @@ void UExpPawnExtensionComponent::OnRegister()
 	Super::OnRegister();
 
 	const APawn* Pawn = GetPawn<APawn>();
-	ensureAlwaysMsgf((Pawn != nullptr), TEXT("LyraPawnExtensionComponent on [%s] can only be added to Pawn actors."), *GetNameSafe(GetOwner()));
+	ensureAlwaysMsgf((Pawn != nullptr), TEXT("ExpPawnExtensionComponent on [%s] can only be added to Pawn actors."), *GetNameSafe(GetOwner()));
 
 	TArray<UActorComponent*> PawnExtensionComponents;
 	Pawn->GetComponents(UExpPawnExtensionComponent::StaticClass(), PawnExtensionComponents);

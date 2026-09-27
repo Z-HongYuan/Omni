@@ -102,7 +102,7 @@ void UEquipmentManager::ReadyForReplication()
 {
 	Super::ReadyForReplication();
 
-	// Register existing LyraEquipmentInstances
+	// 注册已有的装备实例
 	if (IsUsingRegisteredSubObjectList())
 	{
 		for (const FAppliedEquipmentEntry& Entry : EquipmentList.Entries)
