@@ -159,7 +159,7 @@ void UExtGamePhaseManager::OnBeginPhase(const UExtGamePhaseAbility* PhaseAbility
 				UE_LOG(LogAbilityExtension, Log, TEXT("\tEnding Phase '%s' (%s)"), *ActivePhaseTag.ToString(), *GetNameSafe(ActivePhaseAbility));
 
 				FGameplayAbilitySpecHandle HandleToEnd = ActivePhase->Handle;
-				GameState_ASC->CancelAbilitiesByFunc([HandleToEnd](const UExtGameplayAbility* LyraAbility, FGameplayAbilitySpecHandle Handle)
+				GameState_ASC->CancelAbilitiesByFunc([HandleToEnd](const UExtGameplayAbility* Ability, FGameplayAbilitySpecHandle Handle)
 				{
 					return Handle == HandleToEnd;
 				}, true);
