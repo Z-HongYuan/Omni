@@ -26,7 +26,7 @@ TSharedPtr<SGraphPanel> ANA_GraphHelper::GetCurrentGraphPanel()
 TSharedPtr<SGraphPanel> ANA_GraphHelper::RecursiveGetCurrentGraphPanel(TSharedRef<SWidget> sWidget)
 {
 	if (sWidget->GetTypeAsString() == "SGraphPanel") return TSharedPtr<SGraphPanel>(StaticCastSharedRef<SGraphPanel>(sWidget));
-	FChildren* children = sWidget->GetChildren();
+	FChildren* children = sWidget->GetAllChildren();
 	for (size_t i = 0; i < children->Num(); i++)
 	{
 		auto result = RecursiveGetCurrentGraphPanel(children->GetChildAt(i));
