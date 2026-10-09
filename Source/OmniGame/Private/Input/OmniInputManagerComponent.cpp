@@ -118,6 +118,41 @@ void UOmniInputManagerComponent::CheckDefaultInitialization()
 	ContinueInitStateChain(ExpSystemTags::ComponentStateChain);
 }
 
+void UOmniInputManagerComponent::BindNativeInputActions(UExtInputComponent* Input, const UExtInputConfig* Config, TArray<uint32>& Handles)
+{
+	if (const UInputAction* Move = Config->FindNativeInputActionForTag(OmniTags::TAG_InputTag_Move, false))
+	{
+		Handles.Add(Input->BindAction(Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move).GetHandle());
+	}
+	if (const UInputAction* Look = Config->FindNativeInputActionForTag(OmniTags::TAG_InputTag_Look_Mouse, false))
+	{
+		Handles.Add(Input->BindAction(Look, ETriggerEvent::Triggered, this, &ThisClass::Input_LookMouse).GetHandle());
+	}
+}
+
+void UOmniInputManagerComponent::Input_Move(const FInputActionValue& Value)
+{
+	APawn* Pawn = GetPawn<APawn>();
+	const AController* Controller = GetController<AController>();
+	if (!Pawn || !Controller) return;
+
+	const FVector2D Input = Value.Get<FVector2D>();
+	const FRotator MovementRotation(0.0f, Controller->GetControlRotation().Yaw, 0.0f);
+	Pawn->AddMovementInput(MovementRotation.RotateVector(FVector::RightVector), Input.X);
+	Pawn->AddMovementInput(MovementRotation.RotateVector(FVector::ForwardVector), Input.Y);
+}
+
+void UOmniInputManagerComponent::Input_LookMouse(const FInputActionValue& Value)
+{
+	APawn* Pawn = GetPawn<APawn>();
+	if (!Pawn) return;
+
+	// 鼠标值是每帧增量，不乘 DeltaSeconds；灵敏度与反转由输入 Modifier 配置。
+	const FVector2D Input = Value.Get<FVector2D>();
+	Pawn->AddControllerYawInput(Input.X);
+	Pawn->AddControllerPitchInput(Input.Y);
+}
+
 void UOmniInputManagerComponent::RefreshInputBind()
 {
 	APawn* Pawn = GetPawn<APawn>();
@@ -153,18 +188,6 @@ void UOmniInputManagerComponent::RefreshInputBind()
 	UGameFrameworkComponentManager::SendGameFrameworkComponentExtensionEvent(Pawn, NAME_BindInputsNow);
 }
 
-void UOmniInputManagerComponent::BindNativeInputActions(UExtInputComponent* Input, const UExtInputConfig* Config, TArray<uint32>& Handles)
-{
-	if (const UInputAction* Move = Config->FindNativeInputActionForTag(OmniTags::TAG_InputTag_Move, false))
-	{
-		Handles.Add(Input->BindAction(Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move).GetHandle());
-	}
-	if (const UInputAction* Look = Config->FindNativeInputActionForTag(OmniTags::TAG_InputTag_Look_Mouse, false))
-	{
-		Handles.Add(Input->BindAction(Look, ETriggerEvent::Triggered, this, &ThisClass::Input_LookMouse).GetHandle());
-	}
-}
-
 void UOmniInputManagerComponent::ReleaseInputBind()
 {
 	if (UExtInputComponent* Input = BoundInputComponent.Get())
@@ -176,29 +199,6 @@ void UOmniInputManagerComponent::ReleaseInputBind()
 	BoundInputComponent.Reset();
 	BoundController.Reset();
 	BoundInputConfig = nullptr;
-}
-
-void UOmniInputManagerComponent::Input_Move(const FInputActionValue& Value)
-{
-	APawn* Pawn = GetPawn<APawn>();
-	const AController* Controller = GetController<AController>();
-	if (!Pawn || !Controller) return;
-
-	const FVector2D Input = Value.Get<FVector2D>();
-	const FRotator MovementRotation(0.0f, Controller->GetControlRotation().Yaw, 0.0f);
-	Pawn->AddMovementInput(MovementRotation.RotateVector(FVector::RightVector), Input.X);
-	Pawn->AddMovementInput(MovementRotation.RotateVector(FVector::ForwardVector), Input.Y);
-}
-
-void UOmniInputManagerComponent::Input_LookMouse(const FInputActionValue& Value)
-{
-	APawn* Pawn = GetPawn<APawn>();
-	if (!Pawn) return;
-
-	// 鼠标值是每帧增量，不乘 DeltaSeconds；灵敏度与反转由输入 Modifier 配置。
-	const FVector2D Input = Value.Get<FVector2D>();
-	Pawn->AddControllerYawInput(Input.X);
-	Pawn->AddControllerPitchInput(Input.Y);
 }
 
 void UOmniInputManagerComponent::Input_AbilityInputTagPressed(FGameplayTag InputTag)

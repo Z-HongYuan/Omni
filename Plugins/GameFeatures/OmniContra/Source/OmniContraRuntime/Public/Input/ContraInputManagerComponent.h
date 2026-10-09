@@ -25,11 +25,10 @@ public:
 
 protected:
 	UE_API virtual void BindNativeInputActions(UExtInputComponent* Input, const UExtInputConfig* Config, TArray<uint32>& Handles) override;
+	UE_API virtual void Input_Move(const FInputActionValue& Value) override;
+	UE_API virtual void Input_MoveCompleted(const FInputActionValue& Value);
 
 private:
-	void Input_Move(const FInputActionValue& Value);
-	void Input_MoveCompleted(const FInputActionValue& Value);
-
 	FVector2D DirectionalInput = FVector2D::ZeroVector;
 };
 

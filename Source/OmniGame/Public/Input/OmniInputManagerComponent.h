@@ -43,12 +43,12 @@ protected:
 	// 派生玩法替换原生动作，ASC 输入转发及句柄清理仍沿用同一条生命周期。
 	UE_API virtual void BindNativeInputActions(UExtInputComponent* Input, const UExtInputConfig* Config, TArray<uint32>& Handles);
 
+	UE_API virtual void Input_Move(const FInputActionValue& Value);
+	UE_API virtual void Input_LookMouse(const FInputActionValue& Value);
+
 private:
 	void RefreshInputBind();
 	void ReleaseInputBind();
-
-	void Input_Move(const FInputActionValue& Value);
-	void Input_LookMouse(const FInputActionValue& Value);
 
 	void Input_AbilityInputTagPressed(FGameplayTag InputTag);
 	void Input_AbilityInputTagReleased(FGameplayTag InputTag);
