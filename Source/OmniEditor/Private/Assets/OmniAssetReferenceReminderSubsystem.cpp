@@ -61,7 +61,7 @@ void UOmniAssetReferenceReminderSubsystem::HandleAssetRenamed(const FAssetData& 
 	}
 
 	UE_LOG(LogOmniEditor, Warning,
-	       TEXT("外部固定引用资产已移动或重命名：%s -> %s。请检查 C++ 固定名称、配置路径及 AssetManager 扫描范围，参见 Docs/FixedAssetReferences.md。"),
+	       TEXT("外部固定引用资产已移动或重命名：%s -> %s。请检查 C++ 固定名称、配置路径及 AssetManager 扫描范围，参见工作区 Misc/analysis/OmniProjectDocs/FixedAssetReferences.md。"),
 	       *OldObjectPath, *NewPath.ToString());
 
 	if (!IsRunningCommandlet() && FSlateApplication::IsInitialized())
@@ -90,8 +90,24 @@ bool UOmniAssetReferenceReminderSubsystem::ShowPendingReminder(float /*DeltaTime
 	Info.HyperlinkText = LOCTEXT("OpenChecklist", "查看固定引用自查清单");
 	Info.Hyperlink = FSimpleDelegate::CreateLambda([]
 	{
-		const FString GuidePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / TEXT("Docs/FixedAssetReferences.md"));
-		FPlatformProcess::LaunchFileInDefaultExternalApplication(*GuidePath);
+		FString SearchDirectory = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
+		FPaths::NormalizeDirectoryName(SearchDirectory);
+		while (!SearchDirectory.IsEmpty())
+		{
+			const FString GuidePath = SearchDirectory / TEXT("Misc/analysis/OmniProjectDocs/FixedAssetReferences.md");
+			if (FPaths::FileExists(GuidePath))
+			{
+				FPlatformProcess::LaunchFileInDefaultExternalApplication(*GuidePath);
+				return;
+			}
+			const FString ParentDirectory = FPaths::GetPath(SearchDirectory);
+			if (ParentDirectory == SearchDirectory)
+			{
+				break;
+			}
+			SearchDirectory = ParentDirectory;
+		}
+		UE_LOG(LogOmniEditor, Warning, TEXT("未找到工作区固定引用自查清单：Misc/analysis/OmniProjectDocs/FixedAssetReferences.md"));
 	});
 	FSlateNotificationManager::Get().AddNotification(Info);
 	return false;
