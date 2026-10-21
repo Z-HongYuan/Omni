@@ -64,7 +64,7 @@ void UOmniCharacterImportPipeline::RefreshTextureNames(UInterchangeBaseNodeConta
 	TextureNamingError.Reset();
 	if (!bNormalizeTextureNames)
 	{
-		TextureNamingStatus = TEXT("沿用源纹理名称和 T_ 前缀。");
+		TextureNamingStatus = TEXT("沿用源纹理名称，不添加前缀或按用途改名。");
 		return;
 	}
 	if (bIsReimportContext)

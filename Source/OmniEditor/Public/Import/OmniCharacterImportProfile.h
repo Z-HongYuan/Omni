@@ -79,6 +79,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Folders")
 	FString MaterialFolder = TEXT("Materials");
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Folders")
+	FString AnimationFolder = TEXT("Animations");
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Folders")
 	FString RigFolder = TEXT("Rig");
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Folders")
 	FString PhysicsFolder;
@@ -97,8 +99,9 @@ public:
 	/** Explicit chains take precedence; an empty list requests UE's biped auto-detection. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rig")
 	TArray<FOmniImportRetargetChain> RetargetChains;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rig")
-	bool bTryAutoFBIK = false;
+	/** Configure UE's full-body IK solver on new rigs with valid arm and leg chains. Existing rigs are preserved. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rig", meta=(EditCondition="bCreateIKRig"))
+	bool bTryAutoFBIK = true;
 	/** Retargeter generation is enabled only when this source rig is assigned. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rig")
 	TSoftObjectPtr<UIKRigDefinition> SourceIKRig;

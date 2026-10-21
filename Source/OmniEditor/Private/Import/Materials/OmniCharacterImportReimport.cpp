@@ -2,25 +2,32 @@
 #include "Import/OmniCharacterImportPipeline.h"
 
 #include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "Nodes/InterchangeBaseNodeContainer.h"
 #include "Nodes/InterchangeFactoryBaseNode.h"
 
-void UOmniCharacterImportPipeline::ApplyRetainedMaterials(const UInterchangeBaseNodeContainer* Container, USkeletalMesh* Mesh)
+void UOmniCharacterImportPipeline::ApplyRetainedMaterials(const UInterchangeBaseNodeContainer* Container, UObject* Mesh)
 {
 	if (!Container || !Mesh) return;
+	TSet<UMaterialInterface*> UsedMaterials;
+	if (const USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(Mesh))
+	{
+		for (const FSkeletalMaterial& Slot : SkeletalMesh->GetMaterials()) UsedMaterials.Add(Slot.MaterialInterface);
+	}
+	else if (const UStaticMesh* StaticMesh = Cast<UStaticMesh>(Mesh))
+	{
+		for (const FStaticMaterial& Slot : StaticMesh->GetStaticMaterials()) UsedMaterials.Add(Slot.MaterialInterface);
+	}
 	// Mesh-only reimport can retain a material without dispatching its post-import callback.
 	// Restrict updates to factory references actually used by this mesh, never name-based searches.
-	auto FindMaterial = [Container, Mesh](const FString& Key) -> UMaterialInstanceConstant*
+	auto FindMaterial = [Container, &UsedMaterials](const FString& Key) -> UMaterialInstanceConstant*
 	{
 		const UInterchangeFactoryBaseNode* Node = Container->GetFactoryNode(Key);
 		FSoftObjectPath Path;
 		if (!Node || !Node->GetCustomReferenceObject(Path)) return nullptr;
 		UMaterialInstanceConstant* Material = Cast<UMaterialInstanceConstant>(Path.TryLoad());
-		return Material && Mesh->GetMaterials().ContainsByPredicate([Material](const FSkeletalMaterial& Slot)
-		{
-			return Slot.MaterialInterface == Material;
-		}) ? Material : nullptr;
+		return Material && UsedMaterials.Contains(Material) ? Material : nullptr;
 	};
 	if (bUseKeywordMaterials)
 	{

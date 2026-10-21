@@ -6,6 +6,7 @@
 #include "Import/Materials/OmniImportMaterialApplier.h"
 #include "Import/Materials/OmniImportToonProfile.h"
 #include "Import/Materials/OmniImportTextureSettings.h"
+#include "Engine/ToonProfile.h"
 #include "InterchangeMaterialFactoryNode.h"
 #include "InterchangeMaterialInstanceNode.h"
 #include "InterchangeShaderGraphNode.h"
@@ -128,7 +129,8 @@ void UOmniCharacterImportPipeline::RefreshKeywordMaterials(UInterchangeBaseNodeC
 		if (Row.AssetSuffix.IsEmpty()) Row.AssetSuffix = SourceName(Row.SourceMaterial);
 		Row.ResolvedRole = Row.Role == EOmniMaterialRole::Auto ? MaterialRole(Row.SourceMaterial) : Row.Role;
 		Row.TextureGroup = SourceTextureGroup(Row.SourceMaterial);
-		Row.Parent = Row.ResolvedRole == EOmniMaterialRole::Outline ? OutlineParentMaterial : (Row.ResolvedRole == EOmniMaterialRole::Face ? FaceParentMaterial : BodyParentMaterial);
+		Row.Parent = !Row.ParentOverride.IsNull() ? Row.ParentOverride
+			: (Row.ResolvedRole == EOmniMaterialRole::Outline ? OutlineParentMaterial : (Row.ResolvedRole == EOmniMaterialRole::Face ? FaceParentMaterial : BodyParentMaterial));
 		TSet<FName> PreviousParameters;
 		for (const auto& Binding : Row.Textures) PreviousParameters.Add(Binding.Parameter);
 		Omni::CharacterImport::RefreshMaterialTextureParameters(Row.Parent.LoadSynchronous(), Row.Textures);
@@ -141,10 +143,8 @@ void UOmniCharacterImportPipeline::RefreshKeywordMaterials(UInterchangeBaseNodeC
 		Rows.Add(MoveTemp(Row));
 	}
 	MaterialMappings = MoveTemp(Rows);
-	if (MaterialMappings.ContainsByPredicate([](const auto& Row) { return Row.ResolvedRole == EOmniMaterialRole::Body; }) && !ResolveBodyToonProfileTemplate())
-		KeywordMaterialError = TEXT("Body 母材质没有唯一的 Toon Profile，请指定 Body Profile 模板。");
 	MaterialMappingStatus = KeywordMaterialError.IsEmpty()
-		? FString::Printf(TEXT("%d 个源材质各建一个 MI；Outline 优先，Face 次之，其余使用 Body。"), MaterialMappings.Num()) : KeywordMaterialError;
+		? FString::Printf(TEXT("%d 个源材质各建一个 MI；自定义母材质优先，留空按 Outline → Face → Body 匹配。"), MaterialMappings.Num()) : KeywordMaterialError;
 	if (bIsReimportContext && !bUpdateKeywordMaterialsOnReimport) MaterialMappingStatus = TEXT("重导入保留已有材质和纹理；需要重新匹配时勾选更新。");
 }
 
@@ -240,6 +240,7 @@ void UOmniCharacterImportPipeline::ApplyKeywordMaterial(const UInterchangeBaseNo
 	const int32* Index = KeywordFactoryRows.Find(NodeKey);
 	if (!Index || !MaterialMappings.IsValidIndex(*Index)) return;
 	const auto& Row = MaterialMappings[*Index];
-	if (Row.ResolvedRole != EOmniMaterialRole::Body) Omni::CharacterImport::ClearOwnedToonProfile(Material);
-	Omni::CharacterImport::ApplyMaterialTextures(Container, NodeKey, Material, Row.Parent.LoadSynchronous(), Row.Textures, {[this](const FString& Message, bool bError) { Report(Message, bError); }});
+	UMaterialInterface* Parent = Row.Parent.LoadSynchronous();
+	Omni::CharacterImport::ApplyMaterialTextures(Container, NodeKey, Material, Parent, Row.Textures, {[this](const FString& Message, bool bError) { Report(Message, bError); }});
+	ApplyAssetToonProfile(Container, Material);
 }

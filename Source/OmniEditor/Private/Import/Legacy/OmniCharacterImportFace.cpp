@@ -111,4 +111,5 @@ void UOmniCharacterImportPipeline::ApplyFaceMaterial(const UInterchangeBaseNodeC
 		return;
 	}
 	Omni::CharacterImport::ApplyMaterialTextures(Container, NodeKey, Material, FaceParentMaterial.LoadSynchronous(), FaceTextures, {[this](const FString& Message, bool bError) { Report(Message, bError); }});
+	ApplyAssetToonProfile(Container, Material);
 }

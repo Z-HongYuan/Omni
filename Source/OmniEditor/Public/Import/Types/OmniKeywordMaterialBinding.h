@@ -35,6 +35,9 @@ struct OMNIEDITOR_API FOmniKeywordMaterialBinding
 	FString SourceMaterial;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Material", meta=(DisplayName="母材质类型"))
 	EOmniMaterialRole Role = EOmniMaterialRole::Auto;
+	/** Optional per-source parent; an empty value uses the selected role's default parent. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Material", meta=(DisplayName="自定义母材质（留空按类型）"))
+	TSoftObjectPtr<UMaterialInterface> ParentOverride;
 	UPROPERTY(VisibleAnywhere, Transient, BlueprintReadOnly, Category="Material", meta=(DisplayName="匹配的母材质"))
 	TSoftObjectPtr<UMaterialInterface> Parent;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, EditFixedSize, Category="Material", meta=(DisplayName="纹理参数", TitleProperty="Parameter", NoElementDuplicate))

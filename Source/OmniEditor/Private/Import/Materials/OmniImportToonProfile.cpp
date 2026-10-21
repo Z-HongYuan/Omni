@@ -1,8 +1,8 @@
 // Copyright © 2026 张鸿源. All Rights Reserved.
 #include "Import/Materials/OmniImportToonProfile.h"
+#include "Import/Materials/OmniImportMaterialUserData.h"
 #include "AssetToolsModule.h"
 #include "Engine/ToonProfile.h"
-#include "Engine/SkeletalMesh.h"
 #include "IAssetTools.h"
 #include "MaterialEditingLibrary.h"
 #include "Materials/MaterialInstanceConstant.h"
@@ -15,6 +15,14 @@ namespace Omni::CharacterImport
 namespace
 {
 const TCHAR* OwnedProfileKey = TEXT("Omni.CharacterImport.BodyToonProfile");
+
+UToonProfile* FindOwnedProfile(UMaterialInstanceConstant* Material)
+{
+	if (const UOmniImportMaterialUserData* Ownership = Cast<UOmniImportMaterialUserData>(Material->GetAssetUserDataOfClass(UOmniImportMaterialUserData::StaticClass())))
+		return Ownership->OwnedToonProfile;
+	const FString OwnedPath = Material->GetOutermost()->GetMetaData().GetValue(Material, OwnedProfileKey);
+	return OwnedPath.IsEmpty() ? nullptr : Cast<UToonProfile>(FSoftObjectPath(OwnedPath).TryLoad());
+}
 }
 
 UToonProfile* ResolveBodyToonProfileTemplate(UMaterialInterface* Parent, UToonProfile* ExplicitTemplate)
@@ -30,72 +38,118 @@ UToonProfile* ResolveBodyToonProfileTemplate(UMaterialInterface* Parent, UToonPr
 	return Profiles.Num() == 1 ? *Profiles.CreateConstIterator() : nullptr;
 }
 
-void SetOwnedToonProfile(UMaterialInstanceConstant* Material, UToonProfile* Profile)
+void SetOwnedToonProfile(UMaterialInstanceConstant* Material, UToonProfile* Profile, const FString& GroupKey)
 {
+	if (!Material || !Profile) return;
 	Material->Modify();
+	UOmniImportMaterialUserData* Ownership = Cast<UOmniImportMaterialUserData>(Material->GetAssetUserDataOfClass(UOmniImportMaterialUserData::StaticClass()));
+	if (!Ownership)
+	{
+		Ownership = NewObject<UOmniImportMaterialUserData>(Material, NAME_None, RF_Transactional);
+		Material->AddAssetUserData(Ownership);
+	}
+	Ownership->Modify();
+	Ownership->OwnedToonProfile = Profile;
+	Ownership->SharedProfileGroupKey = GroupKey;
 	Material->ToonProfileOverride = Profile;
 	Material->bOverrideToonProfile = true;
-	Material->GetOutermost()->GetMetaData().SetValue(Material, OwnedProfileKey, *Profile->GetPathName());
+	// New assignments migrate away from the legacy string-based ownership record.
+	Material->GetOutermost()->GetMetaData().RemoveValue(Material, OwnedProfileKey);
 	UMaterialEditingLibrary::UpdateMaterialInstance(Material);
 	(void)Material->MarkPackageDirty();
 }
 
 void ClearOwnedToonProfile(UMaterialInstanceConstant* Material)
 {
+	if (!Material) return;
 	FMetaData& Metadata = Material->GetOutermost()->GetMetaData();
+	const UOmniImportMaterialUserData* Ownership = Cast<UOmniImportMaterialUserData>(Material->GetAssetUserDataOfClass(UOmniImportMaterialUserData::StaticClass()));
 	const FString OwnedPath = Metadata.GetValue(Material, OwnedProfileKey);
-	if (OwnedPath.IsEmpty()) return; // Old/unmarked assets may contain user assignments.
+	if (!Ownership && OwnedPath.IsEmpty()) return; // Unmarked assignments belong to the user.
+	UToonProfile* OwnedProfile = FindOwnedProfile(Material);
 	Material->Modify();
-	if (Material->ToonProfileOverride && Material->ToonProfileOverride->GetPathName() == OwnedPath)
+	// Comparing references preserves a user replacement while surviving asset renames.
+	// Legacy records can follow a redirector; unresolved legacy paths remain untouched.
+	if (Material->ToonProfileOverride && Material->ToonProfileOverride == OwnedProfile)
 	{
 		Material->ToonProfileOverride = nullptr;
 		Material->bOverrideToonProfile = false;
 		UMaterialEditingLibrary::UpdateMaterialInstance(Material);
 	}
+	Material->RemoveUserDataOfClass(UOmniImportMaterialUserData::StaticClass());
 	Metadata.RemoveValue(Material, OwnedProfileKey);
 	(void)Material->MarkPackageDirty();
 }
 
-void ApplyBodyToonProfile(const TSet<UMaterialInstanceConstant*>& Targets, USkeletalMesh* Mesh,
+UToonProfile* ResolveOrCreateSharedToonProfile(const FString& Package, const TArray<UMaterialInstanceConstant*>& ExistingMIs,
 	UToonProfile* Template, const FImportReporter& Report)
 {
-	if (Targets.IsEmpty() || !Mesh) return;
-	// Sorting makes the destination deterministic even after materials are moved to different folders.
-	TArray<UMaterialInstanceConstant*> Ordered = Targets.Array();
-	Ordered.Sort([](const UMaterialInstanceConstant& A, const UMaterialInstanceConstant& B)
+	if (!Template) return nullptr;
+	if (!FPackageName::IsValidLongPackageName(Package))
 	{
-		return A.GetPathName() < B.GetPathName();
-	});
-	const FString Folder = FPackageName::GetLongPackagePath(Ordered[0]->GetOutermost()->GetName());
-	FString Name = Mesh->GetName();
-	Name.RemoveFromStart(TEXT("SKM_"));
-	Name = TEXT("TP_") + Name + TEXT("_Body");
-	const FString Package = Folder / Name;
+		Report(TEXT("Shared Toon Profile package is invalid: ") + Package, true);
+		return nullptr;
+	}
+	TSet<UToonProfile*> OwnedProfiles;
+	for (UMaterialInstanceConstant* Material : ExistingMIs)
+	{
+		if (!Material) continue;
+		const UOmniImportMaterialUserData* Ownership = Cast<UOmniImportMaterialUserData>(Material->GetAssetUserDataOfClass(UOmniImportMaterialUserData::StaticClass()));
+		// Empty legacy per-MI records must never select a shared profile for the group.
+		if (Ownership && Ownership->SharedProfileGroupKey.Equals(Package, ESearchCase::IgnoreCase) && Ownership->OwnedToonProfile)
+			OwnedProfiles.Add(Ownership->OwnedToonProfile.Get());
+	}
+	if (OwnedProfiles.Num() > 1)
+	{
+		Report(TEXT("Multiple owned Toon Profiles disagree for import group: ") + Package, true);
+		return nullptr;
+	}
+	if (OwnedProfiles.Num() == 1) return *OwnedProfiles.CreateConstIterator();
+	const FString Folder = FPackageName::GetLongPackagePath(Package);
+	const FString Name = FPackageName::GetLongPackageAssetName(Package);
 	const FString ObjectPath = Package + TEXT(".") + Name;
 	UObject* Existing = StaticFindObject(UObject::StaticClass(), nullptr, *ObjectPath);
 	if (!Existing && FPackageName::DoesPackageExist(Package)) Existing = LoadObject<UObject>(nullptr, *ObjectPath);
 	UToonProfile* ModelProfile = Cast<UToonProfile>(Existing);
 	if (!ModelProfile && (Existing || FPackageName::DoesPackageExist(Package)))
 	{
-		Report(TEXT("Body Toon Profile destination is occupied: ") + ObjectPath, true);
-		return;
+		Report(TEXT("Shared Toon Profile destination is occupied: ") + ObjectPath, true);
+		return nullptr;
 	}
 	if (!ModelProfile)
 	{
-		if (!Template)
-		{
-			Report(TEXT("Body Toon Profile template is unavailable."), true);
-			return;
-		}
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools")).Get();
 		ModelProfile = Cast<UToonProfile>(AssetTools.DuplicateAsset(Name, Folder, Template));
 	}
 	if (!ModelProfile)
 	{
-		Report(TEXT("Could not create Body Toon Profile: ") + ObjectPath, true);
+		Report(TEXT("Could not create shared Toon Profile: ") + ObjectPath, true);
+		return nullptr;
+	}
+	return ModelProfile;
+}
+
+void ApplySharedToonProfile(UMaterialInstanceConstant* Material, UToonProfile* SharedProfile, const FString& GroupKey,
+	const FImportReporter& Report)
+{
+	if (!Material) return;
+	if (!SharedProfile)
+	{
+		ClearOwnedToonProfile(Material);
 		return;
 	}
-	for (UMaterialInstanceConstant* Material : Ordered) SetOwnedToonProfile(Material, ModelProfile);
-	Report(TEXT("Assigned model-local Toon Profile to Body only: ") + ModelProfile->GetPathName());
+	if (GroupKey.IsEmpty())
+	{
+		Report(TEXT("Shared Toon Profile assignment requires an import group key: ") + Material->GetPathName(), true);
+		return;
+	}
+	UToonProfile* OwnedProfile = FindOwnedProfile(Material);
+	if (Material->bOverrideToonProfile && Material->ToonProfileOverride && Material->ToonProfileOverride != OwnedProfile)
+	{
+		Report(TEXT("Preserved user-assigned Toon Profile: ") + Material->GetPathName());
+		return;
+	}
+	SetOwnedToonProfile(Material, SharedProfile, GroupKey);
+	Report(TEXT("Assigned group-shared Toon Profile: ") + Material->GetPathName() + TEXT(" -> ") + SharedProfile->GetPathName());
 }
 }

@@ -6,5 +6,5 @@ class UOmniCharacterImportProfile;
 namespace Omni::CharacterImport
 {
 bool IsRelativeFolder(const FString& Folder);
-void ApplyAssetLayout(UInterchangeBaseNodeContainer* Container, const UOmniCharacterImportProfile& Profile, const FString& ResolvedName);
+void ApplyAssetLayout(UInterchangeBaseNodeContainer* Container, const UOmniCharacterImportProfile& Profile, const FString& ResolvedName, bool bNormalizeTextureNames = false);
 }

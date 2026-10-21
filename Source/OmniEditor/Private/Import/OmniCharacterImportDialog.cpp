@@ -49,6 +49,7 @@ UOmniCharacterImportPipeline::UOmniCharacterImportPipeline()
 void UOmniCharacterImportPipeline::AdjustSettingsForContext(const FInterchangePipelineContextParams& ContextParams)
 {
 	Super::AdjustSettingsForContext(ContextParams);
+	ToonProfileReimportAsset = ContextParams.ReimportAsset;
 	// Updating a material on reimport is an explicit per-run decision.
 	bUpdateFaceMaterialOnReimport = false;
 	bUpdateBodyMaterialOnReimport = false;

@@ -64,8 +64,8 @@ public:
 	bool bConfigureBodyMaterial = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Body Material", meta=(DisplayName="Body 母材质"))
 	TSoftObjectPtr<UMaterialInterface> BodyParentMaterial;
-	/** Empty copies the single Toon Profile used by the Body parent. Never edits the shared template. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Body Material", meta=(DisplayName="Body Profile 模板（留空使用母材质）"))
+	/** One copied Profile is shared by this FBX import group. Empty prefers a selected Body parent's Profile. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Material Mapping", meta=(DisplayName="资产 TP 模板（同一 FBX 共用）"))
 	TSoftObjectPtr<UToonProfile> BodyToonProfileTemplate;
 	/** Initially populated from Body source names, excluding outlines. Each section owns its texture choices. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Body Material",
@@ -78,7 +78,7 @@ public:
 	UFUNCTION(BlueprintCallable, CallInEditor, Category="Body Material", meta=(DisplayName="刷新 Body Tex_ 参数"))
 	void RefreshBodyTextureParameters();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Texture Naming", meta=(DisplayName="自动规范纹理名称"))
-	bool bNormalizeTextureNames = true;
+	bool bNormalizeTextureNames = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, EditFixedSize, Category="Texture Naming", meta=(DisplayName="纹理名称预览", TitleProperty="SourceTexture", NoElementDuplicate, EditCondition="bNormalizeTextureNames"))
 	TArray<FOmniTextureNameBinding> TextureNames;
 	UPROPERTY(VisibleAnywhere, Transient, BlueprintReadOnly, Category="Texture Naming", meta=(DisplayName="纹理命名状态"))
@@ -115,7 +115,7 @@ private:
 	bool ValidateLegacyMaterialRules(const UOmniCharacterImportProfile* Settings, TOptional<FText>& OutInvalidReason) const;
 	void PrepareLegacyMaterials(UInterchangeBaseNodeContainer* Container);
 	void ApplyLegacyMaterial(const UInterchangeBaseNodeContainer* Container, const FString& NodeKey, UMaterialInstanceConstant* Material, int32 RuleIndex);
-	void ApplyRetainedMaterials(const UInterchangeBaseNodeContainer* Container, USkeletalMesh* Mesh);
+	void ApplyRetainedMaterials(const UInterchangeBaseNodeContainer* Container, UObject* Mesh);
 	void RefreshMaterialSourceData(UInterchangeBaseNodeContainer* Container);
 	void RefreshKeywordMaterials(UInterchangeBaseNodeContainer* Container);
 	bool ValidateKeywordMaterials(TOptional<FText>& OutInvalidReason) const;
@@ -136,8 +136,19 @@ private:
 	bool ValidateBodySettings(TOptional<FText>& OutInvalidReason) const;
 	bool PrepareBodyMaterials(UInterchangeBaseNodeContainer* Container);
 	void ApplyBodyMaterial(const UInterchangeBaseNodeContainer* Container, const FString& NodeKey, UMaterialInstanceConstant* Material, bool bReimport);
-	UToonProfile* ResolveBodyToonProfileTemplate() const;
-	void ApplyBodyToonProfile(const UInterchangeBaseNodeContainer* Container, USkeletalMesh* Mesh, bool bReimport);
+	void PrepareSharedToonProfile(const UInterchangeBaseNodeContainer* Container);
+	void ApplyAssetToonProfile(const UInterchangeBaseNodeContainer* Container, UMaterialInstanceConstant* Material);
+	void ApplyAssetToonProfiles(const UInterchangeBaseNodeContainer* Container, UObject* Mesh, bool bReimport);
+	UPROPERTY(Transient)
+	TObjectPtr<UObject> ToonProfileReimportAsset;
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMaterialInstanceConstant>> SharedProfileCandidates;
+	UPROPERTY(Transient)
+	TObjectPtr<UToonProfile> SharedToonProfileTemplate;
+	UPROPERTY(Transient)
+	TObjectPtr<UToonProfile> SharedToonProfile;
+	FString SharedToonProfilePackage;
+	bool bSharedToonProfileResolved = false;
 	UPROPERTY(Transient)
 	TMap<FString, int32> BodyFactoryRows;
 	FString BodyValidationError;

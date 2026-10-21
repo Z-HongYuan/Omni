@@ -10,8 +10,74 @@
 #include "Retargeter/IKRetargetChainMapping.h"
 #include "Retargeter/IKRetargetSettings.h"
 #include "Rig/IKRigDefinition.h"
+#include "Rig/Solvers/IKRigFullBodyIK.h"
 #include "RigEditor/IKRigController.h"
 #include "RigEditor/IKRigDefinitionFactory.h"
+
+namespace
+{
+	void ConfigureAutoFBIK(UIKRigController& Controller, const USkeletalMesh& Mesh, FName RetargetRoot, const Omni::CharacterImport::FImportReporter& Report)
+	{
+		// These are the limb labels used by UE's auto-characterization and FBIK templates.
+		// Requiring all four complete limbs prevents weapon/accessory rigs from getting a body solver.
+		const TArray<FName> LimbNames{TEXT("LeftArm"), TEXT("RightArm"), TEXT("LeftLeg"), TEXT("RightLeg")};
+		const FReferenceSkeleton& Skeleton = Mesh.GetRefSkeleton();
+		const int32 RootIndex = Skeleton.FindBoneIndex(RetargetRoot);
+		for (FName LimbName : LimbNames)
+		{
+			const FBoneChain* Chain = Controller.GetRetargetChainByName(LimbName);
+			TArray<int32> Bones;
+			if (!Chain || !Controller.GetIKRigSkeleton().ValidateChainAndGetBones(*Chain, Bones) || Bones.Num() < 3)
+			{
+				Report(TEXT("Auto FBIK skipped: mesh has no complete biped limb chain: ") + LimbName.ToString());
+				return;
+			}
+			int32 Ancestor = Bones[0];
+			while (Ancestor != INDEX_NONE && Ancestor != RootIndex) Ancestor = Skeleton.GetParentIndex(Ancestor);
+			if (RootIndex == INDEX_NONE || Ancestor != RootIndex)
+			{
+				Report(TEXT("Auto FBIK skipped: retarget root is not an ancestor of limb: ") + LimbName.ToString());
+				return;
+			}
+		}
+
+		const int32 SolverIndex = Controller.GetNumSolvers();
+		TSet<FName> PreviousGoals;
+		for (const UIKRigEffectorGoal* Goal : Controller.GetAllGoals()) PreviousGoals.Add(Goal->GoalName);
+		TSet<FName> PreviousExcludedBones;
+		for (const FMeshBoneInfo& Bone : Skeleton.GetRefBoneInfo())
+		{
+			if (Controller.GetBoneExcluded(Bone.Name)) PreviousExcludedBones.Add(Bone.Name);
+		}
+		const bool bApplied = Controller.ApplyAutoFBIK();
+		const FInstancedStruct* SolverStruct = Controller.GetSolverStructAtIndex(SolverIndex);
+		const FIKRigFullBodyIKSolver* Solver = SolverStruct ? SolverStruct->GetPtr<FIKRigFullBodyIKSolver>() : nullptr;
+		bool bValid = bApplied && Controller.GetNumSolvers() == SolverIndex + 1 && Solver && Solver->IsEnabled();
+		// The profile's validated root takes precedence over the template's pelvis selection.
+		bValid = bValid && Controller.SetStartBone(RetargetRoot, SolverIndex) && Controller.GetStartBone(SolverIndex) == RetargetRoot;
+		for (FName LimbName : LimbNames)
+		{
+			const FBoneChain* Chain = Controller.GetRetargetChainByName(LimbName);
+			const UIKRigEffectorGoal* Goal = Chain ? Controller.GetGoal(Chain->IKGoalName) : nullptr;
+			bValid = bValid && Goal && Goal->BoneName == Chain->EndBone.BoneName && Controller.IsGoalConnectedToSolver(Goal->GoalName, SolverIndex);
+		}
+		if (!bValid)
+		{
+			// Roll back only this attempt; do not leave an incomplete solver/goal setup behind.
+			while (Controller.GetNumSolvers() > SolverIndex) Controller.RemoveSolver(Controller.GetNumSolvers() - 1);
+			TArray<FName> AddedGoals;
+			for (const UIKRigEffectorGoal* Goal : Controller.GetAllGoals())
+			{
+				if (!PreviousGoals.Contains(Goal->GoalName)) AddedGoals.Add(Goal->GoalName);
+			}
+			for (FName GoalName : AddedGoals) Controller.RemoveGoal(GoalName);
+			for (const FMeshBoneInfo& Bone : Skeleton.GetRefBoneInfo()) Controller.SetBoneExcluded(Bone.Name, PreviousExcludedBones.Contains(Bone.Name));
+			Report(TEXT("Auto FBIK could not create a complete four-limb solver. The mesh must match a UE auto-characterization template; review the IK Rig."), true);
+			return;
+		}
+		Report(TEXT("Configured Full Body IK with four limb goals and root: ") + RetargetRoot.ToString());
+	}
+}
 
 void Omni::CharacterImport::CreateRigAssets(USkeletalMesh* Mesh, const UOmniCharacterImportProfile& Profile,
 	const FString& CharacterRoot, const FString& ResolvedName, const FImportReporter& Report)
@@ -20,7 +86,7 @@ void Omni::CharacterImport::CreateRigAssets(USkeletalMesh* Mesh, const UOmniChar
 	const FReferenceSkeleton& Skeleton = Mesh->GetRefSkeleton();
 	if (Skeleton.FindBoneIndex(Profile.RetargetRoot) == INDEX_NONE)
 	{
-		Report(TEXT("IK Rig skipped: retarget root missing: ") + Profile.RetargetRoot.ToString(), true);
+		Report(TEXT("IK Rig skipped for mesh without retarget root: ") + Profile.RetargetRoot.ToString());
 		return;
 	}
 	for (const FOmniImportRetargetChain& Chain : Profile.RetargetChains)
@@ -75,7 +141,7 @@ void Omni::CharacterImport::CreateRigAssets(USkeletalMesh* Mesh, const UOmniChar
 			}
 		}
 		Controller->SetRetargetRoot(Profile.RetargetRoot);
-		if (Profile.bTryAutoFBIK && !Controller->ApplyAutoFBIK()) Report(TEXT("Auto FBIK detection failed; review solver setup."), true);
+		if (Profile.bTryAutoFBIK) ConfigureAutoFBIK(*Controller, *Mesh, Profile.RetargetRoot, Report);
 		(void)TargetRig->MarkPackageDirty(); // Companion remains available for explicit saving.
 		Report(TEXT("Created IK Rig: ") + TargetRig->GetPathName());
 	}

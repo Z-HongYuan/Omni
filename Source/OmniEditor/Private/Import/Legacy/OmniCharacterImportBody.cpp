@@ -102,10 +102,8 @@ void UOmniCharacterImportPipeline::RefreshBodySourceData(UInterchangeBaseNodeCon
 		if (!Error.IsEmpty()) BodyValidationError = Section.SourceMaterial + TEXT("：") + Error;
 	}
 	if (ActiveCount > 0 && !BodyParentMaterial.LoadSynchronous()) BodyValidationError = TEXT("请选择有效的 Body 母材质。");
-	else if (ActiveCount > 0 && !ResolveBodyToonProfileTemplate())
-		BodyValidationError = TEXT("Body 母材质没有唯一的 Toon Profile，请选择 Body Profile 模板。");
 	BodyStatus = BodyValidationError.IsEmpty()
-		             ? FString::Printf(TEXT("配置 %d 个 Body 材质分区；每个模型复制一个独立 Toon Profile，仅覆盖 Body。"), ActiveCount)
+		             ? FString::Printf(TEXT("配置 %d 个 Body 材质分区；可解析 Toon Profile 模板时复制并应用，普通母材质也可导入。"), ActiveCount)
 		             : BodyValidationError;
 	if (bIsReimportContext && !bUpdateBodyMaterialOnReimport)
 		BodyStatus = TEXT("重导入保留现有 Body 纹理和 Profile；勾选更新后才重新应用配置。");
@@ -149,4 +147,5 @@ void UOmniCharacterImportPipeline::ApplyBodyMaterial(const UInterchangeBaseNodeC
 	const int32* Index = BodyFactoryRows.Find(NodeKey);
 	if (!Index || !BodyMaterials.IsValidIndex(*Index)) return;
 	Omni::CharacterImport::ApplyMaterialTextures(Container, NodeKey, Material, BodyParentMaterial.LoadSynchronous(), BodyMaterials[*Index].Textures, {[this](const FString& Message, bool bError) { Report(Message, bError); }});
+	ApplyAssetToonProfile(Container, Material);
 }

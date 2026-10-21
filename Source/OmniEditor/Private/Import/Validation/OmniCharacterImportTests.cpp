@@ -7,16 +7,22 @@
 #include "Import/Materials/OmniImportMaterialApplier.h"
 #include "Import/Materials/OmniImportTextureSettings.h"
 #include "Import/Materials/OmniImportToonProfile.h"
+#include "Import/Assets/OmniImportAssetLayout.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/Texture2D.h"
 #include "Engine/ToonProfile.h"
 #include "InterchangeMaterialFactoryNode.h"
 #include "InterchangeMaterialInstanceNode.h"
 #include "InterchangeSkeletalMeshFactoryNode.h"
+#include "InterchangeStaticMeshFactoryNode.h"
+#include "InterchangeSkeletonFactoryNode.h"
+#include "InterchangePhysicsAssetFactoryNode.h"
+#include "InterchangeAnimSequenceFactoryNode.h"
 #include "InterchangeSourceData.h"
 #include "InterchangeTextureFactoryNode.h"
 #include "InterchangeTexture2DFactoryNode.h"
 #include "Materials/MaterialInstanceConstant.h"
+#include "Misc/Guid.h"
 #include "Nodes/InterchangeBaseNodeContainer.h"
 #include "UObject/Package.h"
 
@@ -81,7 +87,10 @@ bool FOmniImportRetainedMaterialsTest::RunTest(const FString& Parameters)
 	UOmniCharacterImportProfile* Profile = NewObject<UOmniCharacterImportProfile>();
 	Profile->bCreateIKRig = false;
 	Profile->bCreatePostProcessAnimBlueprint = false;
+	Profile->bCreateCharacterFolder = false;
+	Profile->MaterialFolder = TEXT("Materials");
 	Pipeline->Profile = Profile;
+	Pipeline->CharacterName = TEXT("ReimportRegression");
 	Pipeline->FaceParentMaterial = Parent;
 	Pipeline->OutlineParentMaterial = Parent; // Both roles expose Tex_BaseColor in this fixture.
 	UInterchangeBaseNodeContainer* Container = NewObject<UInterchangeBaseNodeContainer>();
@@ -91,6 +100,11 @@ bool FOmniImportRetainedMaterialsTest::RunTest(const FString& Parameters)
 	UTexture2D* After = NewObject<UTexture2D>();
 	UToonProfile* OwnedProfile = NewObject<UToonProfile>();
 	UToonProfile* UserProfile = NewObject<UToonProfile>();
+	Pipeline->BodyToonProfileTemplate = OwnedProfile;
+	const FString Destination = TEXT("/Game/OmniAutomation/RetainedMaterials_") + FGuid::NewGuid().ToString(EGuidFormats::Digits);
+	UPackage* SharedPackage = CreatePackage(*(Destination / TEXT("Materials/TP_ReimportRegression")));
+	SharedPackage->SetFlags(RF_Transient);
+	UToonProfile* SharedProfile = NewObject<UToonProfile>(SharedPackage, TEXT("TP_ReimportRegression"), RF_Transient);
 	TArray<UMaterialInstanceConstant*> Materials;
 	for (const FString Label : {TEXT("Fixture_Face"), TEXT("Fixture_Face_Outline")})
 	{
@@ -122,7 +136,7 @@ bool FOmniImportRetainedMaterialsTest::RunTest(const FString& Parameters)
 	Source->SetFilename(TEXT("ReimportRegression.fbx"));
 	auto RunMeshCallback = [&]()
 	{
-		Pipeline->ScriptedExecutePipeline(Container, {Source}, TEXT("/Game/ImportTests/Regression"));
+		Pipeline->ScriptedExecutePipeline(Container, {Source}, Destination);
 		// Deliberately do not emit material callbacks: this is the previously missing path.
 		Pipeline->ScriptedExecutePostImportPipeline(Container, TEXT("Mesh"), Mesh, true);
 	};
@@ -136,7 +150,7 @@ bool FOmniImportRetainedMaterialsTest::RunTest(const FString& Parameters)
 	}
 	Pipeline->bUpdateKeywordMaterialsOnReimport = true;
 	RunMeshCallback();
-	TestNull(TEXT("Body to Face removes the pipeline-owned override"), Materials[0]->ToonProfileOverride.Get());
+	TestEqual(TEXT("Explicit mesh-only update migrates a pipeline-owned override to the FBX group"), Materials[0]->ToonProfileOverride.Get(), SharedProfile);
 	TestEqual(TEXT("Body to Outline preserves a user replacement"), Materials[1]->ToonProfileOverride.Get(), UserProfile);
 	for (UMaterialInstanceConstant* Material : Materials)
 	{
@@ -144,6 +158,7 @@ bool FOmniImportRetainedMaterialsTest::RunTest(const FString& Parameters)
 		Material->GetTextureParameterValue(FMaterialParameterInfo(TEXT("Tex_BaseColor")), Actual);
 		TestEqual(TEXT("Explicit mesh-only update reaches both Face and Outline"), Actual, static_cast<UTexture*>(After));
 	}
+	SharedPackage->SetDirtyFlag(false);
 	return true;
 }
 
@@ -186,6 +201,86 @@ bool FOmniImportTextureSettingsTest::RunTest(const FString& Parameters)
 	Row.Textures[1].ResolvedTextureUid = Row.Textures[0].ResolvedTextureUid;
 	TestFalse(TEXT("One source cannot be both color and data"), Omni::CharacterImport::PrepareTextureSettings(Container, Rows, Reporter));
 	TestEqual(TEXT("Conflict is reported once"), Errors, 1);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOmniImportMultiAssetLayoutTest, "Omni.Editor.CharacterImport.MultiAssetLayout", TestFlags)
+bool FOmniImportMultiAssetLayoutTest::RunTest(const FString& Parameters)
+{
+	UInterchangeBaseNodeContainer* Container = NewObject<UInterchangeBaseNodeContainer>();
+	UOmniCharacterImportProfile* Profile = NewObject<UOmniCharacterImportProfile>();
+	Profile->MeshFolder = TEXT("Meshes");
+	UInterchangeSkeletalMeshFactoryNode* Body = AddNode<UInterchangeSkeletalMeshFactoryNode>(Container, TEXT("BodyMesh"), TEXT("Body"), EInterchangeNodeContainerType::FactoryData);
+	UInterchangeSkeletalMeshFactoryNode* Coat = AddNode<UInterchangeSkeletalMeshFactoryNode>(Container, TEXT("CoatMesh"), TEXT("Coat"), EInterchangeNodeContainerType::FactoryData);
+	UInterchangeSkeletalMeshFactoryNode* Weapon = AddNode<UInterchangeSkeletalMeshFactoryNode>(Container, TEXT("WeaponMesh"), TEXT("Weapon"), EInterchangeNodeContainerType::FactoryData);
+	UInterchangeStaticMeshFactoryNode* Scope = AddNode<UInterchangeStaticMeshFactoryNode>(Container, TEXT("ScopeMesh"), TEXT("Scope"), EInterchangeNodeContainerType::FactoryData);
+	UInterchangeSkeletonFactoryNode* HumanSkeleton = AddNode<UInterchangeSkeletonFactoryNode>(Container, TEXT("HumanSkeleton"), TEXT("HumanRoot"), EInterchangeNodeContainerType::FactoryData);
+	HumanSkeleton->AddCustomSkeletalMeshFactoryNodeUid(Body->GetUniqueID());
+	HumanSkeleton->AddCustomSkeletalMeshFactoryNodeUid(Coat->GetUniqueID());
+	UInterchangeSkeletonFactoryNode* WeaponSkeleton = AddNode<UInterchangeSkeletonFactoryNode>(Container, TEXT("WeaponSkeleton"), TEXT("WeaponRoot"), EInterchangeNodeContainerType::FactoryData);
+	WeaponSkeleton->AddCustomSkeletalMeshFactoryNodeUid(Weapon->GetUniqueID());
+	UInterchangePhysicsAssetFactoryNode* Physics = AddNode<UInterchangePhysicsAssetFactoryNode>(Container, TEXT("WeaponPhysics"), TEXT("Physics"), EInterchangeNodeContainerType::FactoryData);
+	Physics->SetCustomSkeletalMeshUid(Weapon->GetUniqueID());
+	UInterchangeAnimSequenceFactoryNode* Animation = AddNode<UInterchangeAnimSequenceFactoryNode>(Container, TEXT("FireAnimation"), TEXT("Weapon_Fire"), EInterchangeNodeContainerType::FactoryData);
+	Animation->SetCustomSkeletonFactoryNodeUid(WeaponSkeleton->GetUniqueID());
+	UInterchangeAnimSequenceFactoryNode* OtherAnimation = AddNode<UInterchangeAnimSequenceFactoryNode>(Container, TEXT("OtherFireAnimation"), TEXT("Weapon_Fire"), EInterchangeNodeContainerType::FactoryData);
+	OtherAnimation->SetCustomSkeletonFactoryNodeUid(HumanSkeleton->GetUniqueID());
+	UInterchangeSkeletalMeshFactoryNode* PrefixedBody = AddNode<UInterchangeSkeletalMeshFactoryNode>(Container, TEXT("PrefixedBodyMesh"), TEXT("SK_Body"), EInterchangeNodeContainerType::FactoryData);
+	UInterchangeSkeletonFactoryNode* PrefixedSkeleton = AddNode<UInterchangeSkeletonFactoryNode>(Container, TEXT("PrefixedSkeleton"), TEXT("OtherRoot"), EInterchangeNodeContainerType::FactoryData);
+	PrefixedSkeleton->AddCustomSkeletalMeshFactoryNodeUid(PrefixedBody->GetUniqueID());
+	UInterchangeTexture2DFactoryNode* Texture = AddNode<UInterchangeTexture2DFactoryNode>(Container, TEXT("SourceTexture"), TEXT("Original_Hair_ILM"), EInterchangeNodeContainerType::FactoryData);
+	Omni::CharacterImport::ApplyAssetLayout(Container, *Profile, TEXT("Assembly"), false);
+	TestEqual(TEXT("Body keeps its own asset name"), Body->GetAssetName(), FString(TEXT("SKM_Body")));
+	TestEqual(TEXT("Coat stays independent despite sharing a skeleton"), Coat->GetAssetName(), FString(TEXT("SKM_Coat")));
+	TestEqual(TEXT("Weapon keeps its own asset name"), Weapon->GetAssetName(), FString(TEXT("SKM_Weapon")));
+	TestEqual(TEXT("Static attachment gets its own name"), Scope->GetAssetName(), FString(TEXT("SM_Scope")));
+	TestEqual(TEXT("Human skeleton follows an owning mesh"), HumanSkeleton->GetAssetName(), FString(TEXT("SK_Body")));
+	TestEqual(TEXT("Weapon skeleton is distinct"), WeaponSkeleton->GetAssetName(), FString(TEXT("SK_Weapon")));
+	TestEqual(TEXT("Physics follows its actual owning mesh"), Physics->GetAssetName(), FString(TEXT("PHYS_Weapon")));
+	TestEqual(TEXT("Texture source name is unchanged"), Texture->GetAssetName(), FString(TEXT("Original_Hair_ILM")));
+	TestEqual(TEXT("Animation source name is unchanged"), Animation->GetAssetName(), FString(TEXT("Weapon_Fire")));
+	TestNotEqual(TEXT("Same-named animations for different skeletons cannot overwrite each other"), OtherAnimation->GetAssetName(), Animation->GetAssetName());
+	TestNotEqual(TEXT("Existing source prefixes cannot collapse distinct skeletons"), PrefixedSkeleton->GetAssetName(), HumanSkeleton->GetAssetName());
+	FString SubPath;
+	HumanSkeleton->GetCustomSubPath(SubPath);
+	TestEqual(TEXT("Shared skeleton remains beside meshes in a custom MeshFolder"), SubPath, FString(TEXT("Assembly/Meshes")));
+	Animation->GetCustomSubPath(SubPath);
+	TestEqual(TEXT("Animation is organized in the import group"), SubPath, FString(TEXT("Assembly/Animations")));
+	TArray<FString> SharedMeshes;
+	HumanSkeleton->GetCustomSkeletalMeshFactoryNodeUids(SharedMeshes);
+	TestEqual(TEXT("Shared skeleton still refers to both meshes"), SharedMeshes.Num(), 2);
+	FString SkeletonUid;
+	Animation->GetCustomSkeletonFactoryNodeUid(SkeletonUid);
+	TestEqual(TEXT("Animation still targets the weapon skeleton"), SkeletonUid, WeaponSkeleton->GetUniqueID());
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOmniImportMixedFactoriesTest, "Omni.Editor.CharacterImport.MixedMeshFactories", TestFlags)
+bool FOmniImportMixedFactoriesTest::RunTest(const FString& Parameters)
+{
+	for (const bool bStaticOnly : {false, true})
+	{
+		UOmniCharacterImportPipeline* Pipeline = NewObject<UOmniCharacterImportPipeline>();
+		UOmniCharacterImportProfile* Profile = NewObject<UOmniCharacterImportProfile>();
+		Profile->bCreateIKRig = false;
+		Profile->bCreatePostProcessAnimBlueprint = false;
+		Pipeline->Profile = Profile;
+		Pipeline->bUseKeywordMaterials = false;
+		Pipeline->bConfigureFaceMaterial = false;
+		Pipeline->bConfigureBodyMaterial = false;
+		UInterchangeBaseNodeContainer* Container = NewObject<UInterchangeBaseNodeContainer>();
+		UInterchangeStaticMeshFactoryNode* Static = AddNode<UInterchangeStaticMeshFactoryNode>(Container, TEXT("Static"), TEXT("Attachment"), EInterchangeNodeContainerType::FactoryData);
+		if (!bStaticOnly)
+		{
+			AddNode<UInterchangeSkeletalMeshFactoryNode>(Container, TEXT("Body"), TEXT("Body"), EInterchangeNodeContainerType::FactoryData);
+			AddNode<UInterchangeSkeletalMeshFactoryNode>(Container, TEXT("Weapon"), TEXT("Weapon"), EInterchangeNodeContainerType::FactoryData);
+		}
+		UInterchangeSourceData* Source = NewObject<UInterchangeSourceData>();
+		Source->SetFilename(TEXT("Assembly.fbx"));
+		Pipeline->ScriptedExecutePipeline(Container, {Source}, TEXT("/Game/ImportTests/MixedFactories"));
+		TestTrue(TEXT("Static-only and mixed multi-mesh imports stay enabled"), Static->IsEnabled());
+		TestTrue(TEXT("Static assets receive the Omni layout"), Static->GetAssetName().StartsWith(TEXT("SM_")));
+	}
 	return true;
 }
 

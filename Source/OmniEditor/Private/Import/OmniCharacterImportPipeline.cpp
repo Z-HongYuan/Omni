@@ -6,9 +6,11 @@
 #include "Import/Assets/OmniImportPostProcessAnim.h"
 #include "Import/Assets/OmniImportRigAssets.h"
 #include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
 #include "InterchangeMaterialFactoryNode.h"
 #include "InterchangeProjectSettings.h"
 #include "InterchangeSkeletalMeshFactoryNode.h"
+#include "InterchangeStaticMeshFactoryNode.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "Misc/FileHelper.h"
 #include "Misc/PackageName.h"
@@ -20,6 +22,24 @@
 #include UE_INLINE_GENERATED_CPP_BY_NAME(OmniCharacterImportPipeline)
 
 DEFINE_LOG_CATEGORY_STATIC(LogOmniCharacterImport, Log, All);
+
+namespace
+{
+FString ImportReportFolder()
+{
+	FString Directory = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
+	FPaths::NormalizeDirectoryName(Directory);
+	while (!Directory.IsEmpty())
+	{
+		if (IFileManager::Get().DirectoryExists(*(Directory / TEXT("Misc"))))
+			return Directory / TEXT("Misc/validation/CharacterImport/ImportReports");
+		const FString Parent = FPaths::GetPath(Directory);
+		if (Parent == Directory) break;
+		Directory = Parent;
+	}
+	return FPaths::ProjectSavedDir() / TEXT("OmniCharacterImport");
+}
+}
 
 bool UOmniCharacterImportPipeline::SaveProjectSettings()
 {
@@ -38,7 +58,7 @@ bool UOmniCharacterImportPipeline::IsSettingsAreValid(TOptional<FText>& OutInval
 		OutInvalidReason = FText::FromString(TEXT("Choose an Omni Character Import Profile."));
 		return false;
 	}
-	for (const FString& Folder : {Settings->MeshFolder, Settings->TextureFolder, Settings->MaterialFolder, Settings->RigFolder, Settings->PhysicsFolder})
+	for (const FString& Folder : {Settings->MeshFolder, Settings->TextureFolder, Settings->MaterialFolder, Settings->RigFolder, Settings->PhysicsFolder, Settings->AnimationFolder})
 	{
 		if (!Omni::CharacterImport::IsRelativeFolder(Folder))
 		{
@@ -90,16 +110,15 @@ void UOmniCharacterImportPipeline::ExecutePipeline(UInterchangeBaseNodeContainer
 	}
 	TArray<UInterchangeSkeletalMeshFactoryNode*> SkeletalNodes;
 	Container->GetNodesOfType(SkeletalNodes);
-	if (SkeletalNodes.Num() != 1)
+	TArray<UInterchangeStaticMeshFactoryNode*> StaticNodes;
+	Container->GetNodesOfType(StaticNodes);
+	// One source may contain several independent meshes and rigs. A custom name
+	// labels the import group; individual mesh names are preserved for mixed FBX files.
+	ResolvedName = CharacterName;
+	if (ResolvedName.IsEmpty() && SkeletalNodes.Num() + StaticNodes.Num() == 1)
 	{
-		Report(TEXT("Expected one Skeletal Mesh factory node. Put the default FBX assets pipeline first, combine the character meshes, and exclude independent rigs."), true);
-		// Reject the job rather than silently producing unconfigured assets.
-		Container->IterateNodesOfType<UInterchangeFactoryBaseNode>([](const FString&, UInterchangeFactoryBaseNode* Node) { Node->SetEnabled(false); });
-		return;
+		ResolvedName = SkeletalNodes.Num() == 1 ? SkeletalNodes[0]->GetAssetName() : StaticNodes[0]->GetAssetName();
 	}
-	// The preceding FBX pipeline has already applied the dialog's custom Asset Name.
-	// Keep that resolved name instead of overwriting it with the source filename.
-	ResolvedName = CharacterName.IsEmpty() ? SkeletalNodes[0]->GetAssetName() : CharacterName;
 	if (ResolvedName.IsEmpty()) ResolvedName = FPaths::GetBaseFilename(Sources[0]->GetFilename());
 	ResolvedName = ObjectTools::SanitizeObjectName(ResolvedName);
 	CharacterRoot = ActiveProfile->bCreateCharacterFolder ? ContentBasePath / ResolvedName : ContentBasePath;
@@ -109,7 +128,7 @@ void UOmniCharacterImportPipeline::ExecutePipeline(UInterchangeBaseNodeContainer
 		Container->IterateNodesOfType<UInterchangeFactoryBaseNode>([](const FString&, UInterchangeFactoryBaseNode* Node) { Node->SetEnabled(false); });
 		return;
 	}
-	SkeletalNodes[0]->SetCustomImportMorphTarget(true);
+	for (UInterchangeSkeletalMeshFactoryNode* Node : SkeletalNodes) Node->SetCustomImportMorphTarget(true);
 	bPrepared = true;
 	// Geometry-only reimport must not change material routing, paths, or hand-tuned companions.
 	if (!(bUseKeywordMaterials ? PrepareKeywordMaterials(Container) : (PrepareFaceMaterial(Container) && PrepareBodyMaterials(Container))))
@@ -118,12 +137,13 @@ void UOmniCharacterImportPipeline::ExecutePipeline(UInterchangeBaseNodeContainer
 		bPrepared = false;
 		return;
 	}
+	PrepareSharedToonProfile(Container);
 	if (bIsReimportContext && !bReapplyMaterialRulesOnReimport)
 	{
 		Report(TEXT("Reimport: preserved material rules, paths and companion assets."));
 		return;
 	}
-	if (!bIsReimportContext) Omni::CharacterImport::ApplyAssetLayout(Container, *ActiveProfile, ResolvedName);
+	if (!bIsReimportContext) Omni::CharacterImport::ApplyAssetLayout(Container, *ActiveProfile, ResolvedName, bNormalizeTextureNames);
 	RefreshTextureNames(Container, ResolvedName);
 	if (!PrepareTextureNames(Container))
 	{
@@ -163,18 +183,30 @@ void UOmniCharacterImportPipeline::ExecutePostImportPipeline(const UInterchangeB
 		}
 		if (!RuleIndex || (bIsAReimport && !bReapplyMaterialRulesOnReimport)) return;
 		ApplyLegacyMaterial(Container, NodeKey, Material, *RuleIndex);
+		ApplyAssetToonProfile(Container, Material);
 	}
 	if (USkeletalMesh* Mesh = Cast<USkeletalMesh>(CreatedAsset))
 	{
 		if (bIsAReimport) ApplyRetainedMaterials(Container, Mesh);
-		ApplyBodyToonProfile(Container, Mesh, bIsAReimport);
+		ApplyAssetToonProfiles(Container, Mesh, bIsAReimport);
 		const FReferenceSkeleton& Skeleton = Mesh->GetRefSkeleton();
 		Report(FString::Printf(TEXT("%s: %d bones, %d morph targets, %d material slots."), *Mesh->GetName(), Skeleton.GetNum(), Mesh->GetMorphTargets().Num(), Mesh->GetMaterials().Num()));
-		if (!bIsAReimport) Omni::CharacterImport::CreateRigAssets(Mesh, *ActiveProfile, CharacterRoot, ResolvedName,
+		FString MeshName = Mesh->GetName();
+		MeshName.RemoveFromStart(TEXT("SKM_"));
+		if (!bIsAReimport) Omni::CharacterImport::CreateRigAssets(Mesh, *ActiveProfile, CharacterRoot, MeshName,
 			{[this](const FString& Message, bool bError) { Report(Message, bError); }});
 		else Report(TEXT("Retained existing IK Rig, retargeter and physics tuning on reimport."));
 		if (ActiveProfile->bCreatePostProcessAnimBlueprint) EnsurePostProcessAnimationBlueprint(Mesh);
-		const FString ReportFolder = FPaths::ProjectSavedDir() / TEXT("OmniCharacterImport");
+	}
+	else if (UStaticMesh* StaticMesh = Cast<UStaticMesh>(CreatedAsset))
+	{
+		if (bIsAReimport) ApplyRetainedMaterials(Container, StaticMesh);
+		ApplyAssetToonProfiles(Container, StaticMesh, bIsAReimport);
+		Report(FString::Printf(TEXT("%s: Static Mesh, %d material slots."), *StaticMesh->GetName(), StaticMesh->GetStaticMaterials().Num()));
+	}
+	if (CreatedAsset->IsA<USkeletalMesh>() || CreatedAsset->IsA<UStaticMesh>())
+	{
+		const FString ReportFolder = ImportReportFolder();
 		IFileManager::Get().MakeDirectory(*ReportFolder, true);
 		FFileHelper::SaveStringArrayToFile(Messages, *(ReportFolder / (ResolvedName + TEXT(".log"))));
 	}
