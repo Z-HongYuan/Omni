@@ -8,7 +8,7 @@ class UInterchangeBaseNodeContainer;
 
 namespace Omni::CharacterImport
 {
-// Only new source textures are configured; existing project textures and reimports are left untouched.
+/** 配置源纹理工厂的色彩空间与压缩；调用方仅在首次导入时使用，不修改直接引用的项目纹理。 */
 bool PrepareTextureSettings(UInterchangeBaseNodeContainer* Container,
 	const TArray<FOmniKeywordMaterialBinding>& Materials, const FImportReporter& Report);
 }

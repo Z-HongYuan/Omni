@@ -17,7 +17,8 @@ bool Omni::CharacterImport::SetTextureParameterVerified(UMaterialInstanceConstan
 }
 
 bool Omni::CharacterImport::PrepareMaterialTextures(UInterchangeBaseNodeContainer* Container,
-                                                           const FString& FactoryUid, const TSoftObjectPtr<UMaterialInterface>& Parent, const TArray<FOmniFaceTextureBinding>& Bindings, const FImportReporter& Report)
+	const FString& FactoryUid, const TSoftObjectPtr<UMaterialInterface>& Parent,
+	const TArray<FOmniFaceTextureBinding>& Bindings, const FImportReporter& Report)
 {
 	UInterchangeMaterialInstanceFactoryNode* Factory = Cast<UInterchangeMaterialInstanceFactoryNode>(Container->GetFactoryNode(FactoryUid));
 	if (!Factory) return false;
@@ -43,8 +44,8 @@ bool Omni::CharacterImport::PrepareMaterialTextures(UInterchangeBaseNodeContaine
 }
 
 void Omni::CharacterImport::ApplyMaterialTextures(const UInterchangeBaseNodeContainer* Container,
-                                                         const FString& NodeKey, UMaterialInstanceConstant* Material, UMaterialInterface* Parent,
-                                                         const TArray<FOmniFaceTextureBinding>& Bindings, const FImportReporter& Report)
+	const FString& NodeKey, UMaterialInstanceConstant* Material, UMaterialInterface* Parent,
+	const TArray<FOmniFaceTextureBinding>& Bindings, const FImportReporter& Report)
 {
 	if (!Parent) return;
 	Material->SetParentEditorOnly(Parent);
@@ -52,7 +53,7 @@ void Omni::CharacterImport::ApplyMaterialTextures(const UInterchangeBaseNodeCont
 	{
 		if (Row.Mode == EOmniFaceTextureMode::ParentDefault || Row.bUseParentDefault)
 		{
-			// Remove only this Tex_ override so later parent-default edits continue to propagate.
+			// 只移除当前 Tex_ 参数覆盖，使后续母材质默认值的修改仍能传递。
 			Material->TextureParameterValues.RemoveAll([&](const FTextureParameterValue& Value)
 			{
 				return Value.ParameterInfo.Association == EMaterialParameterAssociation::GlobalParameter && Value.ParameterInfo.Name == Row.Parameter;
@@ -71,8 +72,7 @@ void Omni::CharacterImport::ApplyMaterialTextures(const UInterchangeBaseNodeCont
 			Report(TEXT("Material texture is unavailable: ") + Row.Parameter.ToString() + TEXT(" on ") + NodeKey, true);
 			continue;
 		}
-		// UE 5.8 MaterialEditingLibrary's texture setter always returns false.
-		// Use the native setter and verify the stored override instead.
+		// 通过原生接口设置纹理，并核对实际保存的覆盖值，避免只依赖设置接口的返回值。
 		if (!SetTextureParameterVerified(Material, Row.Parameter, Texture))
 			Report(TEXT("Could not verify material texture: ") + Row.Parameter.ToString() + TEXT(" on ") + NodeKey, true);
 	}

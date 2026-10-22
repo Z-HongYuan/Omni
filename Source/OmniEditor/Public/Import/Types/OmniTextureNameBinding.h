@@ -4,7 +4,7 @@
 #include "CoreMinimal.h"
 #include "OmniTextureNameBinding.generated.h"
 
-/** One row per source texture, shared across all materials that reference it. */
+/** 每个源纹理对应一行，引用该纹理的所有材质共用此命名配置。 */
 USTRUCT(BlueprintType)
 struct OMNIEDITOR_API FOmniTextureNameBinding
 {
@@ -16,14 +16,14 @@ struct OMNIEDITOR_API FOmniTextureNameBinding
 	FString Usage;
 	UPROPERTY(VisibleAnywhere, Transient, BlueprintReadOnly, Category="Texture Naming", meta=(DisplayName="建议名称"))
 	FString SuggestedName;
-	/** Full asset name, with an optional T_ prefix. Empty accepts the suggestion. */
+	/** 完整资产名，可带 T_ 前缀；留空时采用建议名称。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Texture Naming", meta=(DisplayName="自定义名称（留空自动）"))
 	FString CustomName;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Texture Naming", meta=(DisplayName="最终名称"))
 	FString FinalName;
 	UPROPERTY(VisibleAnywhere, Transient, BlueprintReadOnly, Category="Texture Naming", meta=(DisplayName="状态"))
 	FString Status;
-	/** Persist source identity separately from names; never change Interchange UIDs. */
+	/** 独立保存源标识，名称变更不修改 Interchange UID。 */
 	UPROPERTY()
 	FString SourceUid;
 };

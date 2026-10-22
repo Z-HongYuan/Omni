@@ -18,8 +18,7 @@ namespace
 {
 	void ConfigureAutoFBIK(UIKRigController& Controller, const USkeletalMesh& Mesh, FName RetargetRoot, const Omni::CharacterImport::FImportReporter& Report)
 	{
-		// These are the limb labels used by UE's auto-characterization and FBIK templates.
-		// Requiring all four complete limbs prevents weapon/accessory rigs from getting a body solver.
+		// 按 UE 自动识别与 FBIK 模板的四肢链名称检查完整性，避免为武器或附件骨架添加人体求解器。
 		const TArray<FName> LimbNames{TEXT("LeftArm"), TEXT("RightArm"), TEXT("LeftLeg"), TEXT("RightLeg")};
 		const FReferenceSkeleton& Skeleton = Mesh.GetRefSkeleton();
 		const int32 RootIndex = Skeleton.FindBoneIndex(RetargetRoot);
@@ -49,21 +48,24 @@ namespace
 		{
 			if (Controller.GetBoneExcluded(Bone.Name)) PreviousExcludedBones.Add(Bone.Name);
 		}
+
 		const bool bApplied = Controller.ApplyAutoFBIK();
 		const FInstancedStruct* SolverStruct = Controller.GetSolverStructAtIndex(SolverIndex);
 		const FIKRigFullBodyIKSolver* Solver = SolverStruct ? SolverStruct->GetPtr<FIKRigFullBodyIKSolver>() : nullptr;
 		bool bValid = bApplied && Controller.GetNumSolvers() == SolverIndex + 1 && Solver && Solver->IsEnabled();
-		// The profile's validated root takes precedence over the template's pelvis selection.
-		bValid = bValid && Controller.SetStartBone(RetargetRoot, SolverIndex) && Controller.GetStartBone(SolverIndex) == RetargetRoot;
+		// 优先使用 Profile 中已验证的根骨骼，覆盖模板默认的 pelvis 选择。
+		bValid = bValid && Controller.SetStartBone(RetargetRoot, SolverIndex) &&
+			Controller.GetStartBone(SolverIndex) == RetargetRoot;
 		for (FName LimbName : LimbNames)
 		{
 			const FBoneChain* Chain = Controller.GetRetargetChainByName(LimbName);
 			const UIKRigEffectorGoal* Goal = Chain ? Controller.GetGoal(Chain->IKGoalName) : nullptr;
-			bValid = bValid && Goal && Goal->BoneName == Chain->EndBone.BoneName && Controller.IsGoalConnectedToSolver(Goal->GoalName, SolverIndex);
+			bValid = bValid && Goal && Goal->BoneName == Chain->EndBone.BoneName &&
+				Controller.IsGoalConnectedToSolver(Goal->GoalName, SolverIndex);
 		}
 		if (!bValid)
 		{
-			// Roll back only this attempt; do not leave an incomplete solver/goal setup behind.
+			// 只回滚本次新增的求解器和目标，避免留下不完整配置。
 			while (Controller.GetNumSolvers() > SolverIndex) Controller.RemoveSolver(Controller.GetNumSolvers() - 1);
 			TArray<FName> AddedGoals;
 			for (const UIKRigEffectorGoal* Goal : Controller.GetAllGoals())
@@ -142,7 +144,7 @@ void Omni::CharacterImport::CreateRigAssets(USkeletalMesh* Mesh, const UOmniChar
 		}
 		Controller->SetRetargetRoot(Profile.RetargetRoot);
 		if (Profile.bTryAutoFBIK) ConfigureAutoFBIK(*Controller, *Mesh, Profile.RetargetRoot, Report);
-		(void)TargetRig->MarkPackageDirty(); // Companion remains available for explicit saving.
+		(void)TargetRig->MarkPackageDirty(); // 伴随资产保持待保存状态，由调用方或用户保存。
 		Report(TEXT("Created IK Rig: ") + TargetRig->GetPathName());
 	}
 	else if (UIKRigController::GetController(TargetRig)->GetSkeletalMesh() != Mesh)
@@ -150,6 +152,7 @@ void Omni::CharacterImport::CreateRigAssets(USkeletalMesh* Mesh, const UOmniChar
 		Report(TEXT("Existing IK Rig belongs to another mesh; left unchanged: ") + RigPath, true);
 		return;
 	}
+
 	UIKRigDefinition* SourceRig = Profile.SourceIKRig.LoadSynchronous();
 	if (!SourceRig)
 	{

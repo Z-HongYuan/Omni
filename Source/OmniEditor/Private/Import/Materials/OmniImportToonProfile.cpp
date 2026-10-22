@@ -53,7 +53,7 @@ void SetOwnedToonProfile(UMaterialInstanceConstant* Material, UToonProfile* Prof
 	Ownership->SharedProfileGroupKey = GroupKey;
 	Material->ToonProfileOverride = Profile;
 	Material->bOverrideToonProfile = true;
-	// New assignments migrate away from the legacy string-based ownership record.
+	// 新绑定改用对象引用记录所有权，移除旧版字符串记录。
 	Material->GetOutermost()->GetMetaData().RemoveValue(Material, OwnedProfileKey);
 	UMaterialEditingLibrary::UpdateMaterialInstance(Material);
 	(void)Material->MarkPackageDirty();
@@ -65,11 +65,11 @@ void ClearOwnedToonProfile(UMaterialInstanceConstant* Material)
 	FMetaData& Metadata = Material->GetOutermost()->GetMetaData();
 	const UOmniImportMaterialUserData* Ownership = Cast<UOmniImportMaterialUserData>(Material->GetAssetUserDataOfClass(UOmniImportMaterialUserData::StaticClass()));
 	const FString OwnedPath = Metadata.GetValue(Material, OwnedProfileKey);
-	if (!Ownership && OwnedPath.IsEmpty()) return; // Unmarked assignments belong to the user.
+	if (!Ownership && OwnedPath.IsEmpty()) return; // 未标记的绑定由用户管理。
 	UToonProfile* OwnedProfile = FindOwnedProfile(Material);
 	Material->Modify();
-	// Comparing references preserves a user replacement while surviving asset renames.
-	// Legacy records can follow a redirector; unresolved legacy paths remain untouched.
+	// 比较对象引用，既支持资产重命名，也保留用户手动替换的 Profile。
+	// 旧记录可通过重定向器解析；无法解析旧路径时保留现有覆盖。
 	if (Material->ToonProfileOverride && Material->ToonProfileOverride == OwnedProfile)
 	{
 		Material->ToonProfileOverride = nullptr;
@@ -95,7 +95,7 @@ UToonProfile* ResolveOrCreateSharedToonProfile(const FString& Package, const TAr
 	{
 		if (!Material) continue;
 		const UOmniImportMaterialUserData* Ownership = Cast<UOmniImportMaterialUserData>(Material->GetAssetUserDataOfClass(UOmniImportMaterialUserData::StaticClass()));
-		// Empty legacy per-MI records must never select a shared profile for the group.
+		// 旧版单材质实例记录不含组标识，不能据此选作整组共用 Profile。
 		if (Ownership && Ownership->SharedProfileGroupKey.Equals(Package, ESearchCase::IgnoreCase) && Ownership->OwnedToonProfile)
 			OwnedProfiles.Add(Ownership->OwnedToonProfile.Get());
 	}

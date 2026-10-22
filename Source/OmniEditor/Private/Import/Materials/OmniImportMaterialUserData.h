@@ -6,7 +6,7 @@
 
 class UToonProfile;
 
-/** Editor-only ownership record; UObject references follow asset moves and renames. */
+/** 仅供编辑器使用的所有权记录，UObject 引用随资产移动和重命名更新。 */
 UCLASS()
 class UOmniImportMaterialUserData final : public UAssetUserData
 {
@@ -18,7 +18,7 @@ public:
 	UPROPERTY()
 	TObjectPtr<UToonProfile> OwnedToonProfile;
 
-	/** Intended group package, independent of the Profile's current path. Empty marks legacy per-MI ownership. */
+	/** 导入组预定的包路径，不随 Profile 当前位置改变；空值表示旧版单材质实例所有权。 */
 	UPROPERTY()
 	FString SharedProfileGroupKey;
 };

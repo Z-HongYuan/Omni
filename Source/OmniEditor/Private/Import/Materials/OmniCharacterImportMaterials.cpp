@@ -21,7 +21,9 @@ namespace
 	FString Compact(const FString& Value)
 	{
 		FString Result;
-		for (const TCHAR C : Value) if (FChar::IsAlnum(C)) Result.AppendChar(FChar::ToLower(C));
+		for (const TCHAR C : Value)
+			if (FChar::IsAlnum(C))
+				Result.AppendChar(FChar::ToLower(C));
 		return Result;
 	}
 
@@ -43,7 +45,7 @@ namespace
 
 FString UOmniCharacterImportPipeline::SourceTextureGroup(const FString& Label)
 {
-	// Shader role and texture group are independent: Hair uses Body's shader, Hair's maps.
+	// 材质类型与纹理分组独立：Hair 使用 Body 着色逻辑，但仍使用 Hair 纹理。
 	for (const FString Group : {TEXT("EyeStar"), TEXT("Hair"), TEXT("Face"), TEXT("Body"), TEXT("Eye"), TEXT("Brow"), TEXT("Mouth"), TEXT("Glasses")})
 		if (Label.Contains(Group)) return Group;
 	return FString();
@@ -70,8 +72,12 @@ TSet<FName> UOmniCharacterImportPipeline::TextureParametersFromKeywords(const FS
 		{
 			const FString Key = Compact(Keyword);
 			if (Key.IsEmpty() || !Name.Contains(Key)) continue;
-			// FaceLightMap is SDF, ShadowRamp is Ramp. The most specific alias wins.
-			if (Key.Len() > BestLength) { Result.Reset(); BestLength = Key.Len(); }
+			// 优先采用最长的匹配关键词，避免将 FaceLightMap 误归为 LightMap、ShadowRamp 误归为 Shadow。
+			if (Key.Len() > BestLength)
+			{
+				Result.Reset();
+				BestLength = Key.Len();
+			}
 			if (Key.Len() == BestLength) Result.Add(Rule.Parameter);
 		}
 	}
@@ -96,24 +102,35 @@ void UOmniCharacterImportPipeline::RefreshMaterialSourceData(UInterchangeBaseNod
 void UOmniCharacterImportPipeline::RefreshKeywordMaterials(UInterchangeBaseNodeContainer* Container)
 {
 	KeywordMaterialError.Reset();
-	if (!Container) { MaterialMappingStatus = TEXT("选择 FBX 后，按 Outline → Face → Body 匹配母材质；未命中使用 Body。"); return; }
+	if (!Container)
+	{
+		MaterialMappingStatus = TEXT("选择 FBX 后，按 Outline → Face → Body 匹配母材质；未命中使用 Body。");
+		return;
+	}
 	TArray<UInterchangeBaseNode*> Sources;
 	Container->GetNodesOfType(Sources);
-	Sources.RemoveAll([](const UInterchangeBaseNode* Node) { return !Node->IsA<UInterchangeShaderGraphNode>() && !Node->IsA<UInterchangeMaterialInstanceNode>(); });
-	if (Sources.IsEmpty()) return; // Initial context setup runs before translation.
+	Sources.RemoveAll([](const UInterchangeBaseNode* Node)
+	{
+		return !Node->IsA<UInterchangeShaderGraphNode>() && !Node->IsA<UInterchangeMaterialInstanceNode>();
+	});
+	if (Sources.IsEmpty()) return; // 初始上下文设置可能早于源数据转换。
 	Sources.Sort([](const UInterchangeBaseNode& A, const UInterchangeBaseNode& B) { return A.GetUniqueID() < B.GetUniqueID(); });
-	// Strip only a shared source prefix, independently of the user-supplied destination name.
+
+	// 只去除源名称的共同前缀，不受用户指定的目标名称影响。
 	FString CommonPrefix = SourceName(Sources[0]->GetDisplayLabel());
 	for (const UInterchangeBaseNode* Node : Sources)
 	{
 		const FString Name = SourceName(Node->GetDisplayLabel());
 		int32 Count = 0;
-		while (Count < CommonPrefix.Len() && Count < Name.Len() && FChar::ToLower(CommonPrefix[Count]) == FChar::ToLower(Name[Count])) ++Count;
+		while (Count < CommonPrefix.Len() && Count < Name.Len() &&
+			FChar::ToLower(CommonPrefix[Count]) == FChar::ToLower(Name[Count]))
+			++Count;
 		CommonPrefix.LeftInline(Count);
 	}
 	int32 Separator;
 	if (Sources.Num() < 2 || !CommonPrefix.FindLastChar(TEXT('_'), Separator)) CommonPrefix.Reset();
 	else CommonPrefix.LeftInline(Separator + 1);
+
 	TArray<FOmniKeywordMaterialBinding> Rows;
 	for (const UInterchangeBaseNode* Source : Sources)
 	{
@@ -130,11 +147,14 @@ void UOmniCharacterImportPipeline::RefreshKeywordMaterials(UInterchangeBaseNodeC
 		Row.ResolvedRole = Row.Role == EOmniMaterialRole::Auto ? MaterialRole(Row.SourceMaterial) : Row.Role;
 		Row.TextureGroup = SourceTextureGroup(Row.SourceMaterial);
 		Row.Parent = !Row.ParentOverride.IsNull() ? Row.ParentOverride
-			: (Row.ResolvedRole == EOmniMaterialRole::Outline ? OutlineParentMaterial : (Row.ResolvedRole == EOmniMaterialRole::Face ? FaceParentMaterial : BodyParentMaterial));
+			: (Row.ResolvedRole == EOmniMaterialRole::Outline ? OutlineParentMaterial
+				: (Row.ResolvedRole == EOmniMaterialRole::Face ? FaceParentMaterial : BodyParentMaterial));
 		TSet<FName> PreviousParameters;
 		for (const auto& Binding : Row.Textures) PreviousParameters.Add(Binding.Parameter);
 		Omni::CharacterImport::RefreshMaterialTextureParameters(Row.Parent.LoadSynchronous(), Row.Textures);
-		for (auto& Binding : Row.Textures) if (!PreviousParameters.Contains(Binding.Parameter)) Binding.Mode = EOmniFaceTextureMode::AutoMatch;
+		for (auto& Binding : Row.Textures)
+			if (!PreviousParameters.Contains(Binding.Parameter))
+				Binding.Mode = EOmniFaceTextureMode::AutoMatch;
 		FString Error;
 		if (!Row.Parent.Get()) Error = TEXT("请选择有效的母材质。");
 		else ResolveKeywordTextures(Container, Source, Row, Error);
@@ -157,7 +177,7 @@ void UOmniCharacterImportPipeline::ResolveKeywordTextures(const UInterchangeBase
 	{
 		TArray<FOmniFaceTextureBinding> One{Row};
 		FString RowError;
-		// Preserve explicit selections, and prefer actual source links over misleading filenames.
+		// 保留显式选择，优先采用真实源连接，避免文件名误导匹配。
 		Omni::CharacterImport::ResolveMaterialTextures(Container, SourceMaterial, TEXT("TextureNaming"), One, RowError);
 		Row = MoveTemp(One[0]);
 		if (Row.Mode != EOmniFaceTextureMode::AutoMatch || !Row.MatchPattern.IsEmpty() || !Row.ResolvedTextureUid.IsEmpty() || !RowError.IsEmpty())
@@ -172,13 +192,15 @@ void UOmniCharacterImportPipeline::ResolveKeywordTextures(const UInterchangeBase
 		{
 			const TSet<FName> Channels = TextureParametersFromKeywords(Texture->GetDisplayLabel());
 			const bool bKnownParameter = TextureKeywords.ContainsByPredicate([&Row](const auto& Rule) { return Rule.Parameter == Row.Parameter; });
-			const bool bMatch = Channels.Contains(Row.Parameter) || (!bKnownParameter && Channels.IsEmpty() && Compact(Texture->GetDisplayLabel()).Contains(Compact(Row.Parameter.ToString().RightChop(4))));
+			const bool bMatch = Channels.Contains(Row.Parameter) ||
+				(!bKnownParameter && Channels.IsEmpty() &&
+					Compact(Texture->GetDisplayLabel()).Contains(Compact(Row.Parameter.ToString().RightChop(4))));
 			if (!bMatch) continue;
 			const FString Group = SourceTextureGroup(Texture->GetDisplayLabel());
 			if (!MatchGroup.IsEmpty() && Group == MatchGroup) Scoped.Add(Texture);
 			else if (Group.IsEmpty()) Unscoped.Add(Texture);
 		}
-		// Ramp must stay in its designated Body/Hair group; absence inherits the parent.
+		// Ramp 只在指定的 Body 或 Hair 分组内匹配，缺失时继承母材质默认值。
 		auto& Matches = Row.Parameter == TEXT("Tex_Ramp") ? Scoped : (Scoped.IsEmpty() ? Unscoped : Scoped);
 		Matches.Sort([](const UInterchangeTextureNode& A, const UInterchangeTextureNode& B)
 		{
@@ -218,11 +240,15 @@ bool UOmniCharacterImportPipeline::PrepareKeywordMaterials(UInterchangeBaseNodeC
 			Report(TEXT("Enable Import Materials and Material Instances in the preceding FBX pipeline: ") + Row.SourceMaterial, true);
 			return false;
 		}
-		if (!Omni::CharacterImport::PrepareMaterialTextures(Container, Key, Row.Parent, Row.Textures, {[this](const FString& Message, bool bError) { Report(Message, bError); }})) return false;
+		if (!Omni::CharacterImport::PrepareMaterialTextures(Container, Key, Row.Parent, Row.Textures,
+			{[this](const FString& Message, bool bError) { Report(Message, bError); }}))
+			return false;
 		if (bIsReimportContext) continue;
 		const FString Name = TEXT("MI_") + ResolvedName + TEXT("_") + Row.AssetSuffix;
 		const FString Package = CharacterRoot / ActiveProfile->MaterialFolder / Name;
-		if (Names.Contains(Name.ToLower()) || !FPackageName::IsValidLongPackageName(Package) || FPackageName::DoesPackageExist(Package) || StaticFindObject(UObject::StaticClass(), nullptr, *(Package + TEXT(".") + Name)))
+		if (Names.Contains(Name.ToLower()) || !FPackageName::IsValidLongPackageName(Package) ||
+			FPackageName::DoesPackageExist(Package) ||
+			StaticFindObject(UObject::StaticClass(), nullptr, *(Package + TEXT(".") + Name)))
 		{
 			Report(TEXT("Material name is duplicated or destination is occupied: ") + Package, true);
 			return false;
@@ -241,6 +267,7 @@ void UOmniCharacterImportPipeline::ApplyKeywordMaterial(const UInterchangeBaseNo
 	if (!Index || !MaterialMappings.IsValidIndex(*Index)) return;
 	const auto& Row = MaterialMappings[*Index];
 	UMaterialInterface* Parent = Row.Parent.LoadSynchronous();
-	Omni::CharacterImport::ApplyMaterialTextures(Container, NodeKey, Material, Parent, Row.Textures, {[this](const FString& Message, bool bError) { Report(Message, bError); }});
+	Omni::CharacterImport::ApplyMaterialTextures(Container, NodeKey, Material, Parent, Row.Textures,
+		{[this](const FString& Message, bool bError) { Report(Message, bError); }});
 	ApplyAssetToonProfile(Container, Material);
 }

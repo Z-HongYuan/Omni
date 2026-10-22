@@ -25,27 +25,26 @@ DEFINE_LOG_CATEGORY_STATIC(LogOmniCharacterImport, Log, All);
 
 namespace
 {
-FString ImportReportFolder()
-{
-	FString Directory = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
-	FPaths::NormalizeDirectoryName(Directory);
-	while (!Directory.IsEmpty())
+	FString ImportReportFolder()
 	{
-		if (IFileManager::Get().DirectoryExists(*(Directory / TEXT("Misc"))))
-			return Directory / TEXT("Misc/validation/CharacterImport/ImportReports");
-		const FString Parent = FPaths::GetPath(Directory);
-		if (Parent == Directory) break;
-		Directory = Parent;
+		FString Directory = FPaths::ConvertRelativePathToFull(FPaths::ProjectDir());
+		FPaths::NormalizeDirectoryName(Directory);
+		while (!Directory.IsEmpty())
+		{
+			if (IFileManager::Get().DirectoryExists(*(Directory / TEXT("Misc"))))
+				return Directory / TEXT("Misc/validation/CharacterImport/ImportReports");
+			const FString Parent = FPaths::GetPath(Directory);
+			if (Parent == Directory) break;
+			Directory = Parent;
+		}
+		return FPaths::ProjectSavedDir() / TEXT("OmniCharacterImport");
 	}
-	return FPaths::ProjectSavedDir() / TEXT("OmniCharacterImport");
-}
 }
 
 bool UOmniCharacterImportPipeline::SaveProjectSettings()
 {
 	UInterchangeProjectSettings* Settings = GetMutableDefault<UInterchangeProjectSettings>();
-	// SaveConfig updates GConfig as well as generated Engine.ini. Writing the file
-	// externally leaves stale cached settings that can overwrite it on shutdown.
+	// SaveConfig 同时更新 GConfig 和生成的 Engine.ini，避免退出时旧缓存覆盖文件内容。
 	Settings->SaveConfig();
 	return Settings->TryUpdateDefaultConfigFile();
 }
@@ -79,7 +78,11 @@ bool UOmniCharacterImportPipeline::IsSettingsAreValid(TOptional<FText>& OutInval
 	}
 	if (!bUseKeywordMaterials && !ValidateLegacyMaterialRules(Settings, OutInvalidReason)) return false;
 
-	return (bUseKeywordMaterials ? ValidateKeywordMaterials(OutInvalidReason) : (ValidateFaceSettings(OutInvalidReason) && ValidateBodySettings(OutInvalidReason))) && ValidateTextureNames(OutInvalidReason) && Super::IsSettingsAreValid(OutInvalidReason);
+	return (bUseKeywordMaterials
+		? ValidateKeywordMaterials(OutInvalidReason)
+		: (ValidateFaceSettings(OutInvalidReason) && ValidateBodySettings(OutInvalidReason)))
+		&& ValidateTextureNames(OutInvalidReason)
+		&& Super::IsSettingsAreValid(OutInvalidReason);
 }
 
 void UOmniCharacterImportPipeline::Report(const FString& Message, bool bError)
@@ -90,7 +93,7 @@ void UOmniCharacterImportPipeline::Report(const FString& Message, bool bError)
 }
 
 void UOmniCharacterImportPipeline::ExecutePipeline(UInterchangeBaseNodeContainer* Container,
-                                                   const TArray<UInterchangeSourceData*>& Sources, const FString& ContentBasePath)
+	const TArray<UInterchangeSourceData*>& Sources, const FString& ContentBasePath)
 {
 	Messages.Reset();
 	bPrepared = false;
@@ -101,6 +104,7 @@ void UOmniCharacterImportPipeline::ExecutePipeline(UInterchangeBaseNodeContainer
 	KeywordFactoryRows.Reset();
 	RefreshMaterialSourceData(Container);
 	RefreshTextureNames(Container);
+
 	TOptional<FText> InvalidReason;
 	if (!Container || !IsSettingsAreValid(InvalidReason) || Sources.Num() != 1 || !Sources[0])
 	{
@@ -108,12 +112,13 @@ void UOmniCharacterImportPipeline::ExecutePipeline(UInterchangeBaseNodeContainer
 		if (Container) Container->IterateNodesOfType<UInterchangeFactoryBaseNode>([](const FString&, UInterchangeFactoryBaseNode* Node) { Node->SetEnabled(false); });
 		return;
 	}
+
 	TArray<UInterchangeSkeletalMeshFactoryNode*> SkeletalNodes;
 	Container->GetNodesOfType(SkeletalNodes);
 	TArray<UInterchangeStaticMeshFactoryNode*> StaticNodes;
 	Container->GetNodesOfType(StaticNodes);
-	// One source may contain several independent meshes and rigs. A custom name
-	// labels the import group; individual mesh names are preserved for mixed FBX files.
+
+	// 一个源文件可能包含多个独立网格体和 Rig；自定义名称标识导入组，多网格体 FBX 保留各自名称。
 	ResolvedName = CharacterName;
 	if (ResolvedName.IsEmpty() && SkeletalNodes.Num() + StaticNodes.Num() == 1)
 	{
@@ -130,7 +135,8 @@ void UOmniCharacterImportPipeline::ExecutePipeline(UInterchangeBaseNodeContainer
 	}
 	for (UInterchangeSkeletalMeshFactoryNode* Node : SkeletalNodes) Node->SetCustomImportMorphTarget(true);
 	bPrepared = true;
-	// Geometry-only reimport must not change material routing, paths, or hand-tuned companions.
+
+	// 各材质准备流程分别检查重导入更新开关，默认保留已有材质配置。
 	if (!(bUseKeywordMaterials ? PrepareKeywordMaterials(Container) : (PrepareFaceMaterial(Container) && PrepareBodyMaterials(Container))))
 	{
 		Container->IterateNodesOfType<UInterchangeFactoryBaseNode>([](const FString&, UInterchangeFactoryBaseNode* Node) { Node->SetEnabled(false); });
@@ -160,7 +166,7 @@ void UOmniCharacterImportPipeline::ExecutePipeline(UInterchangeBaseNodeContainer
 }
 
 void UOmniCharacterImportPipeline::ExecutePostImportPipeline(const UInterchangeBaseNodeContainer* Container,
-                                                             const FString& NodeKey, UObject* CreatedAsset, bool bIsAReimport)
+	const FString& NodeKey, UObject* CreatedAsset, bool bIsAReimport)
 {
 	if (!bPrepared || !ActiveProfile || !CreatedAsset) return;
 	if (UMaterialInstanceConstant* Material = Cast<UMaterialInstanceConstant>(CreatedAsset))
@@ -185,6 +191,7 @@ void UOmniCharacterImportPipeline::ExecutePostImportPipeline(const UInterchangeB
 		ApplyLegacyMaterial(Container, NodeKey, Material, *RuleIndex);
 		ApplyAssetToonProfile(Container, Material);
 	}
+
 	if (USkeletalMesh* Mesh = Cast<USkeletalMesh>(CreatedAsset))
 	{
 		if (bIsAReimport) ApplyRetainedMaterials(Container, Mesh);
@@ -204,6 +211,7 @@ void UOmniCharacterImportPipeline::ExecutePostImportPipeline(const UInterchangeB
 		ApplyAssetToonProfiles(Container, StaticMesh, bIsAReimport);
 		Report(FString::Printf(TEXT("%s: Static Mesh, %d material slots."), *StaticMesh->GetName(), StaticMesh->GetStaticMaterials().Num()));
 	}
+
 	if (CreatedAsset->IsA<USkeletalMesh>() || CreatedAsset->IsA<UStaticMesh>())
 	{
 		const FString ReportFolder = ImportReportFolder();

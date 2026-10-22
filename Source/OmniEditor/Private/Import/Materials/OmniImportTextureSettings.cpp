@@ -20,7 +20,7 @@ bool Omni::CharacterImport::PrepareTextureSettings(UInterchangeBaseNodeContainer
 			else if (Binding.Parameter == TEXT("Tex_Normal")) Usage = EOmniImportTextureUsage::Normal;
 			else if (Binding.Parameter == TEXT("Tex_LightMap") || Binding.Parameter == TEXT("Tex_SDF") ||
 				Binding.Parameter == TEXT("Tex_Shadow") || Binding.Parameter == TEXT("Tex_MetalMap")) Usage = EOmniImportTextureUsage::Mask;
-			// Ramp and unknown parameters have no universal color-space contract.
+			// Ramp 和未知参数没有统一色彩空间约定，保留原设置。
 			if (Usage == EOmniImportTextureUsage::Preserve) continue;
 			if (const EOmniImportTextureUsage* Previous = Usages.Find(Binding.ResolvedTextureUid); Previous && *Previous != Usage)
 			{
@@ -30,14 +30,14 @@ bool Omni::CharacterImport::PrepareTextureSettings(UInterchangeBaseNodeContainer
 			Usages.Add(Binding.ResolvedTextureUid, Usage);
 		}
 	}
-	// Validate all uses before changing any factory.
+	// 先验证全部用途是否冲突，再修改纹理工厂。
 	for (const auto& Pair : Usages)
 	{
 		UInterchangeTextureFactoryNode* Node = Cast<UInterchangeTextureFactoryNode>(Container->GetFactoryNode(
 			UInterchangeFactoryBaseNode::BuildFactoryNodeUid(Pair.Key)));
-		if (!Node) continue; // Missing factories are reported by PrepareMaterialTextures.
+		if (!Node) continue; // 缺失工厂由 PrepareMaterialTextures 报告。
 		Node->SetCustomSRGB(Pair.Value == EOmniImportTextureUsage::Color);
-		// Mask data uses Default compression with sRGB disabled.
+		// 遮罩数据关闭 sRGB，并使用 Default 压缩。
 		Node->SetCustomCompressionSettings(Pair.Value == EOmniImportTextureUsage::Normal ? TC_Normalmap : TC_Default);
 	}
 	return true;

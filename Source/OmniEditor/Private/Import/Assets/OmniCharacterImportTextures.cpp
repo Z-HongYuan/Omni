@@ -31,7 +31,7 @@ namespace
 		Label.ParseIntoArray(Tokens, TEXT("_"), true);
 		TArray<FString> CharacterTokens;
 		Character.ParseIntoArray(CharacterTokens, TEXT("_"), true);
-		// Roles come from material names/bindings, never from texture file names.
+		// 分区名称来自材质名称和绑定关系，不从纹理文件名推断。
 		for (int32 Index = 0; Index < Tokens.Num(); ++Index)
 		{
 			for (const FString Role : {TEXT("EyeStar"), TEXT("Body"), TEXT("Face"), TEXT("Hair"), TEXT("Eye"), TEXT("Brow"), TEXT("Mouth"), TEXT("Glasses"), TEXT("Accessory")})
@@ -39,7 +39,7 @@ namespace
 				if (!Tokens[Index].Equals(Role, ESearchCase::IgnoreCase)) continue;
 				FString Result = Role;
 				for (int32 Detail = Index + 1; Detail < Tokens.Num(); ++Detail) Result += TEXT("_") + Tokens[Detail];
-				// Preserve variant labels in legacy names such as Original_Lumine_Body.
+				// 保留 Original_Lumine_Body 等旧名称中额外的变体标记。
 				for (int32 Detail = 0; Detail < Index; ++Detail)
 				{
 					if (!CharacterTokens.ContainsByPredicate([&](const FString& Word) { return Word.Equals(Tokens[Detail], ESearchCase::IgnoreCase); }))
@@ -88,7 +88,7 @@ void UOmniCharacterImportPipeline::RefreshTextureNames(UInterchangeBaseNodeConta
 			CharacterLabel.RemoveFromStart(TEXT("SKM_"));
 		}
 	}
-	// Dialog translation can precede the base pipeline's asset-name resolution.
+	// 对话框源数据转换可能早于基础管线解析资产名称，此时使用名称占位符。
 	if (CharacterLabel.IsEmpty()) CharacterLabel = TEXT("{Character}");
 	TMap<FString, FTextureUses> Uses;
 	auto AddUse = [&Uses](const FString& Uid, const FString& Section, FString Channel)
@@ -114,45 +114,45 @@ void UOmniCharacterImportPipeline::RefreshTextureNames(UInterchangeBaseNodeConta
 	}
 	else
 	{
-	TArray<UInterchangeBaseNode*> Nodes;
-	Container->GetNodesOfType(Nodes);
-	for (const UInterchangeBaseNode* Node : Nodes)
-	{
-		if (!Node->IsA<UInterchangeShaderGraphNode>() && !Node->IsA<UInterchangeMaterialInstanceNode>()) continue;
-		const FString Section = (bConfigureFaceMaterial && Node->GetUniqueID() == FaceSourceUid)
-			? TEXT("Face") : MaterialSection(Node->GetDisplayLabel(), CharacterLabel);
-		if (Section.IsEmpty()) continue;
-		for (const FName Parameter : {FName(TEXT("Tex_BaseColor")), FName(TEXT("Tex_Normal"))})
+		TArray<UInterchangeBaseNode*> Nodes;
+		Container->GetNodesOfType(Nodes);
+		for (const UInterchangeBaseNode* Node : Nodes)
 		{
-			FOmniFaceTextureBinding Binding;
-			Binding.Parameter = Parameter;
-			Binding.Mode = EOmniFaceTextureMode::AutoMatch;
-			TArray<FOmniFaceTextureBinding> Bindings{Binding};
-			FString Error;
-			// This role disables Face's optional filename fallback: only source links count here.
-			Omni::CharacterImport::ResolveMaterialTextures(Container, Node, TEXT("TextureNaming"), Bindings, Error);
-			if (Error.IsEmpty()) AddUse(Bindings[0].ResolvedTextureUid, Section, Parameter.ToString());
+			if (!Node->IsA<UInterchangeShaderGraphNode>() && !Node->IsA<UInterchangeMaterialInstanceNode>()) continue;
+			const FString Section = (bConfigureFaceMaterial && Node->GetUniqueID() == FaceSourceUid)
+				? TEXT("Face") : MaterialSection(Node->GetDisplayLabel(), CharacterLabel);
+			if (Section.IsEmpty()) continue;
+			for (const FName Parameter : {FName(TEXT("Tex_BaseColor")), FName(TEXT("Tex_Normal"))})
+			{
+				FOmniFaceTextureBinding Binding;
+				Binding.Parameter = Parameter;
+				Binding.Mode = EOmniFaceTextureMode::AutoMatch;
+				TArray<FOmniFaceTextureBinding> Bindings{Binding};
+				FString Error;
+				// TextureNaming 模式禁用 Face 的文件名兜底，只统计源连接。
+				Omni::CharacterImport::ResolveMaterialTextures(Container, Node, TEXT("TextureNaming"), Bindings, Error);
+				if (Error.IsEmpty()) AddUse(Bindings[0].ResolvedTextureUid, Section, Parameter.ToString());
+			}
 		}
-	}
-	if (bConfigureFaceMaterial && !FaceSourceUid.IsEmpty())
-	{
-		for (const FOmniFaceTextureBinding& Binding : FaceTextures)
-			AddUse(Binding.ResolvedTextureUid, TEXT("Face"), Binding.Parameter.ToString());
-	}
-	if (bConfigureBodyMaterial)
-	{
-		for (const FOmniBodyMaterialBinding& Section : BodyMaterials)
+		if (bConfigureFaceMaterial && !FaceSourceUid.IsEmpty())
 		{
-			if (!Section.bEnabled || Section.ResolvedMaterialUid.IsEmpty()) continue;
-			const FString Label = MaterialSection(Section.SourceMaterial, CharacterLabel, TEXT("Body"));
-			for (const FOmniFaceTextureBinding& Binding : Section.Textures)
-				AddUse(Binding.ResolvedTextureUid, Label, Binding.Parameter.ToString());
+			for (const FOmniFaceTextureBinding& Binding : FaceTextures)
+				AddUse(Binding.ResolvedTextureUid, TEXT("Face"), Binding.Parameter.ToString());
 		}
-	}
+		if (bConfigureBodyMaterial)
+		{
+			for (const FOmniBodyMaterialBinding& Section : BodyMaterials)
+			{
+				if (!Section.bEnabled || Section.ResolvedMaterialUid.IsEmpty()) continue;
+				const FString Label = MaterialSection(Section.SourceMaterial, CharacterLabel, TEXT("Body"));
+				for (const FOmniFaceTextureBinding& Binding : Section.Textures)
+					AddUse(Binding.ResolvedTextureUid, Label, Binding.Parameter.ToString());
+			}
+		}
 	}
 	TArray<UInterchangeTextureNode*> Textures;
 	Container->GetNodesOfType(Textures);
-	// Context setup can run before translation; keep explicit overrides until source nodes exist.
+	// 上下文设置可能早于源数据转换，源节点尚未生成时保留显式命名。
 	if (Textures.IsEmpty()) return;
 	Textures.Sort([](const UInterchangeTextureNode& A, const UInterchangeTextureNode& B)
 	{
@@ -205,7 +205,8 @@ void UOmniCharacterImportPipeline::RefreshTextureNames(UInterchangeBaseNodeConta
 		}
 		Rows.Add(MoveTemp(Row));
 	}
-	// Reserve explicit names and distinct suggestions before assigning deterministic suffixes.
+
+	// 先预留显式名称和不同的建议名称，再为重名项分配稳定后缀。
 	TSet<FString> ReservedNames;
 	TSet<FString> ManualNames;
 	for (const auto& Row : Rows)
@@ -221,7 +222,10 @@ void UOmniCharacterImportPipeline::RefreshTextureNames(UInterchangeBaseNodeConta
 		{
 			const FString Base = Row.FinalName;
 			int32 Suffix = 2;
-			do { Row.FinalName = Base + FString::Printf(TEXT("_%02d"), Suffix++); }
+			do
+			{
+				Row.FinalName = Base + FString::Printf(TEXT("_%02d"), Suffix++);
+			}
 			while (Seen.Contains(Row.FinalName.ToLower()) || ReservedNames.Contains(Row.FinalName.ToLower()));
 			Row.Status = TEXT("自动名称重复，已追加稳定序号：") + Row.FinalName;
 		}
@@ -254,7 +258,7 @@ bool UOmniCharacterImportPipeline::PrepareTextureNames(UInterchangeBaseNodeConta
 		Report(TextureNamingError, true);
 		return false;
 	}
-	// Validate every destination before any factory can create assets.
+	// 在工厂创建资产前验证所有目标路径。
 	for (FOmniTextureNameBinding& Row : TextureNames)
 	{
 		const FString Uid = UInterchangeFactoryBaseNode::BuildFactoryNodeUid(Row.SourceUid);

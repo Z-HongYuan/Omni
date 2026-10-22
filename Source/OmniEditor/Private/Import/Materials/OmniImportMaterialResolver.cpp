@@ -19,8 +19,7 @@ namespace Omni::CharacterImport
 		});
 	}
 
-
-	// Follow only the source material's color branch, never search another character's assets.
+	/** 从给定源节点递归收集相连纹理，限制访问数量，不跨本次导入容器查找资产。 */
 	void GatherTextureInputs(const UInterchangeBaseNodeContainer* Container, const FString& Uid, TSet<FString>& Visited, TSet<FString>& Textures)
 	{
 		if (Visited.Contains(Uid) || Visited.Num() >= 128) return;
@@ -51,7 +50,6 @@ namespace Omni::CharacterImport
 	}
 }
 
-
 void Omni::CharacterImport::RefreshMaterialTextureParameters(UMaterialInterface* Parent, TArray<FOmniFaceTextureBinding>& Bindings)
 {
 	if (!Parent) return;
@@ -80,8 +78,8 @@ void Omni::CharacterImport::RefreshMaterialTextureParameters(UMaterialInterface*
 }
 
 void Omni::CharacterImport::ResolveMaterialTextures(const UInterchangeBaseNodeContainer* Container,
-                                                           const UInterchangeBaseNode* SourceMaterial, const FString& RoleName,
-                                                           TArray<FOmniFaceTextureBinding>& Bindings, FString& OutError)
+	const UInterchangeBaseNode* SourceMaterial, const FString& RoleName,
+	TArray<FOmniFaceTextureBinding>& Bindings, FString& OutError)
 {
 	TArray<UInterchangeTextureNode*> Textures;
 	Container->GetNodesOfType(Textures);
@@ -122,7 +120,7 @@ void Omni::CharacterImport::ResolveMaterialTextures(const UInterchangeBaseNodeCo
 					                               : TArray<FString>{TEXT("BaseColor"), TEXT("DiffuseColor")};
 				for (const FString& Input : Inputs)
 				{
-					// UE 5.8 FBX stores texture references directly as *Map parameters.
+					// 同时读取 FBX 直接保存在 *Map 参数中的纹理引用。
 					FString TextureUid;
 					if (SourceMaterial->GetStringAttribute(UInterchangeShaderPortsAPI::MakeInputValueKey(Input + TEXT("Map")), TextureUid) &&
 						Cast<UInterchangeTextureNode>(Container->GetNode(TextureUid)))
@@ -143,10 +141,11 @@ void Omni::CharacterImport::ResolveMaterialTextures(const UInterchangeBaseNodeCo
 				{
 					const FString Label = Texture->GetDisplayLabel();
 					const bool bMatch = !Row.MatchPattern.IsEmpty()
-						                    ? Label.MatchesWildcard(Row.MatchPattern)
-						                    : (Row.Parameter == TEXT("Tex_BaseColor")
-							                       ? RoleName == TEXT("Face") && Label.Contains(TEXT("Face")) && (Label.Contains(TEXT("Diffuse")) || Label.Contains(TEXT("BaseColor")) || Label.Contains(TEXT("Albedo")))
-							                       : RoleName == TEXT("Face") && Label.Contains(Suffix));
+						? Label.MatchesWildcard(Row.MatchPattern)
+						: (Row.Parameter == TEXT("Tex_BaseColor")
+							? RoleName == TEXT("Face") && Label.Contains(TEXT("Face")) &&
+								(Label.Contains(TEXT("Diffuse")) || Label.Contains(TEXT("BaseColor")) || Label.Contains(TEXT("Albedo")))
+							: RoleName == TEXT("Face") && Label.Contains(Suffix));
 					if (bMatch) Candidates.Add(Texture->GetUniqueID());
 				}
 			}

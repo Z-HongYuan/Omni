@@ -98,9 +98,10 @@ bool UOmniCharacterImportPipeline::PrepareFaceMaterial(UInterchangeBaseNodeConta
 		Report(TEXT("Face needs Import Materials enabled and New Material Asset Type set to Material Instances in the preceding FBX pipeline."), true);
 		return false;
 	}
-	FaceFactoryKeys.Add(FactoryUid); // Also protects Face from generic profile rules on reimport.
+	FaceFactoryKeys.Add(FactoryUid); // 同时避免重导入时通用 Profile 规则覆盖 Face 配置。
 	if (bIsReimportContext && !bUpdateFaceMaterialOnReimport) return true;
-	return Omni::CharacterImport::PrepareMaterialTextures(Container, FactoryUid, FaceParentMaterial, FaceTextures, {[this](const FString& Message, bool bError) { Report(Message, bError); }});
+	return Omni::CharacterImport::PrepareMaterialTextures(Container, FactoryUid, FaceParentMaterial, FaceTextures,
+		{[this](const FString& Message, bool bError) { Report(Message, bError); }});
 }
 
 void UOmniCharacterImportPipeline::ApplyFaceMaterial(const UInterchangeBaseNodeContainer* Container, const FString& NodeKey, UMaterialInstanceConstant* Material, bool bReimport)
@@ -110,6 +111,7 @@ void UOmniCharacterImportPipeline::ApplyFaceMaterial(const UInterchangeBaseNodeC
 		Report(TEXT("Retained existing Face instance and texture overrides on reimport."));
 		return;
 	}
-	Omni::CharacterImport::ApplyMaterialTextures(Container, NodeKey, Material, FaceParentMaterial.LoadSynchronous(), FaceTextures, {[this](const FString& Message, bool bError) { Report(Message, bError); }});
+	Omni::CharacterImport::ApplyMaterialTextures(Container, NodeKey, Material, FaceParentMaterial.LoadSynchronous(),
+		FaceTextures, {[this](const FString& Message, bool bError) { Report(Message, bError); }});
 	ApplyAssetToonProfile(Container, Material);
 }

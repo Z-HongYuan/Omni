@@ -15,7 +15,7 @@ namespace Omni::CharacterImport
 {
 	bool IsRelativeFolder(const FString& Folder)
 	{
-		if (Folder.IsEmpty()) return true; // Empty selects the character root.
+		if (Folder.IsEmpty()) return true; // 空目录表示角色根目录。
 		if (Folder.StartsWith(TEXT("/")) || Folder.EndsWith(TEXT("/"))) return false;
 		TArray<FString> Parts;
 		Folder.ParseIntoArray(Parts, TEXT("/"), false);
@@ -62,6 +62,7 @@ void Omni::CharacterImport::ApplyAssetLayout(UInterchangeBaseNodeContainer* Cont
 		UsedMeshNames.Add(Name.ToLower());
 		MeshNames.Add(Node->GetUniqueID(), Name);
 	}
+
 	auto MeshBaseName = [&MeshNames](const FString& Uid)
 	{
 		FString Name = MeshNames.FindRef(Uid);
@@ -69,6 +70,7 @@ void Omni::CharacterImport::ApplyAssetLayout(UInterchangeBaseNodeContainer* Cont
 		Name.RemoveFromStart(TEXT("SM_"));
 		return Name;
 	};
+
 	TSet<FString> UsedDestinations;
 	for (UInterchangeFactoryBaseNode* Node : Nodes)
 	{
@@ -88,11 +90,15 @@ void Omni::CharacterImport::ApplyAssetLayout(UInterchangeBaseNodeContainer* Cont
 			TArray<FString> MeshUids;
 			Skeleton->GetCustomSkeletalMeshFactoryNodeUids(MeshUids);
 			MeshUids.Sort();
-			// A shared Skeleton is named after its first mesh, but remains shared.
+			// 共用 Skeleton 以排序后的首个有效网格体命名，不改变共用关系。
 			for (const FString& Uid : MeshUids)
 			{
 				const FString OwnerName = MeshBaseName(Uid);
-				if (!OwnerName.IsEmpty()) { Name = OwnerName; break; }
+				if (!OwnerName.IsEmpty())
+				{
+					Name = OwnerName;
+					break;
+				}
 			}
 		}
 		else if (const UInterchangePhysicsAssetFactoryNode* Physics = Cast<UInterchangePhysicsAssetFactoryNode>(Node))

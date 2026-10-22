@@ -15,7 +15,7 @@ class OMNIEDITOR_API UOmniCameraAssetTools : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 
 public:
-	// 覆盖传入资产的图；调用方负责创建、保存资产。
+	/** 覆盖传入资产的图；调用方负责创建和保存资产。 */
 	UFUNCTION(BlueprintCallable, Category = "Omni|Editor")
 	static bool ConfigureFixedCamera(UCameraAsset* Camera, UCameraRigAsset* Rig, FVector WorldOffset, FRotator WorldRotation);
 };

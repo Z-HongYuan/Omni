@@ -11,18 +11,18 @@
 
 namespace
 {
-void AddMeshMaterials(UObject* Asset, TArray<TObjectPtr<UMaterialInstanceConstant>>& Materials)
-{
-	auto Add = [&Materials](UMaterialInterface* Material)
+	void AddMeshMaterials(UObject* Asset, TArray<TObjectPtr<UMaterialInstanceConstant>>& Materials)
 	{
-		if (UMaterialInstanceConstant* Instance = Cast<UMaterialInstanceConstant>(Material)) Materials.AddUnique(Instance);
-	};
-	if (UMaterialInstanceConstant* Instance = Cast<UMaterialInstanceConstant>(Asset)) Add(Instance);
-	else if (const USkeletalMesh* Mesh = Cast<USkeletalMesh>(Asset))
-		for (const FSkeletalMaterial& Slot : Mesh->GetMaterials()) Add(Slot.MaterialInterface);
-	else if (const UStaticMesh* StaticMesh = Cast<UStaticMesh>(Asset))
-		for (const FStaticMaterial& Slot : StaticMesh->GetStaticMaterials()) Add(Slot.MaterialInterface);
-}
+		auto Add = [&Materials](UMaterialInterface* Material)
+		{
+			if (UMaterialInstanceConstant* Instance = Cast<UMaterialInstanceConstant>(Material)) Materials.AddUnique(Instance);
+		};
+		if (UMaterialInstanceConstant* Instance = Cast<UMaterialInstanceConstant>(Asset)) Add(Instance);
+		else if (const USkeletalMesh* Mesh = Cast<USkeletalMesh>(Asset))
+			for (const FSkeletalMaterial& Slot : Mesh->GetMaterials()) Add(Slot.MaterialInterface);
+		else if (const UStaticMesh* StaticMesh = Cast<UStaticMesh>(Asset))
+			for (const FStaticMaterial& Slot : StaticMesh->GetStaticMaterials()) Add(Slot.MaterialInterface);
+	}
 }
 
 void UOmniCharacterImportPipeline::PrepareSharedToonProfile(const UInterchangeBaseNodeContainer* Container)
@@ -32,8 +32,7 @@ void UOmniCharacterImportPipeline::PrepareSharedToonProfile(const UInterchangeBa
 	bSharedToonProfileResolved = false;
 	SharedProfileCandidates.Reset();
 	SharedToonProfilePackage = CharacterRoot / ActiveProfile->MaterialFolder / (TEXT("TP_") + ResolvedName);
-	// Capture old slots before reimport can replace them, including when a new MI
-	// dispatches its callback before an existing MI with a renamed shared Profile.
+	// 重导入替换材质槽前记录旧材质；即使新 MI 先回调，也能找回旧 MI 持有的已重命名组 Profile。
 	AddMeshMaterials(ToonProfileReimportAsset, SharedProfileCandidates);
 	if (!BodyToonProfileTemplate.IsNull())
 	{
@@ -58,7 +57,8 @@ void UOmniCharacterImportPipeline::PrepareSharedToonProfile(const UInterchangeBa
 	}
 	else
 	{
-		if (bConfigureBodyMaterial && !BodyFactoryRows.IsEmpty()) SharedToonProfileTemplate = Omni::CharacterImport::ResolveBodyToonProfileTemplate(BodyParentMaterial.LoadSynchronous(), nullptr);
+		if (bConfigureBodyMaterial && !BodyFactoryRows.IsEmpty())
+			SharedToonProfileTemplate = Omni::CharacterImport::ResolveBodyToonProfileTemplate(BodyParentMaterial.LoadSynchronous(), nullptr);
 		if (!SharedToonProfileTemplate && bConfigureFaceMaterial && !FaceFactoryKeys.IsEmpty())
 			SharedToonProfileTemplate = Omni::CharacterImport::ResolveBodyToonProfileTemplate(FaceParentMaterial.LoadSynchronous(), nullptr);
 		if (!SharedToonProfileTemplate && ActiveProfile->bConfigureMaterials)
@@ -66,12 +66,17 @@ void UOmniCharacterImportPipeline::PrepareSharedToonProfile(const UInterchangeBa
 			TArray<UInterchangeMaterialInstanceFactoryNode*> Nodes;
 			Container->GetNodesOfType(Nodes);
 			Nodes.Sort([](const UInterchangeMaterialInstanceFactoryNode& A, const UInterchangeMaterialInstanceFactoryNode& B)
-				{ return A.GetUniqueID() < B.GetUniqueID(); });
+			{
+				return A.GetUniqueID() < B.GetUniqueID();
+			});
 			for (const UInterchangeMaterialInstanceFactoryNode* Node : Nodes)
 			{
 				if (FaceFactoryKeys.Contains(Node->GetUniqueID()) || BodyFactoryRows.Contains(Node->GetUniqueID())) continue;
 				const FOmniImportMaterialRule* Rule = ActiveProfile->MaterialRules.FindByPredicate([Node](const FOmniImportMaterialRule& Item)
-					{ return !Item.MaterialNamePattern.IsEmpty() && Node->GetDisplayLabel().MatchesWildcard(Item.MaterialNamePattern, ESearchCase::IgnoreCase); });
+				{
+					return !Item.MaterialNamePattern.IsEmpty() &&
+						Node->GetDisplayLabel().MatchesWildcard(Item.MaterialNamePattern, ESearchCase::IgnoreCase);
+				});
 				if (!Rule) continue;
 				SharedToonProfileTemplate = Omni::CharacterImport::ResolveBodyToonProfileTemplate(Rule->ParentMaterial.LoadSynchronous(), nullptr);
 				if (SharedToonProfileTemplate) break;
@@ -101,14 +106,14 @@ void UOmniCharacterImportPipeline::ApplyAssetToonProfile(const UInterchangeBaseN
 			ExistingMaterials, SharedToonProfileTemplate, {[this](const FString& Message, bool bError) { Report(Message, bError); }});
 		bSharedToonProfileResolved = true;
 	}
-	// No template clears owned overrides. A resolution error must preserve bindings.
+	// 未指定模板时清理导入器拥有的覆盖；模板解析失败时保留现有绑定。
 	if (SharedToonProfileTemplate && !SharedToonProfile) return;
 	Omni::CharacterImport::ApplySharedToonProfile(Material, SharedToonProfile, SharedToonProfilePackage,
 		{[this](const FString& Message, bool bError) { Report(Message, bError); }});
 }
 
 void UOmniCharacterImportPipeline::ApplyAssetToonProfiles(const UInterchangeBaseNodeContainer* Container,
-                                                        UObject* Mesh, const bool bReimport)
+	UObject* Mesh, const bool bReimport)
 {
 	if (!Container) return;
 	const bool Reimport = bReimport || bIsReimportContext;
@@ -129,6 +134,7 @@ void UOmniCharacterImportPipeline::ApplyAssetToonProfiles(const UInterchangeBase
 			Keys.Append(RuleKeys);
 		}
 	}
+
 	TArray<TObjectPtr<UMaterialInstanceConstant>> UsedMaterials;
 	AddMeshMaterials(Mesh, UsedMaterials);
 	for (const FString& Key : Keys)

@@ -22,7 +22,7 @@ struct FScopedImportRigFixture
 
 	~FScopedImportRigFixture()
 	{
-		// Only detach this test's unique, unsaved asset. Never delete packages from disk.
+		// 只移除本测试创建的唯一未保存资产，不删除磁盘上的包。
 		UObject* Asset = FindObject<UObject>(nullptr, *ObjectPath);
 		if (!Asset || Asset->GetOutermost()->GetName() != PackageName) return;
 		UPackage* Package = Asset->GetOutermost();
@@ -62,7 +62,7 @@ bool FOmniImportFullBodyIKTest::RunTest(const FString& Parameters)
 	Profile->bTryAutoFBIK = true;
 	Profile->RigFolder = TEXT("Rig");
 	Profile->RetargetRoot = TEXT("pelvis");
-	Profile->SourceIKRig.Reset(); // Exercise target rig creation without creating a retargeter.
+	Profile->SourceIKRig.Reset(); // 只验证目标 Rig 创建，不创建重定向器。
 	TArray<FString> Errors;
 	const Omni::CharacterImport::FImportReporter Reporter{[&Errors](const FString& Message, bool bError)
 	{
@@ -94,7 +94,7 @@ bool FOmniImportFullBodyIKTest::RunTest(const FString& Parameters)
 		OriginalGoals.Add(Goal->GoalName, Goal);
 	}
 
-	Solver->Settings.Iterations = 37; // User tuning on the disposable fixture must survive the second call.
+	Solver->Settings.Iterations = 37; // 再次调用必须保留对临时测试资产的手动调参。
 	Omni::CharacterImport::CreateRigAssets(Mesh, *Profile, Root, Name, Reporter);
 	TestEqual(TEXT("Second call reuses the same rig"), FindObject<UIKRigDefinition>(nullptr, *Fixture.ObjectPath), Rig);
 	TestEqual(TEXT("Second call preserves the solver count"), Controller->GetNumSolvers(), 1);

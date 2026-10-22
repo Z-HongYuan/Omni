@@ -46,7 +46,7 @@ bool FOmniImportLegacyValidationTest::RunTest(const FString& Parameters)
 	UOmniCharacterImportPipeline* Pipeline = NewObject<UOmniCharacterImportPipeline>();
 	UOmniCharacterImportProfile* Profile = NewObject<UOmniCharacterImportProfile>();
 	Profile->bConfigureMaterials = true;
-	Profile->MaterialRules.AddDefaulted(); // Deliberately invalid, unused in keyword mode.
+	Profile->MaterialRules.AddDefaulted(); // 故意设置无效规则，验证关键词模式不使用该规则。
 	Pipeline->Profile = Profile;
 	Pipeline->bConfigureFaceMaterial = false;
 	Pipeline->bConfigureBodyMaterial = false;
@@ -92,7 +92,7 @@ bool FOmniImportRetainedMaterialsTest::RunTest(const FString& Parameters)
 	Pipeline->Profile = Profile;
 	Pipeline->CharacterName = TEXT("ReimportRegression");
 	Pipeline->FaceParentMaterial = Parent;
-	Pipeline->OutlineParentMaterial = Parent; // Both roles expose Tex_BaseColor in this fixture.
+	Pipeline->OutlineParentMaterial = Parent; // 本测试中两种材质类型都暴露 Tex_BaseColor。
 	UInterchangeBaseNodeContainer* Container = NewObject<UInterchangeBaseNodeContainer>();
 	USkeletalMesh* Mesh = NewObject<USkeletalMesh>();
 	AddNode<UInterchangeSkeletalMeshFactoryNode>(Container, TEXT("Mesh"), TEXT("ReimportRegression"), EInterchangeNodeContainerType::FactoryData);
@@ -137,7 +137,7 @@ bool FOmniImportRetainedMaterialsTest::RunTest(const FString& Parameters)
 	auto RunMeshCallback = [&]()
 	{
 		Pipeline->ScriptedExecutePipeline(Container, {Source}, Destination);
-		// Deliberately do not emit material callbacks: this is the previously missing path.
+		// 只触发网格体回调，验证没有材质回调时的重导入路径。
 		Pipeline->ScriptedExecutePostImportPipeline(Container, TEXT("Mesh"), Mesh, true);
 	};
 	RunMeshCallback();

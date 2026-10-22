@@ -15,7 +15,7 @@ class UMaterialInstanceConstant;
 class UInterchangeBaseNode;
 class UToonProfile;
 
-/** Place AFTER the default FBX assets pipeline in the OmniMeshes stack. */
+/** 放在 OmniMeshes 管线栈的默认 FBX 资产管线之后执行。 */
 UCLASS(BlueprintType, Blueprintable, EditInlineNew)
 class OMNIEDITOR_API UOmniCharacterImportPipeline : public UInterchangePipelineBase
 {
@@ -23,7 +23,8 @@ class OMNIEDITOR_API UOmniCharacterImportPipeline : public UInterchangePipelineB
 
 public:
 	UOmniCharacterImportPipeline();
-	/** Disable only for legacy per-Face/Body import presets. */
+
+	/** 关闭后使用旧版 Face、Body 分开配置的导入模式。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Material Mapping", meta=(DisplayName="按关键词配置全部材质"))
 	bool bUseKeywordMaterials = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Material Mapping", meta=(DisplayName="Outline 母材质", EditCondition="bUseKeywordMaterials"))
@@ -36,22 +37,23 @@ public:
 	FString MaterialMappingStatus;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Material Mapping", meta=(DisplayName="重导入时更新材质与纹理", EditCondition="bUseKeywordMaterials"))
 	bool bUpdateKeywordMaterialsOnReimport = false;
-	/** Only configure the selected Face material. Other materials follow the existing profile. */
+
+	/** 只配置选中的 Face 材质，其余材质按各自的 Body 配置或通用规则处理。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Face Material", meta=(DisplayName="配置 Face 材质", EditCondition="!bUseKeywordMaterials", EditConditionHides))
 	bool bConfigureFaceMaterial = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Face Material", meta=(DisplayName="Face 母材质"))
 	TSoftObjectPtr<UMaterialInterface> FaceParentMaterial;
-	/** Empty automatically detects a single Face material, excluding outline/eye/brow/mouth materials. */
+	/** 留空时自动识别唯一 Face 材质，排除 Outline、Eye、Brow 和 Mouth 材质。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Face Material",
 		meta=(DisplayName="源 Face 材质（留空自动识别）", GetOptions="GetFaceSourceMaterialOptions", EditCondition="!bUseKeywordMaterials && bConfigureFaceMaterial", EditConditionHides))
 	FString FaceSourceMaterial;
-	/** Saved with this asset's import data, but not carried into a different character's import dialog. */
+	/** 随当前资产的导入数据保存；新角色的导入对话框会清空这些选择。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, EditFixedSize, Category="Face Material",
 		meta=(DisplayName="Face 纹理参数", TitleProperty="Parameter", NoElementDuplicate, EditCondition="!bUseKeywordMaterials && bConfigureFaceMaterial", EditConditionHides))
 	TArray<FOmniFaceTextureBinding> FaceTextures;
 	UPROPERTY(VisibleAnywhere, Transient, BlueprintReadOnly, Category="Face Material", meta=(DisplayName="Face 配置状态"))
 	FString FaceStatus;
-	/** Reimport normally preserves the existing face instance; enable only to reapply these choices. */
+	/** 重导入默认保留已有 Face 实例；启用后重新应用当前选择。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Face Material", meta=(DisplayName="重导入时更新 Face 材质", EditCondition="!bUseKeywordMaterials && bConfigureFaceMaterial", EditConditionHides))
 	bool bUpdateFaceMaterialOnReimport = false;
 	UFUNCTION(BlueprintCallable, CallInEditor, Category="Face Material", meta=(DisplayName="刷新 Tex_ 参数"))
@@ -60,14 +62,15 @@ public:
 	TArray<FString> GetFaceSourceMaterialOptions() const;
 	UFUNCTION(BlueprintPure, Category="Face Material")
 	TArray<FString> GetFaceSourceTextureOptions() const;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Body Material", meta=(DisplayName="配置 Body 材质", EditCondition="!bUseKeywordMaterials", EditConditionHides))
 	bool bConfigureBodyMaterial = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Body Material", meta=(DisplayName="Body 母材质"))
 	TSoftObjectPtr<UMaterialInterface> BodyParentMaterial;
-	/** One copied Profile is shared by this FBX import group. Empty prefers a selected Body parent's Profile. */
+	/** 本次 FBX 导入组共用一份复制的 ToonProfile；留空时优先采用所选 Body 母材质的 Profile。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Material Mapping", meta=(DisplayName="资产 TP 模板（同一 FBX 共用）"))
 	TSoftObjectPtr<UToonProfile> BodyToonProfileTemplate;
-	/** Initially populated from Body source names, excluding outlines. Each section owns its texture choices. */
+	/** 初次根据源 Body 材质填充分区，排除描边材质；每个分区独立选择纹理。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Body Material",
 		meta=(DisplayName="Body 材质分区", TitleProperty="SourceMaterial", NoElementDuplicate, EditCondition="!bUseKeywordMaterials && bConfigureBodyMaterial", EditConditionHides))
 	TArray<FOmniBodyMaterialBinding> BodyMaterials;
@@ -77,30 +80,34 @@ public:
 	bool bUpdateBodyMaterialOnReimport = false;
 	UFUNCTION(BlueprintCallable, CallInEditor, Category="Body Material", meta=(DisplayName="刷新 Body Tex_ 参数"))
 	void RefreshBodyTextureParameters();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Texture Naming", meta=(DisplayName="自动规范纹理名称"))
 	bool bNormalizeTextureNames = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, EditFixedSize, Category="Texture Naming", meta=(DisplayName="纹理名称预览", TitleProperty="SourceTexture", NoElementDuplicate, EditCondition="bNormalizeTextureNames"))
 	TArray<FOmniTextureNameBinding> TextureNames;
 	UPROPERTY(VisibleAnywhere, Transient, BlueprintReadOnly, Category="Texture Naming", meta=(DisplayName="纹理命名状态"))
 	FString TextureNamingStatus;
+
 	virtual void AdjustSettingsForContext(const FInterchangePipelineContextParams& ContextParams) override;
 	virtual void PreDialogCleanup(FName PipelineStackName) override;
 	virtual void FilterPropertiesFromTranslatedData(UInterchangeBaseNodeContainer* Container) override;
 	virtual bool IsPropertyChangeNeedRefresh(const FPropertyChangedEvent& Event) const override;
-	/** Persist Interchange settings through UObject config APIs, including the live cache. */
+
+	/** 通过 UObject 配置接口保存 Interchange 设置，同时更新运行中的配置缓存。 */
 	UFUNCTION(BlueprintCallable, Category="Omni Character")
 	static bool SaveProjectSettings();
-	/** Create ABP_<MeshName>_Post beside the mesh if needed. Preserve existing graphs/assignments. */
+	/** 按需在网格体旁创建 ABP_<MeshName>_Post，保留已有图和绑定。 */
 	UFUNCTION(BlueprintCallable, Category="Omni Character")
 	bool EnsurePostProcessAnimationBlueprint(USkeletalMesh* Mesh);
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Omni Character")
 	TSoftObjectPtr<UOmniCharacterImportProfile> Profile;
-	/** Optional override. Normally leave empty to use the base FBX pipeline's Asset Name. */
+	/** 可选的导入组名称；留空时单网格体采用基础 FBX 管线的资产名，多网格体采用源文件名。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category="Omni Character")
 	FString CharacterName;
-	/** Material defaults are preserved on reimport unless explicitly requested. */
+	/** 重导入默认保留通用材质规则的现有结果，启用后重新应用规则。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Omni Character")
 	bool bReapplyMaterialRulesOnReimport = false;
+
 	virtual bool IsSettingsAreValid(TOptional<FText>& OutInvalidReason) const override;
 	virtual bool CanExecuteOnAnyThread(EInterchangePipelineTask PipelineTask) override { return false; }
 	virtual bool IsScripted() override { return false; }
@@ -116,6 +123,7 @@ private:
 	void PrepareLegacyMaterials(UInterchangeBaseNodeContainer* Container);
 	void ApplyLegacyMaterial(const UInterchangeBaseNodeContainer* Container, const FString& NodeKey, UMaterialInstanceConstant* Material, int32 RuleIndex);
 	void ApplyRetainedMaterials(const UInterchangeBaseNodeContainer* Container, UObject* Mesh);
+
 	void RefreshMaterialSourceData(UInterchangeBaseNodeContainer* Container);
 	void RefreshKeywordMaterials(UInterchangeBaseNodeContainer* Container);
 	bool ValidateKeywordMaterials(TOptional<FText>& OutInvalidReason) const;
@@ -128,10 +136,12 @@ private:
 	FString KeywordMaterialError;
 	UPROPERTY(Transient)
 	TMap<FString, int32> KeywordFactoryRows;
+
 	void RefreshTextureNames(UInterchangeBaseNodeContainer* Container, const FString& Character = FString());
 	bool ValidateTextureNames(TOptional<FText>& OutInvalidReason) const;
 	bool PrepareTextureNames(UInterchangeBaseNodeContainer* Container);
 	FString TextureNamingError;
+
 	void RefreshBodySourceData(UInterchangeBaseNodeContainer* Container);
 	bool ValidateBodySettings(TOptional<FText>& OutInvalidReason) const;
 	bool PrepareBodyMaterials(UInterchangeBaseNodeContainer* Container);
@@ -152,6 +162,7 @@ private:
 	UPROPERTY(Transient)
 	TMap<FString, int32> BodyFactoryRows;
 	FString BodyValidationError;
+
 	void RefreshFaceSourceData(UInterchangeBaseNodeContainer* Container);
 	bool ValidateFaceSettings(TOptional<FText>& OutInvalidReason) const;
 	bool PrepareFaceMaterial(UInterchangeBaseNodeContainer* Container);
@@ -162,6 +173,7 @@ private:
 	TSet<FString> FaceFactoryKeys;
 	FString FaceSourceUid;
 	FString FaceValidationError;
+
 	void Report(const FString& Message, bool bError = false);
 	UPROPERTY(Transient)
 	TObjectPtr<UOmniCharacterImportProfile> ActiveProfile;

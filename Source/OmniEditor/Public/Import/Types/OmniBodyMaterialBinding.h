@@ -5,7 +5,7 @@
 #include "Import/Types/OmniFaceTextureBinding.h"
 #include "OmniBodyMaterialBinding.generated.h"
 
-/** Each Body section has its own texture choices; different clothing atlases stay independent. */
+/** 每个 Body 分区独立选择纹理，避免不同服装图集互相覆盖。 */
 USTRUCT(BlueprintType)
 struct OMNIEDITOR_API FOmniBodyMaterialBinding
 {

@@ -50,11 +50,11 @@ void UOmniCharacterImportPipeline::AdjustSettingsForContext(const FInterchangePi
 {
 	Super::AdjustSettingsForContext(ContextParams);
 	ToonProfileReimportAsset = ContextParams.ReimportAsset;
-	// Updating a material on reimport is an explicit per-run decision.
+	// 每次重导入都需显式选择是否更新材质，不沿用上次开关。
 	bUpdateFaceMaterialOnReimport = false;
 	bUpdateBodyMaterialOnReimport = false;
 	bUpdateKeywordMaterialsOnReimport = false;
-	// Populate options even when the dialog's Filter Options toggle is off.
+	// 即使对话框关闭 Filter Options，也要填充可选源数据。
 	RefreshMaterialSourceData(const_cast<UInterchangeBaseNodeContainer*>(ContextParams.BaseNodeContainer.Get()));
 	RefreshTextureNames(const_cast<UInterchangeBaseNodeContainer*>(ContextParams.BaseNodeContainer.Get()));
 }
@@ -68,8 +68,8 @@ void UOmniCharacterImportPipeline::FilterPropertiesFromTranslatedData(UInterchan
 
 void UOmniCharacterImportPipeline::PreDialogCleanup(FName PipelineStackName)
 {
-	// This hook runs for a NEW import dialog, not for refreshes or asset reimports.
-	// AlwaysResetToDefault metadata would also discard edits on every UI refresh.
+	// 新建导入对话框时清空上个角色的选择；刷新界面和资产重导入不在此重置。
+	// 不使用 AlwaysResetToDefault，以免每次界面刷新都丢失用户编辑。
 	FaceSourceMaterial.Reset();
 	FaceTextures.Reset();
 	BodyMaterials.Reset();

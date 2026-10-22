@@ -26,7 +26,7 @@ bool Omni::CharacterImport::EnsurePostProcessAnimationBlueprint(USkeletalMesh* M
 		return true;
 	}
 
-	// Use the actual mesh package, including on reimport or after a user moves it.
+	// 以网格体实际所在包为准，兼容重导入和用户移动资产。
 	const FString Folder = FPackageName::GetLongPackagePath(Mesh->GetOutermost()->GetName());
 	FString MeshName = Mesh->GetName();
 	MeshName.RemoveFromStart(TEXT("SKM_"));
@@ -60,6 +60,7 @@ bool Omni::CharacterImport::EnsurePostProcessAnimationBlueprint(USkeletalMesh* M
 			Report(TEXT("Could not create post-process blueprint: ") + ObjectPath, true);
 			return false;
 		}
+
 		UEdGraph* AnimGraph = nullptr;
 		for (UEdGraph* Graph : Blueprint->FunctionGraphs)
 		{
@@ -76,6 +77,7 @@ bool Omni::CharacterImport::EnsurePostProcessAnimationBlueprint(USkeletalMesh* M
 			Report(TEXT("New post-process blueprint has no unique AnimGraph output; left unassigned: ") + ObjectPath, true);
 			return false;
 		}
+
 		FGraphNodeCreator<UAnimGraphNode_LinkedInputPose> Creator(*AnimGraph);
 		UAnimGraphNode_LinkedInputPose* Input = Creator.CreateNode();
 		Input->NodePosX = Roots[0]->NodePosX - 300;
@@ -100,7 +102,8 @@ bool Omni::CharacterImport::EnsurePostProcessAnimationBlueprint(USkeletalMesh* M
 		FKismetEditorUtilities::CompileBlueprint(Blueprint);
 		Report(TEXT("Created pose-passthrough post-process blueprint: ") + ObjectPath);
 	}
-	// Reuse existing graphs as-is. Incompatible or uncompiled assets require user review.
+
+	// 原样复用已有图；资产不兼容或未编译时报告问题，交由用户检查。
 	if (Blueprint->TargetSkeleton != Mesh->GetSkeleton() || !Blueprint->GeneratedClass ||
 		!Blueprint->GeneratedClass->IsChildOf(UAnimInstance::StaticClass()) ||
 		(Blueprint->Status != BS_UpToDate && Blueprint->Status != BS_UpToDateWithWarnings))
@@ -108,6 +111,7 @@ bool Omni::CharacterImport::EnsurePostProcessAnimationBlueprint(USkeletalMesh* M
 		Report(TEXT("Post-process blueprint has a different skeleton or needs a successful compile; left unassigned: ") + ObjectPath, true);
 		return false;
 	}
+
 	Mesh->Modify();
 	Mesh->SetPostProcessAnimBlueprint(TSubclassOf<UAnimInstance>(Blueprint->GeneratedClass.Get()));
 	FPropertyChangedEvent ChangedEvent(FindFProperty<FProperty>(USkeletalMesh::StaticClass(), USkeletalMesh::GetPostProcessAnimBlueprintMemberName()));

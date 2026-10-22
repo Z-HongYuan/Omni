@@ -102,7 +102,7 @@ bool FOmniImportSavedMaterialProfileTest::RunTest(const FString& Parameters)
 			++MaterialCount;
 			UMaterialInstanceConstant* Material = Cast<UMaterialInstanceConstant>(Asset.GetAsset());
 			if (!TestNotNull(*FString::Printf(TEXT("Saved MI loads: %s"), *Asset.GetObjectPathString()), Material)) continue;
-			// Different Body/Face/Outline parents must still share the group Profile.
+			// 即使 Body、Face、Outline 使用不同母材质，也应共用组 Profile。
 			TestNotNull(*FString::Printf(TEXT("Saved MI retains a valid parent: %s"), *Material->GetName()), Material->Parent.Get());
 			TestTrue(*FString::Printf(TEXT("Saved MI enables Toon override: %s"), *Material->GetName()), Material->bOverrideToonProfile != 0);
 			UToonProfile* Override = Material->ToonProfileOverride;

@@ -52,7 +52,7 @@ void UOmniCharacterImportPipeline::PrepareLegacyMaterials(UInterchangeBaseNodeCo
 	TMap<FString, EOmniImportTextureUsage> TextureUsages;
 	Container->IterateNodesOfType<UInterchangeMaterialInstanceFactoryNode>([&](const FString& Key, UInterchangeMaterialInstanceFactoryNode* Node)
 	{
-		if (FaceFactoryKeys.Contains(Key) || BodyFactoryRows.Contains(Key)) return; // Dialog settings take precedence.
+		if (FaceFactoryKeys.Contains(Key) || BodyFactoryRows.Contains(Key)) return; // 对话框配置优先。
 		const int32 RuleIndex = ActiveProfile->MaterialRules.IndexOfByPredicate([Node](const FOmniImportMaterialRule& Rule)
 		{
 			return MatchesPattern(Node->GetDisplayLabel(), Rule.MaterialNamePattern);
@@ -77,7 +77,7 @@ void UOmniCharacterImportPipeline::PrepareLegacyMaterials(UInterchangeBaseNodeCo
 				Report(FString::Printf(TEXT("Missing texture parameter %s in %s"), *Binding.Parameter.ToString(), *Parent->GetName()), true);
 				continue;
 			}
-			if (!Binding.ExistingTexture.IsNull()) continue; // Applied after the instance exists.
+			if (!Binding.ExistingTexture.IsNull()) continue; // 待材质实例创建后再应用。
 			TArray<UInterchangeTextureFactoryNode*> Matches = Textures.FilterByPredicate([&](const UInterchangeTextureFactoryNode* Texture)
 			{
 				return MatchesPattern(Texture->GetDisplayLabel(), Binding.TextureNamePattern);
@@ -128,7 +128,7 @@ void UOmniCharacterImportPipeline::ApplyLegacyMaterial(const UInterchangeBaseNod
 					Texture = Cast<UTexture>(TexturePath.TryLoad());
 				}
 			}
-			if (!Texture) continue; // Missing/ambiguous source was already reported during planning.
+			if (!Texture) continue; // 源纹理缺失或匹配歧义已在准备阶段报告。
 		}
 		if (!Omni::CharacterImport::SetTextureParameterVerified(Material, Binding.Parameter, Texture))
 			Report(TEXT("Could not bind texture parameter: ") + Binding.Parameter.ToString(), true);
@@ -145,5 +145,5 @@ void UOmniCharacterImportPipeline::ApplyLegacyMaterial(const UInterchangeBaseNod
 			Report(TEXT("Unknown static switch: ") + Parameter.Key.ToString(), true);
 	}
 	UMaterialEditingLibrary::UpdateMaterialInstance(Material);
-	(void)Material->MarkPackageDirty(); // Asset saving is controlled by the editor/user.
+	(void)Material->MarkPackageDirty(); // 资产保存由编辑器或用户控制。
 }

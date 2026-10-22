@@ -33,7 +33,7 @@ T* AddMaterialTestNode(UInterchangeBaseNodeContainer* Container, const FString& 
 	return Node;
 }
 
-/** Disposable memory-only groups; the canonical TP is precreated to avoid AssetTools saves. */
+/** 仅驻留内存的临时测试组；预建目标 TP，避免触发 AssetTools 保存。 */
 struct FMemoryProfileGroup
 {
 	FString Id = FGuid::NewGuid().ToString(EGuidFormats::Digits);
@@ -48,8 +48,7 @@ struct FMemoryProfileGroup
 
 	explicit FMemoryProfileGroup(int32 MaterialCount = 3)
 	{
-		// /Temp is a read-only package root. A private process-local mount permits
-		// production path validation while all packages stay transient and unsaved.
+		// 使用进程内私有挂载点满足目标路径验证；所有包保持临时且未保存，避免依赖只读的 /Temp 根。
 		FPackageName::RegisterMountPoint(Mount, Content);
 		Template = NewObject<UToonProfile>(GetTransientPackage(), NAME_None, RF_Transient);
 		Template->Settings.DiffuseRampOffsetStrength = 0.25f;
@@ -98,7 +97,7 @@ bool FOmniImportCustomParentTest::RunTest(const FString& Parameters)
 	Profile->bCreateIKRig = false;
 	Profile->bCreatePostProcessAnimBlueprint = false;
 	Pipeline->Profile = Profile;
-	Pipeline->BodyParentMaterial = nullptr; // Only the per-source override can provide a valid parent.
+	Pipeline->BodyParentMaterial = nullptr; // 仅源材质专属覆盖可提供有效母材质。
 	Pipeline->bNormalizeTextureNames = false;
 	FOmniKeywordMaterialBinding& Section = Pipeline->MaterialMappings.AddDefaulted_GetRef();
 	Section.SourceMaterial = TEXT("Fixture_Body");
@@ -126,7 +125,7 @@ bool FOmniImportCustomParentTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("The MI factory has a configured parent"), Factory->GetCustomParent(ConfiguredParent));
 	TestEqual(TEXT("The MI factory uses the custom parent"), ConfiguredParent, Parent->GetPathName());
 	UMaterialInstanceConstant* Material = NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transient);
-	// Emit only a material callback, so this fixture creates no rig, mesh report or saved asset.
+	// 只触发材质回调，避免测试创建 Rig、网格体报告或已保存资产。
 	Pipeline->ScriptedExecutePostImportPipeline(Container, FactoryUid, Material, false);
 	TestEqual(TEXT("The created MI actually uses the selected custom parent"), Material->Parent.Get(), static_cast<UMaterialInterface*>(Parent));
 	TestFalse(TEXT("A non-Toon parent does not gain a Toon override"), Material->bOverrideToonProfile != 0);
@@ -216,7 +215,7 @@ bool FOmniImportSharedProfileIsolationTest::RunTest(const FString& Parameters)
 	const Omni::CharacterImport::FImportReporter Reporter{[&Errors](const FString&, bool bError) { Errors += bError ? 1 : 0; }};
 	for (UMaterialInstanceConstant* Material : First.Materials)
 		Omni::CharacterImport::ApplySharedToonProfile(Material, First.Shared, First.GroupKey, Reporter);
-	// Candidates from another source group cannot select that group's TP.
+	// 其他源组的候选材质不能使当前组选用其 TP。
 	UToonProfile* Other = Omni::CharacterImport::ResolveOrCreateSharedToonProfile(Second.GroupKey, First.Materials, First.Template, Reporter);
 	TestEqual(TEXT("Another FBX group resolves its own local TP"), Other, Second.Shared);
 	TestNotEqual(TEXT("Two groups never share their generated Profile"), Other, First.Shared);
@@ -237,7 +236,7 @@ bool FOmniImportLegacyProfileMigrationTest::RunTest(const FString& Parameters)
 	FMemoryProfileGroup Group(2);
 	UToonProfile* Legacy = Group.MakeProfile(TEXT("TP_LegacyPerMI"));
 	Legacy->Settings.DiffuseRampOffsetStrength = 0.6f;
-	Omni::CharacterImport::SetOwnedToonProfile(Group.Materials[0], Legacy); // No shared group key.
+	Omni::CharacterImport::SetOwnedToonProfile(Group.Materials[0], Legacy); // 不提供共用组标识。
 	int32 Errors = 0;
 	const Omni::CharacterImport::FImportReporter Reporter{[&Errors](const FString&, bool bError) { Errors += bError ? 1 : 0; }};
 	UToonProfile* Shared = Omni::CharacterImport::ResolveOrCreateSharedToonProfile(Group.GroupKey, Group.Materials, Group.Template, Reporter);
@@ -379,7 +378,7 @@ bool FOmniImportSharedProfileCallbackTest::RunTest(const FString& Parameters)
 		UInterchangeSourceData* Source = NewObject<UInterchangeSourceData>();
 		Source->SetFilename(TEXT("Group.fbx"));
 		Pipeline->ScriptedExecutePipeline(Container, {Source}, Group.Folder);
-		// Material-only callbacks exercise group resolution/cache without creating files.
+		// 通过材质回调验证组 Profile 解析与缓存，不创建文件。
 		const int32 First = bFaceFirst ? 1 : 0;
 		const int32 Second = 1 - First;
 		Pipeline->ScriptedExecutePostImportPipeline(Container, FactoryUids[First], Group.Materials[First], false);
@@ -437,7 +436,7 @@ bool FOmniImportLegacySharedProfileCallbackTest::RunTest(const FString& Paramete
 	Pipeline->bConfigureFaceMaterial = false;
 	Pipeline->bConfigureBodyMaterial = false;
 	Pipeline->bNormalizeTextureNames = false;
-	// No explicit template: the generic rule's selected parent is the sole source.
+	// 不指定显式模板，模板只来自通用规则选中的母材质。
 	Pipeline->BodyToonProfileTemplate = nullptr;
 	UInterchangeBaseNodeContainer* Container = NewObject<UInterchangeBaseNodeContainer>();
 	AddMaterialTestNode<UInterchangeSkeletalMeshFactoryNode>(Container, TEXT("Mesh"), TEXT("Fixture"), EInterchangeNodeContainerType::FactoryData);

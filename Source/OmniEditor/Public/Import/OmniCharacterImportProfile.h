@@ -17,7 +17,7 @@ enum class EOmniImportTextureUsage : uint8
 	Normal
 };
 
-/** Texture names refer to the current FBX only; no global, cross-character filename search. */
+/** 纹理名称只匹配本次 FBX，不按文件名跨角色搜索资产。 */
 USTRUCT(BlueprintType)
 struct OMNIEDITOR_API FOmniImportTextureBinding
 {
@@ -26,14 +26,14 @@ struct OMNIEDITOR_API FOmniImportTextureBinding
 	FName Parameter;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Texture")
 	FString TextureNamePattern;
-	/** Optional reference to an already imported texture, including shared ramps and SDFs. */
+	/** 可选的已导入纹理引用，可用于共用 Ramp 或 SDF。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Texture")
 	TSoftObjectPtr<UTexture> ExistingTexture;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Texture")
 	EOmniImportTextureUsage Usage = EOmniImportTextureUsage::Preserve;
 };
 
-/** Rules are evaluated in array order; the first matching rule wins. */
+/** 按数组顺序匹配，采用首个命中的材质规则。 */
 USTRUCT(BlueprintType)
 struct OMNIEDITOR_API FOmniImportMaterialRule
 {
@@ -62,14 +62,14 @@ struct OMNIEDITOR_API FOmniImportRetargetChain
 	FName EndBone;
 };
 
-/** Shared import rules. Character-specific overrides belong in separate profile assets. */
+/** 可共用的导入规则；角色专属配置应放在独立 Profile 资产中。 */
 UCLASS(BlueprintType)
 class OMNIEDITOR_API UOmniCharacterImportProfile : public UDataAsset
 {
 	GENERATED_BODY()
 
 public:
-	/** The chosen import directory is the root; optionally append the character name. */
+	/** 是否在所选导入目录下追加角色名称作为根目录。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Folders")
 	bool bCreateCharacterFolder = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Folders")
@@ -84,28 +84,28 @@ public:
 	FString RigFolder = TEXT("Rig");
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Folders")
 	FString PhysicsFolder;
-	/** Keep disabled until the project's master-material parameter interface is ready. */
+	/** 是否应用通用材质规则；关键词材质模式优先使用对话框配置。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Materials")
 	bool bConfigureMaterials = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Materials", meta=(EditCondition="bConfigureMaterials"))
 	TArray<FOmniImportMaterialRule> MaterialRules;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rig")
 	bool bCreateIKRig = true;
-	/** Create and assign a pose-passthrough ABP beside the mesh; never replace an existing assignment. */
+	/** 在网格体旁创建并绑定姿势直通 ABP，保留已有后处理动画绑定。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Animation")
 	bool bCreatePostProcessAnimBlueprint = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rig")
 	FName RetargetRoot = TEXT("pelvis");
-	/** Explicit chains take precedence; an empty list requests UE's biped auto-detection. */
+	/** 优先使用显式骨骼链；列表为空时尝试 UE 的双足骨骼自动识别。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rig")
 	TArray<FOmniImportRetargetChain> RetargetChains;
-	/** Configure UE's full-body IK solver on new rigs with valid arm and leg chains. Existing rigs are preserved. */
+	/** 为具有有效四肢链的新 Rig 配置全身 IK 求解器，保留已有 Rig。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rig", meta=(EditCondition="bCreateIKRig"))
 	bool bTryAutoFBIK = true;
-	/** Retargeter generation is enabled only when this source rig is assigned. */
+	/** 只有指定源 Rig 时才生成重定向器。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rig")
 	TSoftObjectPtr<UIKRigDefinition> SourceIKRig;
-	/** Short source label for IKR_<Source>To<Character>. Empty uses the source rig name. */
+	/** 用于 IKR_<Source>To<Character> 的源简称；留空时采用源 Rig 名称。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Rig")
 	FString SourceRigLabel;
 };

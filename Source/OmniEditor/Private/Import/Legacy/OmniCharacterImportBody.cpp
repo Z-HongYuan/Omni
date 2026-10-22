@@ -50,7 +50,7 @@ void UOmniCharacterImportPipeline::RefreshBodySourceData(UInterchangeBaseNodeCon
 		return Node->IsA<UInterchangeShaderGraphNode>() || Node->IsA<UInterchangeMaterialInstanceNode>();
 	});
 	Materials.Sort([](const UInterchangeBaseNode& A, const UInterchangeBaseNode& B) { return A.GetDisplayLabel() < B.GetDisplayLabel(); });
-	// Preserve per-section choices across dialog rebuilds and reimports.
+	// 对话框重建或重导入时保留各分区的选择。
 	if (BodyMaterials.IsEmpty())
 	{
 		for (const UInterchangeBaseNode* Node : Materials)
@@ -135,17 +135,20 @@ bool UOmniCharacterImportPipeline::PrepareBodyMaterials(UInterchangeBaseNodeCont
 			Report(TEXT("Body needs Material Instances enabled in the preceding FBX pipeline: ") + Section.SourceMaterial, true);
 			return false;
 		}
-		if (!Omni::CharacterImport::PrepareMaterialTextures(Container, Key, BodyParentMaterial, Section.Textures, {[this](const FString& Message, bool bError) { Report(Message, bError); }})) return false;
+		if (!Omni::CharacterImport::PrepareMaterialTextures(Container, Key, BodyParentMaterial, Section.Textures,
+			{[this](const FString& Message, bool bError) { Report(Message, bError); }}))
+			return false;
 	}
 	return true;
 }
 
 void UOmniCharacterImportPipeline::ApplyBodyMaterial(const UInterchangeBaseNodeContainer* Container,
-                                                     const FString& NodeKey, UMaterialInstanceConstant* Material, const bool bReimport)
+	const FString& NodeKey, UMaterialInstanceConstant* Material, const bool bReimport)
 {
 	if ((bReimport || bIsReimportContext) && !bUpdateBodyMaterialOnReimport) return;
 	const int32* Index = BodyFactoryRows.Find(NodeKey);
 	if (!Index || !BodyMaterials.IsValidIndex(*Index)) return;
-	Omni::CharacterImport::ApplyMaterialTextures(Container, NodeKey, Material, BodyParentMaterial.LoadSynchronous(), BodyMaterials[*Index].Textures, {[this](const FString& Message, bool bError) { Report(Message, bError); }});
+	Omni::CharacterImport::ApplyMaterialTextures(Container, NodeKey, Material, BodyParentMaterial.LoadSynchronous(),
+		BodyMaterials[*Index].Textures, {[this](const FString& Message, bool bError) { Report(Message, bError); }});
 	ApplyAssetToonProfile(Container, Material);
 }

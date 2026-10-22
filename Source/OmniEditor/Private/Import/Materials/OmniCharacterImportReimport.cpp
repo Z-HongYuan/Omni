@@ -19,8 +19,8 @@ void UOmniCharacterImportPipeline::ApplyRetainedMaterials(const UInterchangeBase
 	{
 		for (const FStaticMaterial& Slot : StaticMesh->GetStaticMaterials()) UsedMaterials.Add(Slot.MaterialInterface);
 	}
-	// Mesh-only reimport can retain a material without dispatching its post-import callback.
-	// Restrict updates to factory references actually used by this mesh, never name-based searches.
+	// 仅重导入网格体时，保留的材质可能不触发导入后回调。
+	// 只更新当前网格体实际使用的工厂引用，不按名称搜索其他材质。
 	auto FindMaterial = [Container, &UsedMaterials](const FString& Key) -> UMaterialInstanceConstant*
 	{
 		const UInterchangeFactoryBaseNode* Node = Container->GetFactoryNode(Key);

@@ -15,7 +15,7 @@ enum class EOmniMaterialRole : uint8
 	Outline
 };
 
-/** Aliases are matched against original source labels, before assets are renamed. */
+/** 在资产重命名前使用原始源标签匹配关键词。 */
 USTRUCT(BlueprintType)
 struct OMNIEDITOR_API FOmniTextureKeywordRule
 {
@@ -26,7 +26,7 @@ struct OMNIEDITOR_API FOmniTextureKeywordRule
 	TArray<FString> Keywords;
 };
 
-/** One instance per source material, even when several instances share a parent. */
+/** 每个源材质生成独立实例，即使多个实例使用同一母材质。 */
 USTRUCT(BlueprintType)
 struct OMNIEDITOR_API FOmniKeywordMaterialBinding
 {
@@ -35,7 +35,7 @@ struct OMNIEDITOR_API FOmniKeywordMaterialBinding
 	FString SourceMaterial;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Material", meta=(DisplayName="母材质类型"))
 	EOmniMaterialRole Role = EOmniMaterialRole::Auto;
-	/** Optional per-source parent; an empty value uses the selected role's default parent. */
+	/** 可为当前源材质指定母材质；留空时使用所选类型的默认母材质。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Material", meta=(DisplayName="自定义母材质（留空按类型）"))
 	TSoftObjectPtr<UMaterialInterface> ParentOverride;
 	UPROPERTY(VisibleAnywhere, Transient, BlueprintReadOnly, Category="Material", meta=(DisplayName="匹配的母材质"))
