@@ -5,6 +5,7 @@
 #include "Cheats/ContraCheats.h"
 #include "GameFramework/CheatManagerDefines.h"
 
+/** 随模块生命周期注册和解除 Contra 调试命令扩展的创建回调。 */
 class FOmniContraRuntimeModule : public FDefaultModuleImpl
 {
 public:

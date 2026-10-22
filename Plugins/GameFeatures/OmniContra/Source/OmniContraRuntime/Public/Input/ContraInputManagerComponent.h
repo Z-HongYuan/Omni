@@ -29,6 +29,7 @@ protected:
 	UE_API virtual void Input_MoveCompleted(const FInputActionValue& Value);
 
 private:
+	/** 缓存原始方向输入；动作完成、取消或重新绑定时清零。 */
 	FVector2D DirectionalInput = FVector2D::ZeroVector;
 };
 

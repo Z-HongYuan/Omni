@@ -14,7 +14,7 @@ class UContraCheats : public UCheatManagerExtension
 	GENERATED_BODY()
 
 public:
-	// 杀死当前控制的角色，沿用 Health 的自毁伤害与死亡流程。
+	/** 仅在当前 Pawn 具有权威时，通过生命组件触发自毁伤害与死亡流程。 */
 	UFUNCTION(Exec, BlueprintAuthorityOnly)
 	UE_API void KillPlayer();
 };
