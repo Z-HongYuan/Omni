@@ -18,7 +18,7 @@ class UOmniAnimInstance : public UTaggedAnimInstance
 public:
 	UE_API UOmniAnimInstance(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	// 只取得组件，不刷新数据。不要标记 BlueprintThreadSafe：由 Property Access 在游戏线程采样。
+	// 只取得组件，不刷新数据。读取 CMC 数据的 Property Access 路径仍需在游戏线程采样。
 	UFUNCTION(BlueprintPure, Category = "Omni|Animation", meta=(BlueprintThreadSafe))
 	UE_API UOmniCMC* GetOmniCMC() const;
 };
