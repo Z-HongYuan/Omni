@@ -25,16 +25,15 @@ struct FOmniInputMappingContextAndPriority
 	UPROPERTY(EditAnywhere, Category = "Input")
 	int32 Priority = 0;
 
-	// 注册阶段加入改键设置，不影响激活阶段是否应用 IMC。
+	/** 是否在注册阶段加入改键设置，不影响激活阶段应用 IMC。 */
 	UPROPERTY(EditAnywhere, Category = "Input")
 	bool bRegisterWithSettings = true;
 };
 
 /**
- * 参考 Lyra AddInputContextMapping：注册/注销用户设置，激活/停用本地玩家 IMC。
- * 监听 InputManager 的 BindInputsNow 和 PC 扩展事件；不参与 ASC 生命周期。
- * 保留原版四个扩展事件，补齐控制器清理记录。
- * 多个动作共用 IMC 时，资产使用 CountRegistrations 且优先级保持一致。
+ * 随 GF 注册和注销维护用户改键设置，随激活和停用管理本地玩家 IMC。
+ * 监听 InputManager 的 BindInputsNow 和 PC 扩展事件，按控制器记录并清理映射。
+ * 多个动作共用 IMC 时，资产需使用 CountRegistrations 且各动作优先级保持一致。
  */
 UCLASS(MinimalAPI, meta = (DisplayName = "Add Input Mapping (Omni)"))
 class UOmniGameFeatureAction_AddInputMapping : public UOmniGameFeatureAction_WorldActionBase

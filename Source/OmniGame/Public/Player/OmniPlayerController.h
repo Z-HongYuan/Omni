@@ -10,16 +10,9 @@
 class UExtAbilitySystemComponent;
 
 /**
- * 项目玩家控制器，由 GameMode 指定使用。
- * 插件父类已提供模块化组件接入，以及向 LocalPlayer 广播控制器、PlayerState 和 Pawn 的变化。
- * 解除控制前仅清空本 Pawn 的 ASC Avatar；完整清理及通知仍由 PawnExtension 负责。
- * PostProcessInput 统一处理 PlayerState ASC 的本帧能力输入。
- *
- * 对照 Lyra 5.8，后续按需评估迁入：
- * - PlayerState/HUD 的类型化访问。
- * - 跟随 PlayerState 的队伍状态与变更通知。
- * - 共享设置绑定、手柄力反馈策略，以及相机穿透时的目标隐藏。
- * - 自动奔跑、调试作弊入口和客户端回放录制；回放控制器可独立扩展。
+ * 项目玩家控制器，沿用父类的模块化组件接入及 LocalPlayer 状态通知。
+ * PostProcessInput 处理 PlayerState ASC 的本帧能力输入；解除控制前清空本 Pawn 的 Avatar。
+ * 完整 ASC 清理与注销通知由 PawnExtension 负责。
  */
 UCLASS(MinimalAPI, Config = Game)
 class AOmniPlayerController : public AExtPlayerController

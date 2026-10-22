@@ -9,10 +9,9 @@
 #define UE_API OMNIGAME_API
 
 /**
- * 玩家角色初始化组件：等待 PawnData、PlayerState 和控制关系就绪，再由插件绑定 ASC；空占位 Pawn 不挂载。
- * 沿用 Lyra 5.8 HeroComponent 的注册/注销和一次性状态推进，在 DataAvailable -> DataInitialized 时请求插件绑定 ASC。
- * EndPlay 仅注销本功能及状态监听；ASC 完整清理由 PawnExtension 负责，不在这里自动重绑。
- * 与完整 HeroComponent 的差异：输入和相机由独立控制组件消费，ASC 初始化在服务器与客户端均参与。
+ * 玩家角色初始化组件，等待 PawnData、PlayerState 和控制关系就绪后请求绑定 ASC。
+ * 在 DataAvailable -> DataInitialized 时完成一次性初始化，服务器同时恢复出生生命值。
+ * EndPlay 注销本功能及状态监听；ASC 完整清理由 PawnExtension 负责，后续控制变化不在此重绑。
  */
 UCLASS(MinimalAPI, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class UOmniPawnInitializationComponent : public UPawnComponent, public IGameFrameworkInitStateInterface

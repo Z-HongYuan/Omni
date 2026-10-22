@@ -4,9 +4,7 @@
 
 #include "NativeGameplayTags.h"
 
-/**
- * 整个项目使用的GameplayTags基础定义
- */
+// 项目共用的基础 GameplayTag 定义。
 #define UE_API OMNIGAME_API
 
 namespace OmniTags

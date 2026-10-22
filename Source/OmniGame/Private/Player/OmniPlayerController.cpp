@@ -29,7 +29,7 @@ void AOmniPlayerController::ReceivedPlayer()
 
 void AOmniPlayerController::PostProcessInput(const float DeltaTime, const bool bGamePaused)
 {
-	// 与 Lyra 一致：输入收集完成后，先处理 PlayerState ASC 的能力输入，再调用父类。
+	// 输入收集完成后，先处理 PlayerState ASC 的能力输入，再调用父类。
 	if (UExtAbilitySystemComponent* ASC = GetASC())
 	{
 		ASC->ProcessAbilityInput(DeltaTime, bGamePaused);
@@ -40,7 +40,7 @@ void AOmniPlayerController::PostProcessInput(const float DeltaTime, const bool b
 
 void AOmniPlayerController::OnUnPossess()
 {
-	// 与 Lyra PC 一致：在父类解除控制前清空 Avatar，不取消能力或广播完整注销。
+	// 在父类解除控制前清空当前 Pawn 的 Avatar；能力清理与注销广播由 PawnExtension 负责。
 	if (APawn* PawnBeingUnpossessed = GetPawn())
 	{
 		if (UExtAbilitySystemComponent* ASC = GetASC())

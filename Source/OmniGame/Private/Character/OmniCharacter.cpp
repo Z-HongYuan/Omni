@@ -28,6 +28,7 @@ AOmniCharacter::AOmniCharacter(const FObjectInitializer& ObjectInitializer)
 	PawnExtensionComponent = CreateDefaultSubobject<UExpPawnExtensionComponent>(TEXT("PawnExtensionComponent"));
 
 	PawnInitializationComponent = CreateDefaultSubobject<UOmniPawnInitializationComponent>(TEXT("PawnInitializationComponent"));
+
 	// 主项目负责接线，生命插件只认识传入的 ASC。
 	PawnExtensionComponent->CallOrRegister_AbilitySystemInitialized(FSimpleDelegate::CreateUObject(this, &ThisClass::OnAbilitySystemInitialized));
 	PawnExtensionComponent->Register_AbilitySystemUninitialized(FSimpleDelegate::CreateUObject(this, &ThisClass::OnAbilitySystemUninitialized));
@@ -49,7 +50,7 @@ void AOmniCharacter::OnAbilitySystemUninitialized()
 
 void AOmniCharacter::FellOutOfWorld(const UDamageType& DamageType)
 {
-	// 沿用 Lyra：交给伤害和死亡技能流程，不调用父类直接销毁角色。
+	// 交给伤害和死亡技能流程，保留死亡通知与清理时机。
 	HealthComponent->DamageSelfDestruct(true);
 }
 
@@ -60,7 +61,7 @@ void AOmniCharacter::OnDeathStarted(AActor* OwningActor)
 
 void AOmniCharacter::Reset()
 {
-	// 相对 Lyra 增加显式服务器约束，供玩法蓝图调用；客户端随角色销毁复制退场。
+	// 退场由服务器执行，客户端通过角色销毁复制退场。
 	if (!HasAuthority()) return;
 
 	DisableMovementAndCollision();
@@ -90,7 +91,7 @@ void AOmniCharacter::DestroyDueToDeath()
 
 void AOmniCharacter::UninitAndDestroy()
 {
-	// 与 Lyra 的顺序差异：先注销，再解除控制；PC 的 OnUnPossess 会提前清空 Avatar。
+	// 先注销再解除控制，避免 PC 的 OnUnPossess 清空 Avatar 后遗漏注销通知。
 	if (UExtAbilitySystemComponent* ASC = GetExtAbilitySystemComponent())
 	{
 		// ASC 可能已交给新 Pawn，旧角色不能清理新 Avatar 的能力系统。
@@ -170,7 +171,7 @@ void AOmniCharacter::UnPossessed()
 {
 	Super::UnPossessed();
 
-	// 沿用 Lyra：这里只刷新控制关系，完整 ASC 清理由 PawnExtension 的生命周期负责。
+	// 此处只刷新控制关系，完整 ASC 清理由 PawnExtension 的生命周期负责。
 	PawnExtensionComponent->HandleControllerChanged();
 }
 

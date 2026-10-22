@@ -19,12 +19,9 @@ UOmniGameplayAbility_Jump::UOmniGameplayAbility_Jump(const FObjectInitializer& O
 bool UOmniGameplayAbility_Jump::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags,
                                                    FGameplayTagContainer* OptionalRelevantTags) const
 {
-	// 先检查角色是否能够跳跃。
 	const ACharacter* Character = ActorInfo ? Cast<ACharacter>(ActorInfo->AvatarActor.Get()) : nullptr;
 
 	bool bCanActivate = Character && Character->CanJump();
-
-	// 再检查能力的标签、消耗等通用激活条件。
 	bCanActivate = bCanActivate && Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags);
 
 	return bCanActivate;
@@ -39,7 +36,7 @@ void UOmniGameplayAbility_Jump::ActivateAbility(const FGameplayAbilitySpecHandle
 		return;
 	}
 
-	// 与 Lyra 一致：由本地控制端驱动跳跃，移动同步交给 CharacterMovement。
+	// 由本地控制端驱动跳跃，移动同步交给 CharacterMovement。
 	if (Character->IsLocallyControlled() && !Character->bPressedJump)
 	{
 		Character->UnCrouch();

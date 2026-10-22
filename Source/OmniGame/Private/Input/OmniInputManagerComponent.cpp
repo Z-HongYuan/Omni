@@ -42,7 +42,7 @@ void UOmniInputManagerComponent::EndPlay(const EEndPlayReason::Type EndPlayReaso
 {
 	UnregisterInitStateFeature();
 
-	// 仅移除本组件创建的动作绑定
+	// 仅移除本组件创建的动作绑定。
 	ReleaseInputBind();
 
 	Super::EndPlay(EndPlayReason);
@@ -73,6 +73,7 @@ bool UOmniInputManagerComponent::CanChangeInitState(UGameFrameworkComponentManag
 		{
 			return false;
 		}
+
 		// 配置可选；远端玩家/模拟代理/AI 不等待本地输入，监听服务器的本地玩家仍需检查。
 		// PS 配对由 PawnInitialization 参与共同屏障；这里不能等待 ASC 初始化，以免互相阻塞。
 		if (Data->InputConfig && Pawn->IsLocallyControlled() && !Pawn->IsBotControlled())
@@ -80,6 +81,7 @@ bool UOmniInputManagerComponent::CanChangeInitState(UGameFrameworkComponentManag
 			const APlayerController* Controller = GetController<APlayerController>();
 			return Controller && Controller->GetLocalPlayer() && Cast<UExtInputComponent>(Pawn->InputComponent);
 		}
+
 		return true;
 	}
 
@@ -179,7 +181,8 @@ void UOmniInputManagerComponent::RefreshInputBind()
 	BoundInputConfig = Data->InputConfig;
 
 	// 插件按 Triggered/Completed 绑定能力 Tag，与原生输入共用句柄数组。
-	InputComp->BindAbilityActions(BoundInputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindingHandles);
+	InputComp->BindAbilityActions(BoundInputConfig, this,
+		&ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindingHandles);
 
 	BindNativeInputActions(InputComp, BoundInputConfig, BindingHandles);
 

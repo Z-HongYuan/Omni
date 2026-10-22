@@ -37,7 +37,7 @@ void UOmniPawnInitializationComponent::BeginPlay()
 
 void UOmniPawnInitializationComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	// 与 Lyra HeroComponent 一致：同时移除功能注册和状态监听，ASC 由 PawnExtension 清理。
+	// 同时移除功能注册和状态监听，ASC 由 PawnExtension 清理。
 	UnregisterInitStateFeature();
 
 	Super::EndPlay(EndPlayReason);
@@ -66,10 +66,13 @@ bool UOmniPawnInitializationComponent::CanChangeInitState(UGameFrameworkComponen
 		// PawnData 由 PawnExtension 检查；输入控制组件的就绪条件通过同一功能屏障参与。
 		return IsPlayerStateReady();
 	}
+
 	if (CurrentState == ExpSystemTags::TAG_InitState_DataAvailable && DesiredState == ExpSystemTags::TAG_InitState_DataInitialized)
 	{
-		return IsPlayerStateReady() && Manager->HasFeatureReachedInitState(Pawn, UExpPawnExtensionComponent::NAME_ActorFeatureName, ExpSystemTags::TAG_InitState_DataInitialized);
+		return IsPlayerStateReady()
+			&& Manager->HasFeatureReachedInitState(Pawn, UExpPawnExtensionComponent::NAME_ActorFeatureName, ExpSystemTags::TAG_InitState_DataInitialized);
 	}
+
 	if (CurrentState == ExpSystemTags::TAG_InitState_DataInitialized && DesiredState == ExpSystemTags::TAG_InitState_GameplayReady)
 	{
 		return true;
@@ -119,7 +122,7 @@ void UOmniPawnInitializationComponent::OnActorInitStateChanged(const FActorInitS
 
 void UOmniPawnInitializationComponent::CheckDefaultInitialization()
 {
-	// 与 Lyra 一致，状态链不回退；后续控制变化不在这里触发 ASC 重绑。
+	// 状态链不回退，后续控制变化不在这里触发 ASC 重绑。
 	ContinueInitStateChain(ExpSystemTags::ComponentStateChain);
 }
 

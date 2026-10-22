@@ -11,9 +11,11 @@
 void UOmniGameFeatureAction_WorldActionBase::OnGameFeatureActivating(FGameFeatureActivatingContext& Context)
 {
 	Super::OnGameFeatureActivating(Context);
+
 	FDelegateHandle& Handle = GameInstanceStartHandles.FindOrAdd(Context);
 	FWorldDelegates::OnStartGameInstance.Remove(Handle);
 	Handle = FWorldDelegates::OnStartGameInstance.AddUObject(this, &ThisClass::HandleGameInstanceStart, FGameFeatureStateChangeContext(Context));
+
 	for (const FWorldContext& WorldContext : GEngine->GetWorldContexts())
 	{
 		if (Context.ShouldApplyToWorldContext(WorldContext)) AddToWorld(WorldContext, Context);
@@ -27,6 +29,7 @@ void UOmniGameFeatureAction_WorldActionBase::OnGameFeatureDeactivating(FGameFeat
 		FWorldDelegates::OnStartGameInstance.Remove(*Handle);
 		GameInstanceStartHandles.Remove(Context);
 	}
+
 	Super::OnGameFeatureDeactivating(Context);
 }
 

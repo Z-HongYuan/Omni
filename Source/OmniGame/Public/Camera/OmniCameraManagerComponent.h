@@ -11,11 +11,9 @@
 class UGameplayCameraComponent;
 
 /**
- * 摄像机管理器：消费 PawnData.CameraAsset，控制 Pawn 上已有且已注册的唯一 GameplayCamera，不创建或销毁摄像机。
- * 沿用 Lyra HeroComponent 的注册/注销和状态链，在 DataAvailable -> DataInitialized 时接管本地相机。
- * 缺少相机或配置不阻塞初始化；蓝图/GF 动态增删相机后调用 RefreshCamera，控制切换和 PawnRestart 自动刷新。
- * EndPlay 仅停用仍由本管理器控制的相机；应用过的资产配置保留，不参与 ASC 绑定或输入处理。
- * 与完整 HeroComponent 的差异：使用 GameplayCameras 资产；尚未迁入面向所有 Pawn 的观战支持和能力相机模式覆盖。
+ * 在 DataAvailable -> DataInitialized 时，使用 PawnData.CameraAsset 接管本地玩家的相机。
+ * 只接受 Pawn 上唯一且已注册的 GameplayCamera；缺少相机或配置时跳过接管，不阻塞状态推进。
+ * 不创建或销毁相机；EndPlay 只停用仍由本组件控制的相机，并保留已应用的资产配置。
  */
 UCLASS(MinimalAPI, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class UOmniCameraManagerComponent : public UPawnComponent, public IGameFrameworkInitStateInterface

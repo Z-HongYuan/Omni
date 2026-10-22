@@ -7,11 +7,7 @@
 
 #define UE_API OMNIGAME_API
 
-/**
- * 项目空占位 Pawn，仅作为 GameMode 的默认兜底类型，不添加组件或玩法逻辑。
- * 正常体验通过 PawnData 选择 AOmniCharacter；模块化 Actor 生命周期沿用父类。
- * 对照 Lyra 5.8：体验初始化、ASC、输入与相机均不在本占位类中接入，按角色职责评估。
- */
+/** GameMode 的空占位 Pawn，未指定角色类型时作为兜底，不额外添加组件或玩法逻辑。 */
 UCLASS(MinimalAPI, Config = Game)
 class AOmniPawn : public AModularPawn
 {

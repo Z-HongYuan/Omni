@@ -8,9 +8,8 @@
 #define UE_API OMNIGAME_API
 
 /**
- * 最小跳跃能力：按下开始跳跃，松开或取消时停止，直接通过 AbilitySet 授予。
- * 对照 Lyra：保留每角色实例、本地预测与 EndAbility 清理；激活流程放在 C++。
- * 后续按需添加 Jumping 状态任务、能力标签及触屏 UI，本类不依赖蓝图编排。
+ * 通过 AbilitySet 授予的跳跃能力，按下时跳跃，松开或取消时停止。
+ * 使用 InstancedPerActor 实例化策略和本地预测，并在 EndAbility 中清理跳跃状态。
  */
 UCLASS(MinimalAPI)
 class UOmniGameplayAbility_Jump : public UExtGameplayAbility

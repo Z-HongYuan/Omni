@@ -64,10 +64,12 @@ bool UOmniCameraManagerComponent::CanChangeInitState(UGameFrameworkComponentMana
 		// 只等待数据，不等待 ASC 或本地相机激活，避免阻塞服务器及其他功能。
 		return Extension && Extension->GetPawnData<UExpPawnData>();
 	}
+
 	if (CurrentState == ExpSystemTags::TAG_InitState_DataAvailable && DesiredState == ExpSystemTags::TAG_InitState_DataInitialized)
 	{
 		return Manager->HasFeatureReachedInitState(Pawn, UExpPawnExtensionComponent::NAME_ActorFeatureName, ExpSystemTags::TAG_InitState_DataInitialized);
 	}
+
 	if (CurrentState == ExpSystemTags::TAG_InitState_DataInitialized && DesiredState == ExpSystemTags::TAG_InitState_GameplayReady)
 	{
 		return true;
@@ -105,7 +107,7 @@ void UOmniCameraManagerComponent::UpdateCamera()
 	const UExpPawnExtensionComponent* Extension = UExpPawnExtensionComponent::FindPawnExtensionComponent(Pawn);
 	const UExpPawnData* Data = Extension ? Extension->GetPawnData<UExpPawnData>() : nullptr;
 
-	// 确保在需要的地方才使用摄像机,不然就释放
+	// 只有本地玩家控制的 Pawn 接管相机，其他情况释放已有控制关系。
 	if (!Controller || !Controller->IsLocalController() || !Controller->GetLocalPlayer())
 	{
 		ReleaseCamera();
@@ -117,7 +119,6 @@ void UOmniCameraManagerComponent::UpdateCamera()
 	TInlineComponentArray<UGameplayCameraComponent*> Cameras(Pawn);
 	Cameras.RemoveAll([](const UGameplayCameraComponent* Camera) { return !IsValid(Camera) || !Camera->IsRegistered(); });
 
-	//需要有且仅有一个
 	if (Cameras.Num() != 1)
 	{
 		ReleaseCamera();
@@ -128,7 +129,7 @@ void UOmniCameraManagerComponent::UpdateCamera()
 		return;
 	}
 
-	// 需要数据中的摄像机配置有效
+	// 未配置 CameraAsset 时释放控制，不保留旧相机配置的求值结果。
 	if (!Data || !Data->CameraAsset)
 	{
 		ReleaseCamera();
@@ -146,6 +147,7 @@ void UOmniCameraManagerComponent::UpdateCamera()
 	}
 
 	ReleaseCamera();
+
 	// 已有相机可能自动激活过；先停止旧求值上下文，再应用配置和本地玩家，确保新配置实际生效。
 	Camera->Deactivate();
 	Camera->CameraReference.SetCameraAsset(Data->CameraAsset);
@@ -153,7 +155,7 @@ void UOmniCameraManagerComponent::UpdateCamera()
 	// 使用当前玩家，避免分屏时落到 Player0；视角目标仍由 PC/玩法管理。
 	Camera->ActivateCameraForPlayerController(Controller);
 
-	// UE 5.8 的指定玩家激活接口不会重新启用已有输出相机，否则视点会退回 Pawn 眼睛位置。(修复客户端中的摄像机问题)
+	// 显式启用输出相机，避免其仍处于停用状态时视点退回 Pawn 眼睛位置。
 	if (UCineCameraComponent* OutputCamera = Camera->GetOutputCameraComponent()) OutputCamera->Activate();
 
 	CameraComponent = Camera;

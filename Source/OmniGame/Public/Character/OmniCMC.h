@@ -16,7 +16,7 @@ struct FOmniCharacterGroundInfo
 	UPROPERTY(BlueprintReadOnly, Category = "Omni|CharacterMovement")
 	FHitResult GroundHitResult;
 
-	// -1 表示尚未更新或没有有效来源；未命中时为检测上限，并非实际地面距离。
+	/** -1 表示尚未更新或来源无效；非行走状态下未命中时为检测上限，并非实际地面距离。 */
 	UPROPERTY(BlueprintReadOnly, Category = "Omni|CharacterMovement")
 	float GroundDistance = -1.0f;
 };
@@ -33,7 +33,7 @@ public:
 	UE_API virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	UE_API virtual void TickCharacterPose(float DeltaTime) override;
 
-	// CMC 在游戏线程生成，读取不触发检测。ABP 通过 Property Access 在游戏线程采样后使用。
+	/** 在游戏线程更新的地面快照；读取不触发检测，ABP 应通过 Property Access 在游戏线程采样。 */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Omni|CharacterMovement")
 	FOmniCharacterGroundInfo GroundInfo;
 

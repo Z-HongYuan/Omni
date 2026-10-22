@@ -4,19 +4,9 @@
 
 #include "Engine/EngineBaseTypes.h"
 
-/*
- * 项目中使用的物理通道定义
- *
- * 使用方式：代码里一律引用 Omni_TraceChannel_XXX，不要直接写 ECC_GameTraceChannelN，
- * 这样将来调整通道分配时只需要改这一个文件。
- *
- * 两个必须遵守的约定：
- * 1. 改动这里的通道分配时，必须同步改 Config/DefaultEngine.ini 里的
- *    [/Script/Engine.CollisionProfile] 段的 +DefaultChannelResponses，两者必须一一对应，
- *    否则代码用的通道号和引擎实际配置的通道会对不上。
- * 2. 通道号一旦被资产（碰撞预设、物理材质、蓝图里的检测设置）序列化引用就不能再挪位置，
- *    新需求只能往后追加，否则旧资产会静默地指向别的通道。
- */
+// 本文件保留碰撞通道规划与配置示例，以下宏和配置均处于注释状态。
+// 启用通道时，代码中的分配必须与 DefaultEngine.ini 的 CollisionProfile 配置对应。
+// 资产序列化引用通道号后，调整分配需同时考虑已有碰撞预设和蓝图引用。
 
 //~交互检测
 // CustomInteraction 的 AbilityTask_WaitInteractableTargets_SingleLineTrace 使用
@@ -37,10 +27,7 @@
 // 预留给射击类玩法插件，目前未使用
 // #define Omni_TraceChannel_AimAssist						ECC_GameTraceChannel5
 
-/*
- * 引擎总共提供 18 个自定义 Trace 通道（ECC_GameTraceChannel1 ~ 18），
- * 6 及以后全部空闲，留给后续玩法插件按需追加。
- */
+// 以下配置与前面的通道宏对应，保留为未启用的配置示例。
 
 // [/Script/Engine.CollisionProfile]
 // +DefaultChannelResponses=(Channel=ECC_GameTraceChannel1,DefaultResponse=ECR_Ignore,bTraceType=True,bStaticObject=False,Name="Omni_TraceChannel_Interaction")
