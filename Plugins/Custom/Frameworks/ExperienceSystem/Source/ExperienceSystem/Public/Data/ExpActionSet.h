@@ -9,9 +9,7 @@
 
 class UGameFeatureAction;
 
-/**
- * 在体验系统中定义的共享执行合集
- */
+/** 供多个体验复用的 Action 集合及插件依赖。 */
 UCLASS(BlueprintType, NotBlueprintable, MinimalAPI)
 class UExpActionSet : public UPrimaryDataAsset
 {
@@ -31,11 +29,11 @@ public:
 	//~End of UPrimaryDataAsset interface
 
 public:
-	// 加载/激活/停用/卸载 时要执行的操作列表
+	/** 随体验注册、加载、激活、停用和注销的 Action 实例。 */
 	UPROPERTY(EditAnywhere, Instanced, Category="Actions")
 	TArray<TObjectPtr<UGameFeatureAction>> Actions;
 
-	// 将会在体验系统中加载的 Game Feature Plugins 路径列表
+	/** 需要加载并激活的 Game Feature 插件名称，由子系统解析为 URL。 */
 	UPROPERTY(EditAnywhere, Category="Features")
 	TArray<FString> GameFeaturesToEnable;
 };

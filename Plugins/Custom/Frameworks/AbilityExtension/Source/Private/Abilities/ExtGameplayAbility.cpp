@@ -53,7 +53,7 @@ AController* UExtGameplayAbility::GetControllerFromActorInfo() const
 
 	if (AController* PC = CurrentActorInfo->PlayerController.Get()) return PC;
 
-	// 从拥有链中寻找Pawn/控制器
+	// 沿 Owner 链查找 Controller，或通过 Pawn 取得 Controller。
 	AActor* TestActor = CurrentActorInfo->OwnerActor.Get();
 	while (TestActor)
 	{
@@ -74,13 +74,13 @@ ACharacter* UExtGameplayAbility::GetCharacterFromActorInfo() const
 
 void UExtGameplayAbility::TryActivateAbilityOnSpawn(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& AbilitySpec) const
 {
-	// 如果激活政策在生成时尝试激活。
+	// 仅处理尚未激活且采用 OnSpawn 策略的能力。
 	if (ActorInfo && !AbilitySpec.IsActive() && (ActivationPolicy == EExtAbilityActivationPolicy::OnSpawn))
 	{
 		UAbilitySystemComponent* ASC = ActorInfo->AbilitySystemComponent.Get();
 		const AActor* AvatarActor = ActorInfo->AvatarActor.Get();
 
-		// 如果化身演员被销毁或快销毁，别尝试激活，直到我们拿到新的。
+		// Avatar 已 TearOff 或设置了剩余寿命时不自动激活，等待新的 Avatar。
 		if (ASC && AvatarActor && !AvatarActor->GetTearOff() && (AvatarActor->GetLifeSpan() <= 0.0f))
 		{
 			const bool bIsLocalExecution = (NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::LocalPredicted) || (NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::LocalOnly);
@@ -99,19 +99,19 @@ void UExtGameplayAbility::TryActivateAbilityOnSpawn(const FGameplayAbilityActorI
 
 bool UExtGameplayAbility::CanChangeActivationGroup(EExtAbilityActivationGroup NewGroup) const
 {
-	// 禁止 非实例化,未激活 修改
+	// 仅允许修改已激活的能力实例。
 	if (!IsInstantiated() || !IsActive()) return false;
 
-	// 避免重复修改
+	// 当前已在目标组时无需更新。
 	if (ActivationGroup == NewGroup) return true;
 
 	UExtAbilitySystemComponent* ExtASC = GetExtAbilitySystemComponentFromActorInfo<UExtAbilitySystemComponent>();
 	check(ExtASC);
 
-	// 这个技能如果被阻挡，就无法改变群体（除非是它自己在阻挡）。
+	// 不能进入被阻塞的组，但当前能力本身占据阻塞组时允许切换。
 	if ((ActivationGroup != EExtAbilityActivationGroup::Exclusive_Blocking) && ExtASC->IsActivationGroupBlocked(NewGroup)) return false;
 
-	// 如果无法取消，这个能力就无法被替换。
+	// 可替换组要求能力允许被取消。
 	if ((NewGroup == EExtAbilityActivationGroup::Exclusive_Replaceable) && !CanBeCanceled()) return false;
 
 	return true;
@@ -140,8 +140,7 @@ bool UExtGameplayAbility::ChangeActivationGroup(EExtAbilityActivationGroup NewGr
 
 void UExtGameplayAbility::NativeOnAbilityFailedToActivate(const FGameplayTagContainer& FailedReason) const
 {
-	// 失败处理
-	// 当失败时，尝试通过MessageManager发送一个失败消息。
+	// 文本只广播首个匹配结果，蒙太奇按所有匹配原因分别广播。
 	bool bSimpleFailureFound = false;
 	for (FGameplayTag Reason : FailedReason)
 	{
@@ -194,7 +193,7 @@ bool UExtGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Ha
 
 void UExtGameplayAbility::SetCanBeCanceled(bool bCanBeCanceled)
 {
-	// 如果技能可以替换，这个技能就无法阻挡取消。
+	// 可替换组必须保持可取消，才能被后续独占能力替换。
 	if (!bCanBeCanceled && (ActivationGroup == EExtAbilityActivationGroup::Exclusive_Replaceable))
 	{
 		UE_LOG(LogAbilityExtension, Error, TEXT("SetCanBeCanceled: Ability [%s] can not block canceling because its activation group is replaceable."), *GetName());
@@ -224,7 +223,7 @@ bool UExtGameplayAbility::CheckCost(const FGameplayAbilitySpecHandle Handle, con
 {
 	if (!Super::CheckCost(Handle, ActorInfo, OptionalRelevantTags) || !ActorInfo) return false;
 
-	// 确认我们能负担任何额外费用
+	// 所有额外消耗均须通过检查。
 	for (const TObjectPtr<UExtAbilityCost>& AdditionalCost : AdditionalCosts)
 	{
 		if (AdditionalCost != nullptr)
@@ -245,7 +244,7 @@ void UExtGameplayAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle, con
 
 	check(ActorInfo);
 
-	// 用于判断该能力是否真的命中目标（因为部分消耗仅在成功尝试时花费）
+	// 仅在权威端检查目标数据的命中结果，供命中后才扣费的消耗使用。
 	auto DetermineIfAbilityHitTarget = [&]()
 	{
 		if (ActorInfo->IsNetAuthority())
@@ -267,7 +266,7 @@ void UExtGameplayAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle, con
 		return false;
 	};
 
-	// 应用额外消耗
+	// 按需检查一次命中结果，再结算各项额外消耗。
 	bool bAbilityHitTarget = false;
 	bool bHasDeterminedIfAbilityHitTarget = false;
 	for (const TObjectPtr<UExtAbilityCost>& AdditionalCost : AdditionalCosts)
@@ -335,7 +334,7 @@ bool UExtGameplayAbility::DoesAbilitySatisfyTagRequirements(const UAbilitySystem
 {
 	// return Super::DoesAbilitySatisfyTagRequirements(AbilitySystemComponent, SourceTags, TargetTags, OptionalRelevantTags);
 
-	// 专门版本，用于通过ASC处理死亡排除和能力标签扩展
+	// 合并 ASC 标签关系表，并为死亡导致的标签阻塞补充失败原因。
 	bool bBlocked = false;
 	bool bMissing = false;
 
@@ -343,7 +342,7 @@ bool UExtGameplayAbility::DoesAbilitySatisfyTagRequirements(const UAbilitySystem
 	const FGameplayTag& BlockedTag = AbilitySystemGlobals.ActivateFailTagsBlockedTag;
 	const FGameplayTag& MissingTag = AbilitySystemGlobals.ActivateFailTagsMissingTag;
 
-	// 检查一下该能力的标签是否被封锁
+	// 先检查能力自身标签是否被 ASC 阻塞。
 	if (AbilitySystemComponent.AreAbilityTagsBlocked(GetAssetTags()))
 	{
 		bBlocked = true;
@@ -356,13 +355,13 @@ bool UExtGameplayAbility::DoesAbilitySatisfyTagRequirements(const UAbilitySystem
 	AllRequiredTags = ActivationRequiredTags;
 	AllBlockedTags = ActivationBlockedTags;
 
-	// 扩展我们的能力标签，以添加更多必需的blocked标签
+	// 追加关系表配置的必需标签与阻塞标签。
 	if (ExtASC)
 	{
 		ExtASC->GetAdditionalActivationTagRequirements(GetAssetTags(), AllRequiredTags, AllBlockedTags);
 	}
 
-	// 查看该能力所需的Blocked标签
+	// 使用 ASC 当前标签检查阻塞条件和必需条件。
 	if (AllBlockedTags.Num() || AllRequiredTags.Num())
 	{
 		static FGameplayTagContainer AbilitySystemComponentTags;
@@ -374,7 +373,7 @@ bool UExtGameplayAbility::DoesAbilitySatisfyTagRequirements(const UAbilitySystem
 		{
 			if (OptionalRelevantTags && AbilitySystemComponentTags.HasTag(ExtAbilitySystemTags::TAG_Status_Death))
 			{
-				// 如果玩家已经死亡，因为标签被阻挡而被拒绝，给出反馈
+				// 死亡状态下因标签阻塞被拒绝时，追加死亡失败原因。
 				OptionalRelevantTags->AddTag(ExtAbilitySystemTags::TAG_Ability_ActivateFail_IsDead);
 			}
 

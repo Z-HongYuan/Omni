@@ -21,14 +21,14 @@ EExpPlayerStartLocationOccupancy AExpPlayerStart::GetLocationOccupancy(AControll
 	{
 		if (AGameModeBase* AuthGameMode = World->GetAuthGameMode())
 		{
-			// 用这个控制器真正会生成的 Pawn 类来做体积检测
+			// 按控制器实际使用的 Pawn 类型检测空间，避免不同角色体积不一致。
 			TSubclassOf<APawn> PawnClass = AuthGameMode->GetDefaultPawnClassForController(ControllerPawnToFit);
 			const APawn* const PawnToFit = PawnClass ? GetDefault<APawn>(PawnClass) : nullptr;
 
 			FVector ActorLocation = GetActorLocation();
 			const FRotator ActorRotation = GetActorRotation();
 
-			// 没有遮挡就是空闲
+			// 无碰撞阻挡时可直接生成。
 			if (!World->EncroachingBlockingGeometry(PawnToFit, ActorLocation, ActorRotation, nullptr))
 			{
 				return EExpPlayerStartLocationOccupancy::Empty;
@@ -65,7 +65,7 @@ bool AExpPlayerStart::TryClaim(AController* OccupyingController)
 
 void AExpPlayerStart::CheckUnclaimed()
 {
-	// 占用者已经生成了 Pawn 并且离开了此位置，就可以释放占用
+	// 控制器已有 Pawn 且出生点无阻挡时，释放声明占用。
 	if (ClaimingController != nullptr && ClaimingController->GetPawn() != nullptr && GetLocationOccupancy(ClaimingController) == EExpPlayerStartLocationOccupancy::Empty)
 	{
 		ClaimingController = nullptr;

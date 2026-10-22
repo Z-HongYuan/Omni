@@ -10,7 +10,7 @@
 /**
  * Exp 插件计数管理器。
  * 协调同一编辑器进程中多个体验对 GF 插件的请求，最后一个请求者退出时才允许停用。
- * 对应 LyraExperienceManager：保留其 WITH_EDITOR / GIsEditor 计数流程；BeginPIE 由 Editor 模块转发。
+ * 仅在编辑器进程中计数，BeginPIE 由 Editor 模块转发以重置记录。
  * 非编辑器运行时不计数；这里只协调插件停用，不处理 Action 实例隔离或加载中退出。
  */
 UCLASS(MinimalAPI)
@@ -32,7 +32,7 @@ public:
 #endif
 
 private:
-	// 一个 URL 对应多个 PIE 世界的请求，只有计数归零才实际停用插件。
+	/** 按插件 URL 记录 PIE 世界的请求次数，归零后才允许停用。 */
 	TMap<FString, int32> GameFeaturePluginRequestCountMap;
 };
 

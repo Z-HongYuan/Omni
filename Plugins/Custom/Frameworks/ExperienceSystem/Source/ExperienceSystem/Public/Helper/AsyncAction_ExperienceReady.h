@@ -10,9 +10,8 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FExpReadyAsyncDelegate);
 
 /**
- * 等待体验加载完成的异步操作
- * 体验已经加载,会下帧调用
- * 体验未加载,会当体验加载完成后即时调用
+ * 等待体验就绪的蓝图异步操作，由 GameInstance 持有至完成。
+ * 体验已就绪时延后一帧通知，否则在加载完成回调中通知，随后释放操作。
  */
 UCLASS(MinimalAPI)
 class UAsyncAction_ExperienceReady : public UBlueprintAsyncActionBase
@@ -20,7 +19,7 @@ class UAsyncAction_ExperienceReady : public UBlueprintAsyncActionBase
 	GENERATED_BODY()
 
 public:
-	// 等待体验加载完成
+	/** 创建体验就绪监听操作；上下文无法解析为世界时返回空指针。 */
 	UFUNCTION(BlueprintCallable, meta=(WorldContext = "WorldContextObject", BlueprintInternalUseOnly="true"))
 	static UAsyncAction_ExperienceReady* WaitForExperienceReady(UObject* WorldContextObject);
 
@@ -28,7 +27,7 @@ public:
 	virtual void SetReadyToDestroy() override;
 
 protected:
-	// 体验加载完成后调用的委托事件
+	/** 体验就绪后广播一次，随后释放异步操作。 */
 	UPROPERTY(BlueprintAssignable)
 	FExpReadyAsyncDelegate OnReady;
 

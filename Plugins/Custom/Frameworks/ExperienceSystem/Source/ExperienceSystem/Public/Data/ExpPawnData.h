@@ -12,33 +12,30 @@ class UExtInputConfig;
 class UExtAbilityTagRelationshipMapping;
 class UExtAbilitySet;
 
-/**
- * 存储Pawn使用的各种必要数据
- * 静态数据
- */
+/** Pawn 的静态配置，包含角色类型、能力、输入及相机资产。 */
 UCLASS(MinimalAPI, BlueprintType, Const)
 class UExpPawnData : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
 public:
-	// 使用的Pawn类
+	/** 生成 Pawn 时使用的类型。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pawn")
 	TSubclassOf<APawn> PawnClass = nullptr;
 
-	// 使用的能力集/AbilitySet
+	/** 由 PlayerState 授予 ASC 的能力集。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
 	TArray<TObjectPtr<UExtAbilitySet>> AbilitySets;
 
-	// Pawn 使用的能力标签关系映射(控制能力之间的关系)
+	/** ASC 的能力标签关系映射，用于控制能力间的阻塞与取消关系。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
 	TObjectPtr<UExtAbilityTagRelationshipMapping> TagRelationshipMapping = nullptr;
 
-	// Pawn 所使用的输入配置
+	/** 由输入组件消费的 Pawn 输入配置。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UExtInputConfig> InputConfig = nullptr;
 
-	// 决定采用GameplayCamera的摄像机资产
+	/** 由项目相机管理组件应用到 GameplayCamera 的相机资产。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UCameraAsset> CameraAsset = nullptr;
 };

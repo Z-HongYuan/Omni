@@ -14,14 +14,14 @@ void UExtInputComponent::AddInputMappings(const UExtInputConfig* InputConfig, UE
 {
 	check(InputConfig);
 	check(InputSubsystem);
-	// 如果需要，你可以在这里处理任何自定义逻辑，从输入配置中添加某些内容
+	// 当前保留扩展入口，尚未添加输入映射逻辑。
 }
 
 void UExtInputComponent::RemoveInputMappings(const UExtInputConfig* InputConfig, UEnhancedInputLocalPlayerSubsystem* InputSubsystem) const
 {
 	check(InputConfig);
 	check(InputSubsystem);
-	// 在这里，您可以处理任何自定义逻辑，以移除您可能在上面添加的输入映射
+	// 当前保留扩展入口，尚未添加输入映射移除逻辑。
 }
 
 void UExtInputComponent::RemoveBinds(TArray<uint32>& BindHandles)

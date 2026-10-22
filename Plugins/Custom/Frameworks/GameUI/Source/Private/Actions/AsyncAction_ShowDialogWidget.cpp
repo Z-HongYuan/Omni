@@ -47,7 +47,7 @@ void UAsyncAction_ShowDialogWidget::Activate()
 {
 	if (bActivated || bFinished) return;
 	bActivated = true;
-	// 通过各个位置的调用点获取到本地玩家
+	// 优先使用控件或控制器所属玩家，其他上下文回退到主要本地玩家。
 	if (WorldContextObject && !TargetLocalPlayer)
 	{
 		if (UUserWidget* UserWidget = Cast<UUserWidget>(WorldContextObject))
@@ -70,7 +70,7 @@ void UAsyncAction_ShowDialogWidget::Activate()
 		}
 	}
 
-	//如果有本地玩家就调用对话框
+	// 通过目标玩家的消息子系统显示对话框。
 	if (TargetLocalPlayer)
 	{
 		if (UMessagingManager* Messaging = TargetLocalPlayer->GetSubsystem<UMessagingManager>())

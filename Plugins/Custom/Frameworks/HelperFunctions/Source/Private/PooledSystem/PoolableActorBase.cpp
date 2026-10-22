@@ -14,53 +14,43 @@ APoolableActorBase::APoolableActorBase()
 
 void APoolableActorBase::OnPoolActivated()
 {
-	// 显示 Actor
 	SetActorHiddenInGame(false);
 
-	// 开启 碰撞
 	SetActorEnableCollision(true);
 
-	// 开启 Tick
 	SetActorTickEnabled(true);
 
-	// 网络活跃
+	// 唤醒网络休眠状态，刷新复制。
 	SetNetDormancy(DORM_Awake);
 	FlushNetDormancy();
 
-	// 启用网络同步
 	SetReplicateMovement(true);
 
-	// 设置生命周期
+	// 清除上一轮使用的寿命计时，避免复用后自动销毁。
 	SetLifeSpan(0.0f);
 
-	// 蓝图回调
 	K2_OnPoolActivated();
 }
 
 void APoolableActorBase::OnPoolDeactivated()
 {
-	// 清理 Timer 委托
+	// 清理绑定到此对象的定时器，避免休眠后继续回调。
 	GetWorldTimerManager().ClearAllTimersForObject(this);
 
-	// 隐藏 Actor
 	SetActorHiddenInGame(true);
 
-	// 禁用碰撞
 	SetActorEnableCollision(false);
 
-	// 禁用 Tick
 	SetActorTickEnabled(false);
 
-	// 网络休眠
+	// 进入网络休眠。
 	SetNetDormancy(DORM_DormantAll);
 
-	// 取消网络同步
 	SetReplicateMovement(false);
 
-	// 清空 Owner 和 Instigator
+	// 清除上一轮使用的 Owner 和 Instigator。
 	SetOwner(nullptr);
 	SetInstigator(nullptr);
 
-	// 蓝图回调
 	K2_OnPoolDeactivated();
 }

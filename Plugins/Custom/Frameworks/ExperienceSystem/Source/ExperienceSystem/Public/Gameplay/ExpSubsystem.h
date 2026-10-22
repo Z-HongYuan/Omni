@@ -7,9 +7,7 @@
 
 #define UE_API EXPERIENCESYSTEM_API
 
-/**
- * 用于注册组件初始化链条
- */
+/** 向 GameFrameworkComponentManager 注册项目组件初始化状态链。 */
 UCLASS(MinimalAPI)
 class UExpSubsystem : public UGameInstanceSubsystem
 {

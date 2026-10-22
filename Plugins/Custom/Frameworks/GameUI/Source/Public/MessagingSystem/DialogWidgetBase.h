@@ -15,9 +15,7 @@ class UCommonRichTextBlock;
 class UCommonTextBlock;
 class UDialogWidgetDescriptorBase;
 
-/**
- * 对话系统使用的控件基类, 提供了事件调用
- */
+/** 根据描述创建对话选项，并在关闭时回调选择结果。 */
 UCLASS(MinimalAPI, Abstract)
 class UDialogWidgetBase : public UCommonActivatableWidget
 {
@@ -26,9 +24,10 @@ class UDialogWidgetBase : public UCommonActivatableWidget
 public:
 	UE_API UDialogWidgetBase() { ; };
 
-	// 设置对话信息, 并绑定委托
+	/** 设置标题、正文和按钮，并保存结果回调；Descriptor 须有效。 */
 	UE_API virtual void SetupDialog(UDialogWidgetDescriptorBase* Descriptor, FDialogMessagingResultDelegate ResultCallback);
 
+	/** 主动关闭对话框，以 Killed 结果通知调用方。 */
 	UE_API virtual void KillDialog();
 
 #if WITH_EDITOR
@@ -38,7 +37,7 @@ public:
 protected:
 	virtual void NativeOnInitialized() override;
 
-	// 关闭对话之后返回的结果
+	/** 停用对话框并执行结果回调。 */
 	virtual void CloseConfirmationWindow(FGameplayTag Result);
 
 private:

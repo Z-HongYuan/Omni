@@ -11,9 +11,7 @@
 class ULocalPlayer;
 class UGameUIPolicy;
 
-/**
- * 针对于 LocalPlayer 和 GameUIPolicy 的管理
- */
+/** 管理当前 UI 策略，转发本地玩家事件并同步根布局可见性。 */
 UCLASS(MinimalAPI, Config = Game)
 class UGameUIManager : public UGameInstanceSubsystem
 {
@@ -29,11 +27,11 @@ public:
 	const UGameUIPolicy* GetCurrentUIPolicy() const { return CurrentPolicy; }
 	UGameUIPolicy* GetCurrentUIPolicy() { return CurrentPolicy; }
 
-	// 由外部调用的事件流, 设置为从 GameInstance 中传递
+	/** 通知当前策略创建或恢复本地玩家的根布局。 */
 	UE_API virtual void NotifyPlayerAdded(ULocalPlayer* LocalPlayer);
-	// 由外部调用的事件流, 设置为从 GameInstance 中传递
+	/** 通知当前策略暂时移除本地玩家的根布局，保留布局记录。 */
 	UE_API virtual void NotifyPlayerRemoved(ULocalPlayer* LocalPlayer);
-	// 由外部调用的事件流, 设置为从 GameInstance 中传递
+	/** 通知当前策略释放本地玩家的布局记录和事件绑定。 */
 	UE_API virtual void NotifyPlayerDestroyed(ULocalPlayer* LocalPlayer);
 
 protected:
@@ -43,7 +41,7 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UGameUIPolicy> CurrentPolicy = nullptr;
 
-	// 对于不会显示HUD的情况下,设置根控件的可视性
+	/** 每帧根据玩家 HUD 的显示开关同步根布局可见性。 */
 	bool Tick(float DeltaTime);
 	void SyncRootLayoutVisibilityToShowHUD();
 	FTSTicker::FDelegateHandle TickHandle;

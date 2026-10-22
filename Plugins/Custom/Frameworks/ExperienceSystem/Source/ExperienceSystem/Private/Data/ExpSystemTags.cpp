@@ -5,7 +5,7 @@
 
 namespace ExpSystemTags
 {
-	// 初始化状态链条,由 ModularGameplay 使用
+	// ModularGameplay 使用的组件初始化状态链。
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_InitState_Spawned, "InitState.Spawned", "初始化状态链: 组件已生成")
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_InitState_DataAvailable, "InitState.DataAvailable", "初始化状态链: 组件数据可用")
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_InitState_DataInitialized, "InitState.DataInitialized", "初始化状态链: 组件数据初始化")

@@ -34,7 +34,7 @@ void AExpWorldSettings::CheckForErrors()
 		}
 	}
 
-	//@TODO：确保软对象路径实际上可以转换为主要资产ID（例如，不指向未扫描目录中的体验）
+	// TODO: 在地图检查时验证软对象路径可解析为主资产 ID，避免指向未扫描的体验。
 }
 #endif
 

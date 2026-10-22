@@ -7,21 +7,20 @@
 
 #define UE_API ABILITYEXTENSION_API
 
+/** GameplayCue 库与标签引用的加载策略。 */
 enum class ECueEditorLoadMode
 {
-	// 一次性全加载Cue
+	/** 预先异步加载运行时 Cue 库。 */
 	LoadUpfront,
 
-	// 游戏中异步预加载，编辑器全加载
+	/** 仅在游戏中按标签引用预加载。 */
 	PreloadAsCuesAreReferenced_GameOnly,
 
-	// 总是异步预加载
+	/** 游戏和编辑器均按标签引用预加载。 */
 	PreloadAsCuesAreReferenced
 };
 
-/**
- * 同步加载全禁、异步加载全开。确保加载操作永远不会阻塞游戏线程。
- */
+/** 禁止同步补载缺失 GameplayCue，支持异步补载及按引用预加载。 */
 UCLASS(MinimalAPI)
 class UExtGameplayCueManager : public UGameplayCueManager
 {
@@ -41,7 +40,7 @@ public:
 
 	static void DumpGameplayCues(const TArray<FString>& Args);
 
-	// 当延迟加载提示时，这将加载无论如何都必须加载的提示
+	/** 在延迟加载模式下预加载常驻 Cue；当前显式标签列表尚未填充。 */
 	void LoadAlwaysLoadedCues();
 
 	UE_API void RefreshGameplayCuePrimaryAsset();
@@ -67,12 +66,12 @@ private:
 		FLoadedGameplayTagToProcessData(const FGameplayTag& InTag, const TWeakObjectPtr<UObject>& InWeakOwner) : Tag(InTag), WeakOwner(InWeakOwner) { ; }
 	};
 
-	// 由于内容引用而在客户端上预加载的提示
+	/** 因内容对象引用而预加载并持有的 Cue 类。 */
 	UPROPERTY(Transient)
 	TSet<TObjectPtr<UClass>> PreloadedCues;
 	TMap<FObjectKey, TSet<FObjectKey>> PreloadedCueReferencers;
 
-	// 在客户端上预加载并将始终加载的提示（代码引用或显式始终加载）
+	/** 无所属对象的常驻 Cue 类，不随内容引用清理。 */
 	UPROPERTY(Transient)
 	TSet<TObjectPtr<UClass>> AlwaysLoadedCues;
 

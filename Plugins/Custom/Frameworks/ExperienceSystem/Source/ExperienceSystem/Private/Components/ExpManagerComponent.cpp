@@ -93,13 +93,13 @@ const UExpDefinition* UExpManagerComponent::GetCurrentExperienceChecked() const
 
 void UExpManagerComponent::SetCurrentExperience(const FPrimaryAssetId& ExperienceId)
 {
-	// 使用 ID 从资产管理器加载体验定义
+	// 按主资产 ID 同步加载体验定义，后续引用资产再走异步加载。
 	UAssetManager& AssetManager = UAssetManager::Get();
 	FSoftObjectPath AssetPath = AssetManager.GetPrimaryAssetPath(ExperienceId);
 	// 定义为普通数据资产，直接读取资产对象，不加载蓝图类或访问 CDO。
 	const UExpDefinition* Experience = Cast<UExpDefinition>(AssetPath.TryLoad());
 
-	// 检查是否有效 且 未加载过,只能设置一次当前体验
+	// 只允许从空体验开始加载，不能直接覆盖已有体验。
 	checkf(Experience != nullptr, TEXT("Experience %s at %s must be an ExpDefinition data asset; disable Has Blueprint Classes in AssetManager settings."),
 	       *ExperienceId.ToString(), *AssetPath.ToString());
 	check(CurrentExperience == nullptr);
@@ -107,7 +107,6 @@ void UExpManagerComponent::SetCurrentExperience(const FPrimaryAssetId& Experienc
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, CurrentExperience, this);
 	CurrentExperience = Experience;
 
-	// 开始加载体验
 	StartExperienceLoad();
 }
 
@@ -118,31 +117,27 @@ bool UExpManagerComponent::IsExperienceLoaded() const
 
 void UExpManagerComponent::StartExperienceLoad()
 {
-	// 开始加载体验定义中的各种配置,资源
 
-	// 1. 确保加载的前置条件,不能重复加载
 	check(CurrentExperience != nullptr);
 	check(CurrentLoadState == EExpLoadState::Unloaded);
 
-	// Log一下当前体验和网络模式
 	UE_LOG(LogExpSystem, Log, TEXT("EXPERIENCE: StartExperienceLoad(CurrentExperience = %s)"),
 	       *CurrentExperience->GetPrimaryAssetId().ToString());
 
-	// 2. 进入加载的状态
 	CurrentLoadState = EExpLoadState::Loading;
 
-	// 3. 获取需要加载的资产ID列表
+	// 收集体验定义和共享 ActionSet 的主资产 ID。
 	UAssetManager& AssetManager = UAssetManager::Get();
-	TSet<FPrimaryAssetId> BundleAssetList; // 需要加载的主资产ID
-	TSet<FSoftObjectPath> RawAssetList; // 留着用于直接加载原始资源路径（当前为空，待实现）
+	TSet<FPrimaryAssetId> BundleAssetList; // 需要加载 Bundle 的主资产 ID。
+	TSet<FSoftObjectPath> RawAssetList; // 直接资源路径的预留列表，当前未填充。
 	BundleAssetList.Add(CurrentExperience->GetPrimaryAssetId());
 	for (const TObjectPtr<UExpActionSet>& ActionSet : CurrentExperience->ActionSets)
 	{
 		if (ActionSet != nullptr) BundleAssetList.Add(ActionSet->GetPrimaryAssetId());
 	}
 
-	//@TODO: 将此客户端/服务器内容集中到AssetManager中
-	// 4. 根据不同的网络模式,决定需要加载那些资产(通过不同的FName来判断)
+	// TODO: 将客户端和服务器的 Bundle 选择集中到 AssetManager。
+	// 编辑器加载客户端和服务器 Bundle；独立进程按网络角色选择。
 	TArray<FName> BundlesToLoad;
 	// BundlesToLoad.Add(FBundles::Equipped);
 	const ENetMode OwnerNetMode = GetOwner()->GetNetMode();
@@ -157,10 +152,7 @@ void UExpManagerComponent::StartExperienceLoad()
 		BundlesToLoad.Add(UGameFeaturesSubsystemSettings::LoadStateServer);
 	}
 
-	// 5. 根据捆绑包状态,加载不同的资产,按照Bundles分类加载不同的资产
-	// 	加载 Bundle 资产：通过 ChangeBundleStateForPrimaryAssets 异步加载 BundleAssetList 中的主资产，并应用 BundlesToLoad 标记。
-	// 加载原始资产：预留逻辑（当前 RawAssetList 为空），通过 LoadAssetList 直接加载原始资源路径。
-	// 合并加载句柄：如果同时存在 Bundle 和 Raw 资产加载，创建合并句柄统一管理加载完成事件。
+	// 分别发起 Bundle 与直接路径加载，必要时合并句柄，以统一后续回调。
 	TSharedPtr<FStreamableHandle> BundleLoadHandle = nullptr;
 	if (BundleAssetList.Num() > 0)
 	{
@@ -181,15 +173,11 @@ void UExpManagerComponent::StartExperienceLoad()
 		Handle = BundleLoadHandle.IsValid() ? BundleLoadHandle : RawLoadHandle;
 	}
 
-	// 6. 当完成或者取消加载时,触发回调
-	//创建回调委托：定义 OnAssetsLoadedDelegate，指向 OnExperienceLoadComplete（资产加载完成后的处理函数）。
-	// 处理加载状态：
-	// 如果资产已加载（或无加载句柄），直接执行回调。
-	// 否则，绑定加载完成/取消事件到回调，确保加载结束后触发后续逻辑。
+	// 已完成或没有句柄时直接推进；取消也调用 OnAssetLoadComplete，当前没有独立的取消状态。
 	FStreamableDelegate OnAssetsLoadedDelegate = FStreamableDelegate::CreateUObject(this, &ThisClass::OnAssetLoadComplete);
 	if (!Handle.IsValid() || Handle->HasLoadCompleted())
 	{
-		// 资产已加载,直接执行回调
+		// 无需等待加载时执行后续回调。
 		FStreamableHandle::ExecuteDelegate(OnAssetsLoadedDelegate);
 	}
 	else
@@ -202,12 +190,9 @@ void UExpManagerComponent::StartExperienceLoad()
 		}));
 	}
 
-	// 7. 预留预加载逻辑
-	// 	定义 PreloadAssetList 用于存储需要「预加载但不阻塞体验启动」的资产（当前未实现具体逻辑）。
-	// 非阻塞加载：即使预加载未完成，体验启动流程也不会等待（通过 ChangeBundleStateForPrimaryAssets 异步加载）。
-	// This set of assets gets preloaded, but we don't block the start of the experience based on it
+	// 预留不阻塞体验启动的预加载列表，当前尚未确定需要填充的资产。
 	TSet<FPrimaryAssetId> PreloadAssetList;
-	//@TODO: Determine assets to preload (but not blocking-ly)
+	// TODO: 确定不阻塞启动的预加载资产。
 	if (PreloadAssetList.Num() > 0)
 	{
 		AssetManager.ChangeBundleStateForPrimaryAssets(PreloadAssetList.Array(), BundlesToLoad, {});
@@ -216,17 +201,14 @@ void UExpManagerComponent::StartExperienceLoad()
 
 void UExpManagerComponent::OnAssetLoadComplete()
 {
-	// 资产加载完成后,开始启动插件和执行的行为
 
-	// 1. 前置检查
 	check(CurrentLoadState == EExpLoadState::Loading);
 	check(CurrentExperience != nullptr);
 
-	// Log一下状态
 	UE_LOG(LogExpSystem, Log, TEXT("EXPERIENCE: OnAssetLoadComplete(CurrentExperience = %s)"),
 	       *CurrentExperience->GetPrimaryAssetId().ToString());
 
-	//查找我们的GameFeaturePlugins的URL-过滤掉重复和没有有效映射的重复
+	// 将插件名称解析为 URL 并去重；映射失败时报告检查错误并跳过。
 	GameFeaturePluginURLs.Reset();
 
 	auto CollectGameFeaturePluginURLs = [This=this](const UPrimaryDataAsset* Context, const TArray<FString>& FeaturePluginList)
@@ -255,14 +237,14 @@ void UExpManagerComponent::OnAssetLoadComplete()
 		// 		}
 	};
 
-	// 2. 将资产中所有的GameFeaturesToEnable添加到GameFeaturePluginURLs中
+	// 合并体验定义和共享 ActionSet 的插件依赖。
 	CollectGameFeaturePluginURLs(CurrentExperience, CurrentExperience->GameFeaturesToEnable);
 	for (const TObjectPtr<UExpActionSet>& ActionSet : CurrentExperience->ActionSets)
 	{
 		if (ActionSet != nullptr)CollectGameFeaturePluginURLs(ActionSet, ActionSet->GameFeaturesToEnable);
 	}
 
-	// 3. 根据URLs加载所有的插件
+	// 按 URL 加载并激活插件，全部回调返回后再执行 Action。
 	NumGameFeaturePluginsLoading = GameFeaturePluginURLs.Num();
 	if (NumGameFeaturePluginsLoading > 0)
 	{
@@ -284,6 +266,7 @@ void UExpManagerComponent::OnAssetLoadComplete()
 
 void UExpManagerComponent::OnGameFeaturePluginLoadComplete(const UE::GameFeatures::FResult& Result)
 {
+	// 当前按回调次数推进，未检查 Result 的成功状态；失败处理仍待完善。
 	NumGameFeaturePluginsLoading -= 1;
 	if (NumGameFeaturePluginsLoading <= 0)
 	{
@@ -315,10 +298,9 @@ namespace ExpManagerConsoleVariables
 
 void UExpManagerComponent::OnPluginsLoadComplete()
 {
-	// 前置检查
 	check(CurrentLoadState != EExpLoadState::Loaded);
 
-	// 插入随机延迟进行测试（如果已配置）
+	// 按配置插入一次加载测试延迟，计时回调不再次延迟。
 	if (CurrentLoadState != EExpLoadState::LoadingChaosTestingDelay)
 	{
 		const float DelaySecs = ExpManagerConsoleVariables::GetExperienceLoadDelayDuration();
@@ -332,13 +314,11 @@ void UExpManagerComponent::OnPluginsLoadComplete()
 		}
 	}
 
-	// 进入执行功能状态
 	CurrentLoadState = EExpLoadState::ExecutingActions;
 
-	// 功能的上下文
 	FGameFeatureActivatingContext Context;
 
-	// 设置上下文的世界上下文
+	// 限制 Action 激活的目标世界，避免影响同一进程中的其他 PIE 世界。
 	if (const FWorldContext* ExistingWorldContext = GEngine->GetWorldContextFromWorld(GetWorld()))
 	{
 		Context.SetRequiredWorldContextHandle(ExistingWorldContext->ContextHandle);
@@ -350,9 +330,8 @@ void UExpManagerComponent::OnPluginsLoadComplete()
 		{
 			if (Action != nullptr)
 			{
-				//@TODO: The fact that these don't take a world are potentially problematic in client-server PIE
-				// The current behavior matches systems like gameplay tags where loading and registering apply to the entire process,
-				// but actually applying the results to actors is restricted to a specific world
+				// TODO: 检查注册和加载阶段不带世界上下文时的多世界 PIE 隔离。
+				// 注册与加载作用于进程，激活通过 Context 限定目标世界。
 				Action->OnGameFeatureRegistering();
 				Action->OnGameFeatureLoading();
 				Action->OnGameFeatureActivating(Context);
@@ -360,14 +339,13 @@ void UExpManagerComponent::OnPluginsLoadComplete()
 		}
 	};
 
-	// 根据函数 调用 功能 的所有函数
+	// 先执行体验 Action，再执行共享 ActionSet。
 	ActivateListOfActions(CurrentExperience->Actions);
 	for (const TObjectPtr<UExpActionSet>& ActionSet : CurrentExperience->ActionSets)
 	{
 		if (ActionSet != nullptr) ActivateListOfActions(ActionSet->Actions);
 	}
 
-	// 进入到 已加载状态
 	CurrentLoadState = EExpLoadState::Loaded;
 
 	OnExperienceLoaded_HighPriority.Broadcast(CurrentExperience);
@@ -387,29 +365,27 @@ void UExpManagerComponent::OnPluginsLoadComplete()
 
 void UExpManagerComponent::CloseExperience()
 {
-	// deactivate any features this experience loaded
-	//@TODO: This should be handled FILO as well
+	// 请求停用本体验激活的插件，多个 PIE 世界共享时由计数管理器协调。
+	// TODO: 按激活的逆序停用插件。
 	for (const FString& PluginURL : GameFeaturePluginURLs)
 	{
-		// 防止多个PIE的情况下,直接就关闭了插件
+		// 只有最后一个请求者退出时才允许停用共用插件。
 		if (UExpPluginCountManager::RequestToDeactivatePlugin(PluginURL))
 		{
 			UGameFeaturesSubsystem::Get().DeactivateGameFeaturePlugin(PluginURL);
 		}
 	}
 
-	// 确保当前状态是已加载状态
-	//@TODO: Ensure proper handling of a partially-loaded state too
+	// TODO: 完善体验尚未加载完成时的退出处理。
 	ensure(CurrentLoadState == EExpLoadState::Loaded);
 
-	// 进入到退出状态
 	CurrentLoadState = EExpLoadState::Deactivating;
 
-	// Make sure we won't complete the transition prematurely if someone registers as a pauser but fires immediately
+	// 先用无效期望数防止停用回调同步完成时过早结束，注册完成后再比较等待数量。
 	NumExpectedPausers = INDEX_NONE;
 	NumObservedPausers = 0;
 
-	// 停用并卸载手动注册的功能
+	// 停用并注销手动注册的 Action，完整资产卸载仍未实现。
 	FGameFeatureDeactivatingContext Context(TEXT(""), [this](FStringView) { this->OnActionDeactivationCompleted(); });
 
 	const FWorldContext* ExistingWorldContext = GEngine->GetWorldContextFromWorld(GetWorld());
@@ -451,7 +427,7 @@ void UExpManagerComponent::CloseExperience()
 
 void UExpManagerComponent::OnAllActionsDeactivated()
 {
-	//@TODO: We actually only deactivated and didn't fully unload...
+	// TODO: 当前仅完成停用，仍需实现完整卸载。
 	CurrentLoadState = EExpLoadState::Unloaded;
 	CurrentExperience = nullptr;
 	//@TODO:	GEngine->ForceGarbageCollection(true);
@@ -471,6 +447,6 @@ void UExpManagerComponent::OnActionDeactivationCompleted()
 
 void UExpManagerComponent::OnRep_CurrentExperience()
 {
-	//客户端收到后也开始加载
+	// 客户端收到体验定义后，在本机启动相同加载流程。
 	StartExperienceLoad();
 }

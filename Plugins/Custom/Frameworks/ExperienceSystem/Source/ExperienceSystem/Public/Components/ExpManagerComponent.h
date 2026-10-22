@@ -15,36 +15,35 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FExpLoaded, const UExpDefinition*);
 
 enum class EExpLoadState : uint8
 {
-	// 体验未加载
+	/** 体验未加载。 */
 	Unloaded,
-	// 体验加载中
+	/** 正在加载体验引用的资产。 */
 	Loading,
-	// 正在加载游戏功能
+	/** 正在加载并激活 Game Feature 插件。 */
 	LoadingGameFeatures,
-	// 正在测试延迟
+	/** 等待可配置的加载延迟测试计时。 */
 	LoadingChaosTestingDelay,
-	// 正在执行功能操作
+	/** 正在注册、加载并激活 Action。 */
 	ExecutingActions,
-	// 体验已加载
+	/** 体验已就绪，可以通知消费者。 */
 	Loaded,
-	// 体验停用
+	/** 正在停用体验。 */
 	Deactivating
 };
 
-// Lyra中的TODO
-//@TODO: Async load the experience definition itself
-//@TODO: Handle failures explicitly (go into a 'completed but failed' state rather than check()-ing)
-//@TODO: Do the action phases at the appropriate times instead of all at once
-//@TODO: Support deactivating an experience and do the unloading actions
-//@TODO: Think about what deactivation/cleanup means for preloaded assets
-//@TODO: Handle deactivating game features, right now we 'leak' them enabled
-// (for a client moving from experience to experience we actually want to diff the requirements and only unload some, not unload everything for them to just be immediately reloaded)
-//@TODO: Handle both built-in and URL-based plugins (search for colon?)
+// 尚未完成的加载与清理约束。
+// TODO: 将体验定义本身改为异步加载。
+// TODO: 显式处理加载失败，提供失败状态，避免只依赖检查。
+// TODO: 按各阶段时机执行 Action，避免集中注册、加载和激活。
+// TODO: 完善体验停用后的卸载流程。
+// TODO: 明确预加载资产在停用和清理时的生命周期。
+// TODO: 完善体验切换时的插件差异卸载；当前 CloseExperience 只请求停用插件。
+// TODO: 同时支持按内置名称和 URL 指定插件。
 
 
-/*
- * 体验管理器组件
- * 位于在 GS 中 , 用于管理游戏体验相关的状态和操作
+/**
+ * GameState 上的体验管理器，加载资产与插件、执行 Action，并按优先级广播就绪。
+ * 服务器复制当前体验定义，客户端收到后独立加载；退出时执行停用，完整卸载仍待完善。
  */
 UCLASS(MinimalAPI)
 class UExpManagerComponent final : public UGameStateComponent, public ILoadingScreenCheckInterface
@@ -63,25 +62,28 @@ public:
 	UE_API virtual bool ShouldShowLoadingScreen(FString& OutReason) const override;
 	//~ 加载屏幕检查接口
 
+	/** 已就绪时同步执行，否则在普通和低优先级通知之前调用。 */
 	UE_API void CallOrRegister_OnExperienceLoaded_HighPriority(FExpLoaded::FDelegate&& Delegate);
+	/** 已就绪时同步执行，否则在高优先级之后、低优先级之前调用。 */
 	UE_API void CallOrRegister_OnExperienceLoaded(FExpLoaded::FDelegate&& Delegate);
+	/** 已就绪时同步执行，否则等待其他优先级的就绪通知完成后调用。 */
 	UE_API void CallOrRegister_OnExperienceLoaded_LowPriority(FExpLoaded::FDelegate&& Delegate);
 
-	// 获取当前加载的体验定义
+	/** 获取已就绪的体验定义；未加载完成时触发检查。 */
 	UE_API const UExpDefinition* GetCurrentExperienceChecked() const;
-	// 尝试设置当前体验，无论是使用UI体验还是游戏体验
+	/** 设置体验并启动加载；同步读取定义，要求当前没有体验，通常由服务器 GameMode 调用。 */
 	UE_API void SetCurrentExperience(const FPrimaryAssetId& ExperienceId);
-	// 体验是否已经加载完成
+	/** 体验定义有效且状态为 Loaded 时返回 true。 */
 	UE_API bool IsExperienceLoaded() const;
 
 protected:
-	// 开始流程
+	/** 加载体验资产和插件，再执行 Action；要求当前为 Unloaded 且定义有效。 */
 	void StartExperienceLoad();
 	void OnAssetLoadComplete();
 	void OnGameFeaturePluginLoadComplete(const UE::GameFeatures::FResult& Result);
 	void OnPluginsLoadComplete();
 
-	//结束流程
+	/** 停用插件和 Action；当前要求体验已加载，尚不支持完整的加载中退出与资产卸载。 */
 	void CloseExperience();
 	void OnAllActionsDeactivated();
 	void OnActionDeactivationCompleted();
@@ -103,7 +105,7 @@ private:
 	int32 NumObservedPausers = 0;
 	int32 NumExpectedPausers = 0;
 
-	// 当前体验加载状态
+	/** 当前体验加载阶段，用于加载界面和流程检查。 */
 	EExpLoadState CurrentLoadState = EExpLoadState::Unloaded;
 };
 #undef UE_API

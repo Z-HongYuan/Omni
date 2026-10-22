@@ -15,7 +15,7 @@ void UGameUIManager::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	//获取开发者设置
+	// 从配置加载默认 UI 策略。
 	const UGameUISettings* UISettings = GetDefault<UGameUISettings>();
 	TSoftClassPtr<UGameUIPolicy> SoftPolicyClass = UISettings->DefaultUIPolicyClass;
 
@@ -32,10 +32,10 @@ void UGameUIManager::Initialize(FSubsystemCollectionBase& Collection)
 		}
 	}
 
-	//添加Tick检测
+	// 每帧同步 HUD 与根布局可见性。
 	TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &ThisClass::Tick), 0.0f);
 
-	// 直接挂钩在GameInstance的LocalPlayerEvent上
+	// 接收游戏实例的本地玩家增删事件。
 	if (UGameInstance* GI = GetGameInstance())
 	{
 		GI->OnLocalPlayerAddedEvent.AddUObject(this, &ThisClass::NotifyPlayerAdded);
@@ -53,10 +53,10 @@ void UGameUIManager::Deinitialize()
 
 	SwitchToPolicy(nullptr);
 
-	//移除Tick检测
+	// 解除每帧可见性同步。
 	FTSTicker::GetCoreTicker().RemoveTicker(TickHandle);
 
-	// 直接挂钩在GameInstance的LocalPlayerEvent上
+	// 解除本地玩家事件绑定。
 	if (UGameInstance* GI = GetGameInstance())
 	{
 		GI->OnLocalPlayerAddedEvent.RemoveAll(this);
@@ -70,7 +70,7 @@ void UGameUIManager::Deinitialize()
 
 bool UGameUIManager::ShouldCreateSubsystem(UObject* Outer) const
 {
-	//继承链单例
+	// 专用服务器不创建 UI；存在派生实现时由派生类创建。
 	if (!CastChecked<UGameInstance>(Outer)->IsDedicatedServerInstance())
 	{
 		TArray<UClass*> ChildClasses;

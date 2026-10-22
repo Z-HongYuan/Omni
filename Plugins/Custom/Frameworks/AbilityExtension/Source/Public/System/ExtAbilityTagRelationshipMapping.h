@@ -8,66 +8,52 @@
 
 #define UE_API ABILITYEXTENSION_API
 
-/** 定义不同能力标签之间关系的结构 */
+/** 能力标签对应的激活、阻塞和取消条件。 */
 USTRUCT()
 struct FExtAbilityTagRelationship
 {
 	GENERATED_BODY()
 
-	/** 技能的身份 Tag */
+	/** 用于匹配能力资产标签的标识。 */
 	UPROPERTY(EditAnywhere, Category = Ability, meta = (Categories = "Gameplay.Action"))
 	FGameplayTag AbilityTag;
 
-	/** 技能激活时，其余哪些 Tag 的技能不能激活 */
+	/** 此能力激活时需要阻塞的其他能力标签。 */
 	UPROPERTY(EditAnywhere, Category = Ability)
 	FGameplayTagContainer AbilityTagsToBlock;
 
-	/** 技能激活时，其余哪些 Tag 的技能被取消 */
+	/** 此能力激活时需要取消的其他能力标签。 */
 	UPROPERTY(EditAnywhere, Category = Ability)
 	FGameplayTagContainer AbilityTagsToCancel;
 
-	/** 要激活技能，必须先有这些 Tag */
+	/** 激活能力前，ASC 必须拥有的标签。 */
 	UPROPERTY(EditAnywhere, Category = Ability)
 	FGameplayTagContainer ActivationRequiredTags;
 
-	/** 如果有这些 Tag，技能不能激活 */
+	/** ASC 拥有任一标签时阻止能力激活。 */
 	UPROPERTY(EditAnywhere, Category = Ability)
 	FGameplayTagContainer ActivationBlockedTags;
 };
 
 
-/**
- * 能力标签关系表,控制技能与其他技能之间的激活/取消关系
- */
+/** 数据驱动的能力标签关系表，用于扩展激活条件及能力间的阻塞、取消关系。 */
 UCLASS(MinimalAPI)
 class UExtAbilityTagRelationshipMapping : public UDataAsset
 {
 	GENERATED_BODY()
 
-	/** 不同游戏标签之间的关系列表（哪些标签会阻挡或取消其他标签）*/
+	/** 各能力标签对应的关系规则。 */
 	UPROPERTY(EditAnywhere, Category = Ability, meta=(TitleProperty="AbilityTag"))
 	TArray<FExtAbilityTagRelationship> AbilityTagRelationships;
 
 public:
-	/*
-	 * 给定一组能力标签，添加额外的标签以阻挡和取消
-	 * 输入：当前激活的技能的 AbilityTag 集合
-	 * 输出：应该 Block 哪些 Tag、Cancel 哪些 Tag
-	 */
+	/** 按能力标签匹配规则，将阻塞和取消标签追加到非空输出容器。 */
 	UE_API void GetAbilityTagsToBlockAndCancel(const FGameplayTagContainer& AbilityTags, FGameplayTagContainer* OutTagsToBlock, FGameplayTagContainer* OutTagsToCancel) const;
 
-	/*
-	 * 给定一组能力标签后，添加额外的必需和阻挡标签
-	 * 输入：要激活的技能的 AbilityTag 集合
-	 * 输出：额外需要满足的 Tag、额外禁止存在的 Tag
-	 */
+	/** 按能力标签匹配规则，将额外的必需和阻塞条件追加到非空输出容器。 */
 	UE_API void GetRequiredAndBlockedActivationTags(const FGameplayTagContainer& AbilityTags, FGameplayTagContainer* OutActivationRequired, FGameplayTagContainer* OutActivationBlocked) const;
 
-	/*
-	 * 如果指定的能力标签被传递的动作标签取消，则返回为真 
-	 * 输入：当前正在运行的技能的 AbilityTag 集合 + 一个 ActionTag
-	 * 输出：这个 ActionTag 代表的技能是否应该 Cancel 当前技能
-	 */
+	/** 检查与 ActionTag 精确对应的规则是否会取消具有 AbilityTags 的能力。 */
 	UE_API bool IsAbilityCancelledByTag(const FGameplayTagContainer& AbilityTags, const FGameplayTag& ActionTag) const;
 };
 #undef UE_API

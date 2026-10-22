@@ -67,7 +67,7 @@ void UGameUIExtensionPoint::ValidateCompiledDefaults(IWidgetCompilerLog& Compile
 {
 	Super::ValidateCompiledDefaults(CompileLog);
 
-	// 我们不在乎CDO是否有特定的标签。
+	// 仅校验实例配置，不要求 CDO 指定扩展点标签。
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
 		if (!ExtensionPointTag.IsValid())
@@ -98,7 +98,7 @@ void UGameUIExtensionPoint::RegisterExtensionPoint()
 	if (UGameUIExtensionManager* ExtensionSubsystem = GetWorld()->GetSubsystem<UGameUIExtensionManager>())
 	{
 		TArray<UClass*> AllowedDataClasses;
-		AllowedDataClasses.Add(UUserWidget::StaticClass()); //默认允许 UserWidget
+		AllowedDataClasses.Add(UUserWidget::StaticClass()); // 默认接受 UUserWidget 类。
 		AllowedDataClasses.Append(DataClasses);
 
 		ExtensionPointHandles.Add(ExtensionSubsystem->RegisterExtensionPoint(
@@ -134,22 +134,22 @@ void UGameUIExtensionPoint::OnAddOrRemoveExtension(EUIExtensionAction Action, co
 	{
 		UObject* Data = Request.Data;
 
-		// 如果数据完全指向 Widget 的情况 直接创建就行
+		// 控件类扩展可直接创建对应控件。
 		TSubclassOf<UUserWidget> WidgetClass(Cast<UClass>(Data));
 		if (WidgetClass)
 		{
 			UUserWidget* Widget = CreateEntryInternal(WidgetClass);
 			ExtensionMapping.Add(Request.ExtensionHandle, Widget);
 		}
-		// 如果不是的话,就看看是否能使用这个 DataObj
+		// 数据扩展通过绑定的委托解析控件类。
 		else if (DataClasses.Num() > 0)
 		{
 			if (GetWidgetClassForData.IsBound())
 			{
-				// 通过委托函数来获取 Data 中包含的控件类
+				// 让接收方根据数据选择控件类。
 				WidgetClass = GetWidgetClassForData.Execute(Data);
 
-				// 如果控件有效,添加后调用另一个函数用于配置这个控件
+				// 控件创建成功后再交给接收方配置。
 				if (WidgetClass)
 				{
 					if (UUserWidget* Widget = CreateEntryInternal(WidgetClass))
@@ -162,7 +162,7 @@ void UGameUIExtensionPoint::OnAddOrRemoveExtension(EUIExtensionAction Action, co
 		}
 	}
 
-	// 移除流程
+	// 按扩展句柄移除之前创建的控件。
 	if (Action == EUIExtensionAction::Removed)
 	{
 		if (UUserWidget* Extension = ExtensionMapping.FindRef(Request.ExtensionHandle))

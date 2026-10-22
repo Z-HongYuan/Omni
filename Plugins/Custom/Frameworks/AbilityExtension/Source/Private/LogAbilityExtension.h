@@ -4,7 +4,7 @@
 
 #include "Logging/LogCategory.h"
 
-//声明日志分类
+// 能力与输入模块的日志分类。
 DECLARE_LOG_CATEGORY_EXTERN(LogAbilityExtension, Log, All);
 
 DECLARE_LOG_CATEGORY_EXTERN(LogExtInput, Log, All);

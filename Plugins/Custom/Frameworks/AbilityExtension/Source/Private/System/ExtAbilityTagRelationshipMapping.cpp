@@ -7,7 +7,6 @@
 
 void UExtAbilityTagRelationshipMapping::GetAbilityTagsToBlockAndCancel(const FGameplayTagContainer& AbilityTags, FGameplayTagContainer* OutTagsToBlock, FGameplayTagContainer* OutTagsToCancel) const
 {
-	// 目前先做个简单的迭代
 	for (const FExtAbilityTagRelationship& Tags : AbilityTagRelationships)
 	{
 		if (AbilityTags.HasTag(Tags.AbilityTag))
@@ -26,7 +25,6 @@ void UExtAbilityTagRelationshipMapping::GetAbilityTagsToBlockAndCancel(const FGa
 
 void UExtAbilityTagRelationshipMapping::GetRequiredAndBlockedActivationTags(const FGameplayTagContainer& AbilityTags, FGameplayTagContainer* OutActivationRequired, FGameplayTagContainer* OutActivationBlocked) const
 {
-	// 目前先做个简单的迭代
 	for (const FExtAbilityTagRelationship& Tags : AbilityTagRelationships)
 	{
 		if (AbilityTags.HasTag(Tags.AbilityTag))
@@ -45,7 +43,6 @@ void UExtAbilityTagRelationshipMapping::GetRequiredAndBlockedActivationTags(cons
 
 bool UExtAbilityTagRelationshipMapping::IsAbilityCancelledByTag(const FGameplayTagContainer& AbilityTags, const FGameplayTag& ActionTag) const
 {
-	// 目前先做个简单的迭代
 	for (const FExtAbilityTagRelationship& Tags : AbilityTagRelationships)
 	{
 		if (Tags.AbilityTag == ActionTag && Tags.AbilityTagsToCancel.HasAny(AbilityTags))

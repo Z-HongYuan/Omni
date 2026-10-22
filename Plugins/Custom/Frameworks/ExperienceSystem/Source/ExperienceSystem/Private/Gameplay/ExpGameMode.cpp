@@ -23,17 +23,15 @@
 AExpGameMode::AExpGameMode(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	// 插件层只负责提供流程骨架，因此这里只设置体验系统强依赖的两个类
-	// 新项目的 GameMode 子类需要自行设置以下类（参考 Lyra）：
-	//   PlayerControllerClass / HUDClass / DefaultPawnClass / GameSessionClass / ReplaySpectatorPlayerControllerClass
-	// 其中 DefaultPawnClass 只是「体验没配 PawnData 时的兜底」，正常由 UExpPawnData::PawnClass 决定
+	// 插件设置必需的 GameState 和 PlayerState，其余默认类型由项目配置。
+	// PawnData.PawnClass 优先于 GameMode 的 DefaultPawnClass。
 	GameStateClass = AExpGameState::StaticClass();
 	PlayerStateClass = AExpPlayerState::StaticClass();
 }
 
 const UExpPawnData* AExpGameMode::GetPawnDataForController(const AController* InController) const
 {
-	// 优先从PS中获取PawnData,因为可能有自定义的PawnData,例如英雄选择系统
+	// 优先使用 PlayerState 的 PawnData，保留角色选择等项目配置。
 	if (InController != nullptr)
 	{
 		if (const AExpPlayerState* PS = InController->GetPlayerState<AExpPlayerState>())
@@ -45,7 +43,7 @@ const UExpPawnData* AExpGameMode::GetPawnDataForController(const AController* In
 		}
 	}
 
-	// 没有的话就回退到 体验中的默认PawnData
+	// PlayerState 没有配置时，尝试已就绪体验的默认 PawnData。
 	check(GameState);
 	UExpManagerComponent* ExperienceComponent = GameState->FindComponentByClass<UExpManagerComponent>();
 	check(ExperienceComponent);
@@ -59,7 +57,7 @@ const UExpPawnData* AExpGameMode::GetPawnDataForController(const AController* In
 		}
 	}
 
-	// 体验还没加载完,并且PS中也没有设置
+	// 尚无可用 PawnData，交由调用方处理兜底。
 	return nullptr;
 }
 
@@ -67,7 +65,7 @@ void AExpGameMode::InitGame(const FString& MapName, const FString& Options, FStr
 {
 	Super::InitGame(MapName, Options, ErrorMessage);
 
-	// 下一帧
+	// 延后一帧选择体验，使 GameState 等游戏对象先完成创建。
 	GetWorldTimerManager().SetTimerForNextTick(this, &AExpGameMode::MatchExperience);
 }
 
@@ -75,7 +73,7 @@ void AExpGameMode::InitGameState()
 {
 	Super::InitGameState();
 
-	// 监听体验加载完成事件
+	// 体验就绪时处理此前等待生成的玩家。
 	UExpManagerComponent* ExperienceComponent = GameState->FindComponentByClass<UExpManagerComponent>();
 	check(ExperienceComponent);
 	ExperienceComponent->CallOrRegister_OnExperienceLoaded(FExpLoaded::FDelegate::CreateUObject(this, &ThisClass::OnExperienceLoaded));
@@ -83,11 +81,7 @@ void AExpGameMode::InitGameState()
 
 void AExpGameMode::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer)
 {
-	// 全部玩家确保Experience加载完成后才开始生成玩家
-	// 意味着全部拦截
-	// 先加入的玩家,就会在 ExperienceLoaded 重新走一遍这里
-	// 后加入的玩家,就会直接走这里然后生成玩家
-	// 意味着没改原生逻辑,只是需要等待 ExperienceLoaded 加载完成,被拦截的就在回调中重新生成
+	// 体验就绪前暂缓父类生成流程；已连接且没有 Pawn 的玩家由 OnExperienceLoaded 请求重生。
 	if (IsExperienceLoaded())
 	{
 		Super::HandleStartingNewPlayer_Implementation(NewPlayer);
@@ -96,24 +90,22 @@ void AExpGameMode::HandleStartingNewPlayer_Implementation(APlayerController* New
 
 UClass* AExpGameMode::GetDefaultPawnClassForController_Implementation(AController* InController)
 {
-	// 原生直接返回了 GameMode 中配置的 DefaultPawnClass
-	// 这里改为使用体验资产中配置的 PawnClass
+	// 优先使用控制器对应 PawnData 的角色类型。
 	if (const UExpPawnData* PawnData = GetPawnDataForController(InController))
 		if (PawnData->PawnClass)
 			return PawnData->PawnClass;
 
-	// 如果不行的话还是回退到默认的 DefaultPawnClass
+	// 未配置 PawnClass 时回退到 GameMode 默认类型。
 	return Super::GetDefaultPawnClassForController_Implementation(InController);
 }
 
 APawn* AExpGameMode::SpawnDefaultPawnAtTransform_Implementation(AController* NewPlayer, const FTransform& SpawnTransform)
 {
-	// 原生是生成 Pawn
-	// 这里使用延迟生成,并且设置了其组件的 PawnData
+	// 延迟构造 Pawn，使 PawnData 能在完成生成前注入扩展组件。
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Instigator = GetInstigator();
-	SpawnInfo.ObjectFlags |= RF_Transient; // 永远不要将默认玩家典当保存到地图中。
-	SpawnInfo.bDeferConstruction = true; // 延迟构造,方便设置PawnData
+	SpawnInfo.ObjectFlags |= RF_Transient; // 运行时玩家 Pawn 不保存到地图。
+	SpawnInfo.bDeferConstruction = true; // 完成构造前先注入 PawnData。
 
 	UClass* PawnClass = GetDefaultPawnClassForController(NewPlayer);
 	if (!PawnClass)
@@ -129,7 +121,7 @@ APawn* AExpGameMode::SpawnDefaultPawnAtTransform_Implementation(AController* New
 		return nullptr;
 	}
 
-	// 如果有插件的情况下才设置PawnData
+	// 仅对包含 Pawn 扩展组件的角色注入 PawnData。
 	if (UExpPawnExtensionComponent* PawnExtComp = UExpPawnExtensionComponent::FindPawnExtensionComponent(SpawnedPawn))
 	{
 		if (const UExpPawnData* PawnData = GetPawnDataForController(NewPlayer))
@@ -151,14 +143,13 @@ void AExpGameMode::GenericPlayerInitialization(AController* NewPlayer)
 {
 	Super::GenericPlayerInitialization(NewPlayer);
 
-	// 广播玩家初始化完成,无论是玩家还是bot都会调用广播
+	// 玩家和 Bot 都通过此入口广播初始化完成。
 	OnGameModePlayerInitialized.Broadcast(this, NewPlayer);
 }
 
 bool AExpGameMode::ShouldSpawnAtStartSpot(AController* Player)
 {
-	//永远不使用出生点，始终使用生成管理组件。 
-	// ShouldSpawnAtStartSpot + UpdatePlayerStartSpot 就导致每次重生选点的时候必然会调用ChoosePlayerStart_Implementation,所以转发到生成组件内
+	// 每次重生重新选点，不复用控制器缓存的 StartSpot。
 	return false;
 	// return Super::ShouldSpawnAtStartSpot(Player);
 }
@@ -166,27 +157,25 @@ bool AExpGameMode::ShouldSpawnAtStartSpot(AController* Player)
 bool AExpGameMode::UpdatePlayerStartSpot(AController* Player, const FString& Portal, FString& OutErrorMessage)
 {
 	// return Super::UpdatePlayerStartSpot(Player, Portal, OutErrorMessage);
-	// ShouldSpawnAtStartSpot + UpdatePlayerStartSpot 就导致每次重生选点的时候必然会调用ChoosePlayerStart_Implementation,所以转发到生成组件内
-	// 原生逻辑是选点并且缓存地点
-	// 详情看源码
+	// 此处不预选和缓存出生点，交由后续 ChoosePlayerStart 流程选择。
 	return true;
 }
 
 AActor* AExpGameMode::ChoosePlayerStart_Implementation(AController* Player)
 {
-	// 委托到 生成管理器里面接管,这样每个体验都可以自定义自己的选点规则
+	// 优先转发给生成管理组件，允许体验定制选点。
 	if (UExpPlayerSpawningManagerComponent* PlayerSpawningComponent = GameState->FindComponentByClass<UExpPlayerSpawningManagerComponent>())
 	{
 		return PlayerSpawningComponent->ChoosePlayerStart(Player);
 	}
 
-	// 没有挂载生成管理组件时，退回引擎原生选点
+	// 未挂载生成管理组件时使用引擎选点。
 	return Super::ChoosePlayerStart_Implementation(Player);
 }
 
 bool AExpGameMode::PlayerCanRestart_Implementation(APlayerController* Player)
 {
-	// 继承使用原生逻辑的情况下,同时支持 AIController 的重生判定
+	// 将玩家和 AI 纳入统一重生检查入口。
 	return ControllerCanRestart(Player);
 }
 
@@ -201,14 +190,14 @@ bool AExpGameMode::ControllerCanRestart(AController* Controller)
 	}
 	else // AIController
 	{
-		// 用于机器人的 Super::PlayerCanRestart_Implementation 重生判定
+		// 非玩家控制器只检查存在性和待销毁状态，不调用 PlayerController 专用检查。
 		if ((Controller == nullptr) || Controller->IsPendingKillPending())
 		{
 			return false;
 		}
 	}
 
-	// 同时会在 生成管理器里面判断是否可以重生,项目层可在组件里接入复活冷却、回合制等规则
+	// 存在生成管理组件时，再由其检查是否允许重生。
 	if (UExpPlayerSpawningManagerComponent* PlayerSpawningComponent = GameState->FindComponentByClass<UExpPlayerSpawningManagerComponent>())
 	{
 		return PlayerSpawningComponent->ControllerCanRestart(Controller);
@@ -219,7 +208,7 @@ bool AExpGameMode::ControllerCanRestart(AController* Controller)
 
 void AExpGameMode::FinishRestartPlayer(AController* NewPlayer, const FRotator& StartRotation)
 {
-	// 委托到 生成管理器里面接管,管理器里面提供各种钩子用于处理重生时的逻辑
+	// 先通知生成管理组件的重生钩子，再执行父类收尾。
 	if (UExpPlayerSpawningManagerComponent* PlayerSpawningComponent = GameState->FindComponentByClass<UExpPlayerSpawningManagerComponent>())
 	{
 		PlayerSpawningComponent->FinishRestartPlayer(NewPlayer, StartRotation);
@@ -232,7 +221,7 @@ void AExpGameMode::FailedToRestartPlayer(AController* NewPlayer)
 {
 	Super::FailedToRestartPlayer(NewPlayer);
 
-	// ② 先确认这个控制器有可用的 Pawn 类（没类就没必要重试，重试也没用）
+	// 没有可用 Pawn 类型时停止重试，避免无效循环。
 	UClass* PawnClass = GetDefaultPawnClassForController(NewPlayer);
 	if (!PawnClass)
 	{
@@ -240,42 +229,42 @@ void AExpGameMode::FailedToRestartPlayer(AController* NewPlayer)
 		return;
 	}
 
-	// ③ 玩家和 Bot 走不同的重试策略
+	// 玩家与 Bot 使用各自的重试入口。
 	if (APlayerController* NewPC = Cast<APlayerController>(NewPlayer))
 	{
-		// 玩家：不无限循环，才允许重试时下一帧重试,前面重写的 PlayerCanRestart_Implementation 会判断是否可以重生 兼容 Bot
+		// 玩家仍被允许重生时才安排下一帧重试。
 		if (PlayerCanRestart(NewPC))
 		{
-			// 玩家 → 下一帧尝试
+			// 下一帧重试，避免同帧递归生成。
 			RequestPlayerRestartNextFrame(NewPlayer, false);
 		}
 		else
 		{
-			// 玩家已不能再重生 → 放弃，避免死循环
+			// 不再允许重生时停止重试。
 			UE_LOG(LogExpSystem, Verbose, TEXT("...PlayerCanRestart returned false, so we're not going to try again."));
 		}
 	}
 	else
 	{
-		// Bot：无条件下一帧重试,机器人就一直重试
+		// Bot 安排下一帧请求，控制器入口仍会检查状态和重生权限。
 		RequestPlayerRestartNextFrame(NewPlayer, false);
 	}
 }
 
 void AExpGameMode::RequestPlayerRestartNextFrame(AController* Controller, bool bForceReset)
 {
-	// 如果强制重置的话,直接重置控制器
+	// 强制重置在当前帧执行，重生请求延后。
 	if (bForceReset && (Controller != nullptr))
 	{
 		Controller->Reset();
 	}
 
-	// 如果是玩家控制器,则调用玩家控制器的重生函数
+	// 玩家控制器使用其服务端重生入口。
 	if (APlayerController* PC = Cast<APlayerController>(Controller))
 	{
 		GetWorldTimerManager().SetTimerForNextTick(PC, &APlayerController::ServerRestartPlayer_Implementation);
 	}
-	// 如果是 AI控制器,则调用 AI控制器的重生函数,内部会再次走一遍 ControllerCanRestart 判定
+	// Bot 使用专用重生入口，内部再次检查 ControllerCanRestart。
 	if (AExpAIController* BotController = Cast<AExpAIController>(Controller))
 	{
 		GetWorldTimerManager().SetTimerForNextTick(BotController, &AExpAIController::ServerRestartController);
@@ -287,18 +276,12 @@ void AExpGameMode::MatchExperience()
 	FPrimaryAssetId ExperienceId;
 	FString ExperienceIdSource;
 
-	//优先顺序（最高获胜）
-	//-配对任务（如有）
-	//-URL选项覆盖
-	//-开发人员设置（仅限PIE）
-	//-命令行覆盖
-	//-世界设置
-	//-专用服务器
-	//-默认体验
+	// 依次尝试 URL、PIE 开发者设置、命令行和世界设置。
+	// 选中的主资产校验失败时直接转入服务器接管或项目兜底，不再尝试较低优先级来源。
 
 	UWorld* World = GetWorld();
 
-	// 从Level流送的URL获取体验
+	// 优先读取旅行 URL 的 Experience 选项。
 	if (!ExperienceId.IsValid() && UGameplayStatics::HasOption(OptionsString, TEXT("Experience")))
 	{
 		const FString ExperienceFromOptions = UGameplayStatics::ParseOption(OptionsString, TEXT("Experience"));
@@ -306,14 +289,14 @@ void AExpGameMode::MatchExperience()
 		ExperienceIdSource = TEXT("OptionsString");
 	}
 
-	// 从开发者设置中获取体验覆盖
+	// 仅 PIE 可使用开发者体验覆盖。
 	if (!ExperienceId.IsValid() && World->IsPlayInEditor())
 	{
 		ExperienceId = GetDefault<UExpSystemSettings>()->ExperienceOverride;
 		ExperienceIdSource = TEXT("DeveloperSettings");
 	}
 
-	// 从命令行中获取需要的体验覆盖
+	// 再尝试命令行 Experience 参数。
 	if (!ExperienceId.IsValid())
 	{
 		FString ExperienceFromCommandLine;
@@ -328,7 +311,7 @@ void AExpGameMode::MatchExperience()
 		}
 	}
 
-	// 从世界设置中获取体验
+	// 仍未选择体验时读取世界设置。
 	if (!ExperienceId.IsValid())
 	{
 		if (AExpWorldSettings* TypedWorldSettings = Cast<AExpWorldSettings>(GetWorldSettings()))
@@ -346,12 +329,12 @@ void AExpGameMode::MatchExperience()
 		ExperienceId = FPrimaryAssetId();
 	}
 
-	// 所有来源都识别不出来时：先给专用服务器一个接管的机会，再回退到项目层提供的兜底体验
+	// 体验无效时先尝试专用服务器接管，再读取项目兜底体验。
 	if (!ExperienceId.IsValid())
 	{
 		if (TryDedicatedServerLogin())
 		{
-			// 专用服务器会自己重新开一场并换图，这里不再往下走
+			// 派生实现已接管后续流程，此处停止选择体验。
 			return;
 		}
 
@@ -359,30 +342,30 @@ void AExpGameMode::MatchExperience()
 		ExperienceIdSource = TEXT("Fallback");
 	}
 
-	// 最后开始整个体验
+	// 将选择结果交给体验管理器。
 	MatchExperienceComplete(ExperienceId, ExperienceIdSource);
 }
 
 FPrimaryAssetId AExpGameMode::GetFallbackExperienceId() const
 {
-	// 框架层不预设任何资产名，由项目层 override 决定
+	// 默认不指定资产，项目子类可提供兜底体验。
 	return FPrimaryAssetId();
 }
 
 bool AExpGameMode::TryDedicatedServerLogin()
 {
-	// 默认不接管专用服务器登录，由项目层 override 实现
+	// 默认不接管专用服务器登录。
 	return false;
 }
 
 void AExpGameMode::HostDedicatedServerMatch()
 {
-	// 具体的专用服务器建局策略由项目层 override 实现
+	// 建局策略由项目子类实现。
 }
 
 void AExpGameMode::MatchExperienceComplete(const FPrimaryAssetId& ExperienceId, const FString& ExperienceIdSource)
 {
-	// 拿到之后就设置开始在组件上启动体验的加载流程
+	// 有效体验由 GameState 上的管理组件加载。
 	if (ExperienceId.IsValid())
 	{
 		UE_LOG(LogExpSystem, Log, TEXT("Identified experience %s (Source: %s)"), *ExperienceId.ToString(), *ExperienceIdSource);
@@ -400,9 +383,8 @@ void AExpGameMode::MatchExperienceComplete(const FPrimaryAssetId& ExperienceId, 
 
 void AExpGameMode::OnExperienceLoaded(const UExpDefinition* ExperienceDefinition)
 {
-	//生成任何已连接的玩家
-	//@TODO:这里我们只处理*player*控制器，但在GetDefaultPawnClassForController_Implementation中，我们跳过了所有控制器
-	//GetDefaultPawnClassForController_Implement可能无论如何只会被玩家调用
+	// 为已连接且尚无 Pawn 的玩家请求重生。
+	// TODO: 确认体验就绪前已存在的非玩家控制器是否需要对应的恢复生成流程。
 	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 	{
 		APlayerController* PC = Cast<APlayerController>(*Iterator);

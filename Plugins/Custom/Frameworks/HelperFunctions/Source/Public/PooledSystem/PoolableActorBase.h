@@ -8,9 +8,7 @@
 
 #define UE_API HELPERFUNCTIONS_API
 
-/*
- * 池化Actor的基类
- */
+/** 为池化 Actor 提供激活、休眠及蓝图回调。 */
 UCLASS(MinimalAPI)
 class APoolableActorBase : public AExtTaggedActor, public IPoolableObjectInterface
 {

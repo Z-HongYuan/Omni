@@ -11,9 +11,7 @@
 struct FGameplayTagStackContainer;
 struct FNetDeltaSerializeInfo;
 
-/**
- * 表示一个游戏标签的叠加（标签+计数）
- */
+/** 可复制的游戏标签及其计数。 */
 USTRUCT(BlueprintType)
 struct FGameplayTagStack : public FFastArraySerializerItem
 {
@@ -39,9 +37,7 @@ private:
 };
 
 
-/**
- * 游戏标签堆栈容器
- */
+/** 通过 Fast Array 复制标签计数，并维护本地查询缓存。 */
 USTRUCT(BlueprintType)
 struct FGameplayTagStackContainer : public FFastArraySerializer
 {
@@ -50,19 +46,19 @@ struct FGameplayTagStackContainer : public FFastArraySerializer
 public:
 	UE_API FGameplayTagStackContainer() { ; }
 
-	// 给标签添加指定数量的堆栈（如果StackCount低于1则无效）
+	/** 增加指定标签的计数；无效标签或 StackCount 小于一时不操作。 */
 	UE_API void AddStack(FGameplayTag Tag, int32 StackCount);
 
-	// 从标签中移除指定数量的堆栈（如果StackCount低于1则无效）
+	/** 减少指定标签的计数，减至零时删除记录；StackCount 小于一时不操作。 */
 	UE_API void RemoveStack(FGameplayTag Tag, int32 StackCount);
 
-	// 返回指定标签的栈计数（如果标签不存在则返回0）
+	/** 返回指定标签的计数，不存在时返回零。 */
 	UE_API int32 GetStackCount(FGameplayTag Tag) const
 	{
 		return TagToCountMap.FindRef(Tag);
 	}
 
-	// 如果至少存在一个指定标签的栈，则返回为真
+	/** 检查是否存在指定标签的计数记录。 */
 	UE_API bool ContainsTag(FGameplayTag Tag) const
 	{
 		return TagToCountMap.Contains(Tag);
@@ -80,11 +76,11 @@ public:
 	}
 
 private:
-	// 游戏标签堆叠复制列表
+	/** 用于 Fast Array 增量复制的标签计数列表。 */
 	UPROPERTY()
 	TArray<FGameplayTagStack> Stacks;
 
-	// 查询标签栈缓存加速列表
+	/** 标签计数查询缓存，由本地修改及复制回调同步更新。 */
 	TMap<FGameplayTag, int32> TagToCountMap;
 };
 

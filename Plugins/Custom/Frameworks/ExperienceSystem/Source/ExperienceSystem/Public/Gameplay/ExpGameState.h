@@ -9,10 +9,7 @@
 
 class UExpManagerComponent;
 
-/**
- * 模块化基础游戏状态类
- * 支持 体验管理组件
- */
+/** 持有体验管理组件的模块化 GameState。 */
 UCLASS(MinimalAPI)
 class AExpGameState : public AModularGameStateBase
 {

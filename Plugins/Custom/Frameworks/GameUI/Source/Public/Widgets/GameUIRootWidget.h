@@ -14,7 +14,7 @@
 
 #define UE_API GAMEUI_API
 
-// 控件的推送状态
+/** 异步控件推送的回调阶段。 */
 enum class EAsyncWidgetPushState : uint8
 {
 	Canceled,
@@ -22,20 +22,18 @@ enum class EAsyncWidgetPushState : uint8
 	AfterPush
 };
 
-/**
- * 作为每个本地玩家拥有的根控件
- */
+/** 本地玩家的 UI 根布局，管理分层堆栈及控件推送。 */
 UCLASS(MinimalAPI, Abstract, meta = (DisableNativeTick))
 class UGameUIRootWidget : public UCommonUserWidget
 {
 	GENERATED_BODY()
 
 public:
-	// 从世界上下文获取主要玩家的根控件
+	/** 从世界上下文获取主要本地玩家的根布局。 */
 	static UE_API UGameUIRootWidget* GetRootLayoutWidgetForPrimaryPlayer(const UObject* WorldContextObject);
-	// 从 PC 获取 根控件
+	/** 获取控制器所属本地玩家的根布局。 */
 	static UE_API UGameUIRootWidget* GetRootLayoutWidget(APlayerController* PlayerController);
-	// 从 本地玩家 获取 根控件
+	/** 获取本地玩家的根布局，策略或布局未就绪时返回空指针。 */
 	static UE_API UGameUIRootWidget* GetRootLayoutWidget(ULocalPlayer* LocalPlayer);
 
 	/** 更新根布局的休眠状态；具体显示行为由 OnIsDormantChanged 扩展。 */
@@ -52,6 +50,7 @@ public:
 		});
 	}
 
+	/** 异步加载并推送控件；回调接收初始化及终态，取消或失败均归还输入令牌。 */
 	template <typename ActivatableWidgetT = UCommonActivatableWidget>
 	TSharedPtr<FStreamableHandle> PushWidgetToLayerStackAsync(FGameplayTag LayerName,
 	                                                          bool bSuspendInputUntilComplete,
@@ -60,7 +59,7 @@ public:
 	{
 		static_assert(TIsDerivedFrom<ActivatableWidgetT, UCommonActivatableWidget>::IsDerived, "Only CommonActivatableWidgets can be used here");
 
-		// 两个回调共享终态和输入令牌，布局失效后仍能完成清理。
+		/** 加载和取消回调共享终态及输入令牌，布局失效后仍负责归还输入。 */
 		struct FAsyncPushOperation
 		{
 			TWeakObjectPtr<UGameUIRootWidget> RootLayout;
@@ -170,13 +169,13 @@ public:
 		return nullptr;
 	}
 
-	// 在所有堆栈中寻找并删除指定的控件
+	/** 从此根布局的所有堆栈中移除指定控件。 */
 	UE_API void FindAndRemoveWidgetFromLayer(UCommonActivatableWidget* ActivatableWidget);
 
-	// 获取对应的堆栈层
+	/** 按标签查询已注册的堆栈层。 */
 	UE_API UCommonActivatableWidgetContainerBase* GetLayerFromTag(FGameplayTag LayerName);
 
-	/** 注册堆栈到缓存中. */
+	/** 注册堆栈，并监听过渡状态以管理输入暂停。 */
 	UFUNCTION(BlueprintCallable, Category="GameUI")
 	UE_API void RegisterLayer(UPARAM(meta = (Categories = "GameUI.UIStack")) FGameplayTag LayerTag, UCommonActivatableWidgetContainerBase* LayerWidget);
 
@@ -188,14 +187,14 @@ protected:
 private:
 	bool bIsDormant = false;
 
-	// 跟踪所有暂停的输入令牌，这样多个异步UI都能加载，并且在所有UI期间正确暂停。
+	/** 跟踪堆栈过渡产生的输入暂停令牌，过渡结束时逐个归还。 */
 	TArray<FName> SuspendInputTokens;
 
-	// 主布局的注册堆栈
+	/** 按标签保存已注册的 UI 堆栈。 */
 	UPROPERTY(Transient)
 	TMap<FGameplayTag, TObjectPtr<UCommonActivatableWidgetContainerBase>> Layers;
 
-	//默认的四个控件容器
+	// 可选的默认 UI 层容器。
 	UPROPERTY(meta=(BindWidgetOptional))
 	TObjectPtr<UCommonActivatableWidgetStack> LayerStack_Modal;
 	UPROPERTY(meta=(BindWidgetOptional))

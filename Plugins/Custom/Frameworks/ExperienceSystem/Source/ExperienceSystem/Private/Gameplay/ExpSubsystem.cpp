@@ -10,7 +10,7 @@
 
 void UExpSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-	// 声明需要依赖于 GameFrameworkComponentManager 进行初始化
+	// 先初始化 GameFrameworkComponentManager，再注册状态链。
 	Collection.InitializeDependency<UGameFrameworkComponentManager>();
 	Super::Initialize(Collection);
 
@@ -19,7 +19,7 @@ void UExpSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UExpSubsystem::InitComponentStateChain()
 {
-	// 初始化组件状态链
+	// 在当前 GameInstance 的组件管理器中注册状态顺序。
 	UGameInstance* GI = GetGameInstance();
 	UGameFrameworkComponentManager* ComponentManager = GI->GetSubsystem<UGameFrameworkComponentManager>();
 

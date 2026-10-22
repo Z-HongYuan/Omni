@@ -8,9 +8,7 @@
 
 #define UE_API ABILITYEXTENSION_API
 
-/**
- * 带有Tag标签的物理材质
- */
+/** 附带 GameplayTag 的物理材质，供命中效果收集目标标签。 */
 UCLASS(MinimalAPI)
 class UPhysicalMaterialWithTags : public UPhysicalMaterial
 {
@@ -19,7 +17,7 @@ class UPhysicalMaterialWithTags : public UPhysicalMaterial
 public:
 	UE_API UPhysicalMaterialWithTags(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	// 这些物理材料的游戏标签容器
+	/** 此物理材质提供的游戏标签。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=PhysicalProperties)
 	FGameplayTagContainer Tags;
 };

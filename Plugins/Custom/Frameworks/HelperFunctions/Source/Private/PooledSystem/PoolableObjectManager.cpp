@@ -13,7 +13,7 @@ void UPoolableObjectManager::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	//从开发者设置中解析拥有的类,提前解析防止卡顿
+	// 初始化时加载已配置的类，避免首次取用时再同步加载。
 	for (const auto& [Class, Settings] : GetDefault<UPoolableObjectSettings>()->DefaultMaxSizes)
 	{
 		ResolveClass(Class);
@@ -33,16 +33,16 @@ void UPoolableObjectManager::ReturnToPool(UObject* PoolableObject)
 
 	UClass* Class = PoolableObject->GetClass();
 
-	// 如果缓存中没有的话,会被添加进去备用
+	// 为此类型取得或创建池记录。
 	FBucket& Bucket = Buckets.FindOrAdd(Class);
 
-	// 从活跃列表移除,没移除成功的话,就意味着已经在休眠池中,那么就不再需要休眠和添加到休眠池中了
+	// 仅归还活跃列表中登记的对象，避免重复归还或接收未借出的实例。
 	if (Bucket.Active.RemoveSwap(PoolableObject) == 0) return;
 
-	// 休眠
+	// 调用对象的休眠回调。
 	Deactivate(PoolableObject);
 
-	// 放进休眠池,避免重复
+	// 将实例放回休眠池，供下次复用。
 	Bucket.Inactive.Add(PoolableObject);
 }
 
@@ -71,7 +71,7 @@ int32 UPoolableObjectManager::GetMaxSize(const UClass* Class)
 	{
 		if (SoftClass.Get() == Class) return Size;
 	}
-	return -1; // 无限制
+	return -1; // 不限制数量。
 }
 
 void UPoolableObjectManager::Deactivate(UObject* Obj)
@@ -94,9 +94,9 @@ UObject* UPoolableObjectManager::SpawnForClass(UClass* Class)
 {
 	if (Class->IsChildOf<AActor>())
 	{
-		return GetWorld()->SpawnActor(Class); // 调用方需再设 Transform
+		return GetWorld()->SpawnActor(Class); // 调用方需设置 Transform。
 	}
-	return NewObject<UObject>(this, Class); // Subsystem 作 Outer
+	return NewObject<UObject>(this, Class); // 以此子系统作为 Outer。
 }
 
 UClass* UPoolableObjectManager::ResolveClass(const TSoftClassPtr<>& SoftClass)

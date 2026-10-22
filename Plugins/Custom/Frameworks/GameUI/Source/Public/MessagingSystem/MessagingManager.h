@@ -12,9 +12,7 @@
 class UDialogWidgetBase;
 DECLARE_DELEGATE_OneParam(FDialogMessagingResultDelegate, FGameplayTag);
 
-/**
- * 对话系统管理器,用于显示对话框,蓝图内一般是使用 Task 节点
- */
+/** 管理本地玩家的对话框类映射，并在 Modal 层显示对话框。 */
 UCLASS(MinimalAPI, Config = Game)
 class UMessagingManager : public ULocalPlayerSubsystem
 {
@@ -27,7 +25,7 @@ public:
 	UE_API virtual void Deinitialize() override;
 	UE_API virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 
-	// 使用对话数据推送指定 Tag 的控件到 Modal 层了
+	/** 按标签映射将对话框推入 Modal 层；展示失败时立即回调空标签。 */
 	UE_API virtual void ShowDialogInternal(FGameplayTag InWidgetTag, UDialogWidgetDescriptorBase* DialogDescriptor, FDialogMessagingResultDelegate ResultCallback = FDialogMessagingResultDelegate());
 
 private:

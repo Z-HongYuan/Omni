@@ -185,7 +185,7 @@ void UGameUIExtensionManager::NotifyExtensionsOfExtensions(TSharedPtr<FUIExtensi
 	{
 		if (const FExtensionList* ListPtr = ExtensionMap.Find(Tag))
 		{
-			// 备份以防在处理回拨时出现删除
+			// 遍历副本，允许回调期间注销记录而不破坏当前迭代。
 			FExtensionList ExtensionArray(*ListPtr);
 
 			for (const TSharedPtr<FUIExtension>& Extension : ExtensionArray)
@@ -208,12 +208,12 @@ void UGameUIExtensionManager::NotifyExtensionsOfExtensions(TSharedPtr<FUIExtensi
 void UGameUIExtensionManager::NotifyExtensionPointsOfExtension(EUIExtensionAction Action, TSharedPtr<FUIExtension>& Extension)
 {
 	bool bOnInitialTag = true;
-	// 第一遍查精准 后面迭代的 Tag 就只能走模糊匹配了
+	// 当前标签接受所有匹配模式；向父标签遍历时只通知允许层级匹配的扩展点。
 	for (FGameplayTag Tag = Extension->ExtensionPointTag; Tag.IsValid(); Tag = Tag.RequestDirectParent())
 	{
 		if (const FExtensionPointList* ListPtr = ExtensionPointMap.Find(Tag))
 		{
-			// 备份以防在处理回拨时出现删除
+			// 遍历副本，允许回调期间注销记录而不破坏当前迭代。
 			FExtensionPointList ExtensionPointArray(*ListPtr);
 
 			for (const TSharedPtr<FUIExtensionPoint>& ExtensionPoint : ExtensionPointArray)

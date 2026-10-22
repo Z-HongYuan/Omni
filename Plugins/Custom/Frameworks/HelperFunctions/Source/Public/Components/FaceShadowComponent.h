@@ -7,17 +7,9 @@
 
 #define UE_API HELPERFUNCTIONS_API
 
-/*
- * 控制角色脸部SDF阴影的插件
- * 通过获取网格体中的位置信息,设置材质参数值
- * 需要设置全部的FName参数
- * 将在BeginPlay()中调用一次RefreshFaceMaterialInstance(),如果角色更换了模型,请调用此函数以刷新材质实例
- * 
- * 改用了自定义基元数据
- * 设定Mesh上的基元数据
- * 还是需要向网格体添加Tag用于识别
- * 
- * 需要在骨骼网格体组件中启用自定义数据的通道
+/**
+ * 从头部、前向和右向插槽计算面部朝向，并写入骨骼网格体的自定义基元数据。
+ * 网格组件须带有指定 Tag，材质使用相同的数据索引；更换组件后调用 RefreshMeshComponentRef。
  */
 UCLASS(MinimalAPI, ClassGroup=(Render), meta=(BlueprintSpawnableComponent))
 class UFaceShadowComponent : public UActorComponent
@@ -30,29 +22,29 @@ public:
 	UE_API virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	UE_API virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	//更新Mesh引用
+	/** 按组件 Tag 重新查找目标网格体；BeginPlay 会自动调用一次。 */
 	UFUNCTION(BlueprintCallable, Category = "SDF")
 	UE_API void RefreshMeshComponentRef();
 
 protected:
-	//骨骼网格体组件拥有的Tag,方便检索组件以获取引用,指定的Tag
+	/** 用于查找目标骨骼网格体组件的 Tag。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SDF", meta=(DisplayName="过滤的MeshTag"))
 	FName SkeletalMeshComponentTag = FName("UseFaceShadowComponent");
 
-	// 头部插槽名字,用于获取位置信息
+	/** 面部朝向计算所用的头部原点插槽。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SDF", meta=(DisplayName="头部位置命名"))
 	FName HeadSlotName = FName("Head");
-	// 前方插槽名字,用于获取位置信息
+	/** 与头部原点共同确定前向方向的插槽。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SDF", meta=(DisplayName="前向插槽命名"))
 	FName ForwardSlotName = FName("SDF_F");
-	// 右方插槽名字,用于获取位置信息
+	/** 与头部原点共同确定右向方向的插槽。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SDF", meta=(DisplayName="右方插槽命名"))
 	FName RightSlotName = FName("SDF_R");
 
-	// 自定义基元数据偏移索引 SDF_F参数, 在材质中使用MakeVector3
+	/** 前向向量在自定义基元数据中的起始索引，占用三个连续通道。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SDF", meta=(DisplayName="Forward参数索引"))
 	int32 FaceForwardOffsetIndex = 0;
-	// 自定义基元数据偏移索引 SDF_R参数, 在材质中使用MakeVector3
+	/** 右向向量在自定义基元数据中的起始索引，占用三个连续通道。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SDF", meta=(DisplayName="Right参数索引"))
 	int32 FaceRightOffsetIndex = 3;
 

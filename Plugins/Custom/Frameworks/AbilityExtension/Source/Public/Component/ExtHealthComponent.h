@@ -26,12 +26,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FExtHealthAttributeChanged, UExtHe
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FExtHealthDeathEvent, AActor*, OwningActor);
 
 /**
- * ASC 初始化完成后，由外部调用本组件，查找已有的健康属性集并绑定 ASC 属性变更委托。
- * 对外提供生命值查询、生命变化与归零事件；注销时解除绑定，OnOutOfHealth 仅在服务器广播。
- * 沿用 Lyra 的三阶段死亡状态、复制通知及 Dying/Dead 标签；开始和结束由外部死亡流程驱动。
- * GE 结算归零时向 ASC 发送 GameplayEvent.Death，由已授予的死亡技能驱动死亡流程。
- * 自毁沿用 Lyra 的伤害 GE 路径；项目适配为读取 DeveloperSettings 的 GE，使用原生伤害数值 Tag，并显式限制服务器执行。
- * 对照 Lyra：绑定时不回满生命，普通属性通知仍使用 ASC 委托；尚未接入淘汰消息。
+ * 在 ASC 就绪后显式绑定已有的生命属性集，提供生命查询及变化通知，解绑时清理委托。
+ * 维护并复制三阶段死亡状态及 Dying/Dead 标签，开始和结束由外部死亡流程驱动。
+ * 服务器在 GE 结算归零时发送 GameplayEvent.Death，自毁通过配置的伤害 GE 结算。
+ * 绑定或重绑不会回满生命，出生初始化须显式调用。
  */
 UCLASS(MinimalAPI, Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class UExtHealthComponent : public UGameFrameworkComponent
@@ -52,7 +50,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AbilityExtension|Health")
 	UE_API void UninitializeFromAbilitySystem();
 
-	// 出生时显式调用一次；服务器恢复为当前最大生命，绑定和重绑本身不回血。
+	/** 出生时显式调用一次；仅服务器恢复为当前最大生命，绑定和重绑本身不回血。 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "AbilityExtension|Health")
 	UE_API bool InitializeHealthForSpawn();
 
@@ -69,11 +67,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "AbilityExtension|Health")
 	bool IsDeadOrDying() const { return DeathState != EExtDeathState::NotDead; }
 
-	// 死亡流程调用；客户端 OnRep 也通过这两个入口补齐状态和通知。
+	/** 从存活进入死亡开始状态；客户端复制通知也通过此入口补齐状态。 */
 	UE_API virtual void StartDeath();
+	/** 从死亡开始进入死亡完成状态；客户端可在复制最终状态时补调。 */
 	UE_API virtual void FinishDeath();
 
-	// 向自身应用最大生命值的伤害，死亡表现和结束仍由已授予的死亡技能负责。
+	/** 仅服务器向自身应用最大生命值的伤害，死亡表现和结束由已授予的死亡能力负责。 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "AbilityExtension|Health")
 	UE_API virtual void DamageSelfDestruct(bool bFellOutOfWorld = false);
 
@@ -99,7 +98,7 @@ protected:
 	EExtDeathState DeathState = EExtDeathState::NotDead;
 
 private:
-	// 属于当前 Pawn 的出生过程，注销 ASC 不重置，避免重绑变成免费治疗。
+	/** 当前 Pawn 是否已初始化出生生命；解绑 ASC 时不重置，避免重绑触发治疗。 */
 	bool bHasInitializedSpawnHealth = false;
 
 	void ClearGameplayTags();

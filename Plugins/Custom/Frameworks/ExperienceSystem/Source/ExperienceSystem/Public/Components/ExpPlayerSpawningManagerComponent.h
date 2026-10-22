@@ -9,9 +9,7 @@
 
 class AExpPlayerStart;
 
-/**
- * 出生点管理组件
- */
+/** 缓存出生点，为 GameMode 提供选点和重生完成钩子。 */
 UCLASS(MinimalAPI)
 class UExpPlayerSpawningManagerComponent : public UGameStateComponent
 {
@@ -25,44 +23,43 @@ public:
 	//~End of UActorComponent interface
 
 protected:
-	// 扩展点①：C++ 自定义选点，返回 nullptr 时会继续走蓝图钩子，仍为 nullptr 则回退到默认随机选点
-	// 项目层可在此按队伍、阶段、模式过滤 PlayerStarts
+	/** C++ 选点钩子，可过滤候选点；返回空指针时依次尝试蓝图钩子和默认随机选点。 */
 	UE_API virtual AActor* OnChoosePlayerStart(AController* Player, TArray<AExpPlayerStart*>& PlayerStarts);
 
-	// 扩展点②：蓝图自定义选点，返回 None 表示交给默认逻辑处理
+	/** 蓝图选点钩子，返回 None 时使用默认随机选点。 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Experience|Spawning", meta = (DisplayName = "OnChoosePlayerStart"))
 	UE_API AActor* K2_OnChoosePlayerStart(AController* Player, const TArray<AActor*>& PlayerStarts);
 
-	// 扩展点③：重生完成后回调，C++ 版本
+	/** GameMode 转发重生完成流程时调用的 C++ 钩子。 */
 	UE_API virtual void OnFinishRestartPlayer(AController* Player, const FRotator& StartRotation)
 	{
 	}
 
-	// 扩展点③：重生完成后回调，蓝图版本
+	/** C++ 重生完成钩子执行后通知蓝图。 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Experience|Spawning", meta = (DisplayName = "OnFinishRestartPlayer"))
 	UE_API void K2_OnFinishRestartPlayer(AController* Player, const FRotator& StartRotation);
 
-	// 工具函数：优先从 Empty 的点里随机取，其次从 Partial 的点里随机取
+	/** 按碰撞占用状态随机选点，优先 Empty、其次 Partial；不检查声明占用标记。 */
 	UE_API APlayerStart* GetFirstRandomUnoccupiedPlayerStart(AController* Controller, const TArray<AExpPlayerStart*>& FoundStartPoints) const;
 
 private:
-	// 以下三个函数由 AExpGameMode 转发调用，不要在别处直接调用
+	// 以下重生入口由友元 AExpGameMode 转发调用。
 	UE_API AActor* ChoosePlayerStart(AController* Player);
 	UE_API bool ControllerCanRestart(AController* Player);
 	UE_API void FinishRestartPlayer(AController* NewPlayer, const FRotator& StartRotation);
 	friend class AExpGameMode;
 
-	// 缓存场景中所有的 AExpPlayerStart
+	/** 场景出生点的弱引用缓存，选点时移除已失效引用。 */
 	UPROPERTY(Transient)
 	TArray<TWeakObjectPtr<AExpPlayerStart>> CachedPlayerStarts;
 
-	// 关卡流送进来时补缓存
+	/** 同一世界流入关卡时，将其中的出生点加入缓存。 */
 	UE_API void OnLevelAdded(ULevel* InLevel, UWorld* InWorld);
-	// 运行时动态生成的出生点补缓存
+	/** 将运行时生成的出生点加入缓存。 */
 	UE_API void HandleOnActorSpawned(AActor* SpawnedActor);
 
 #if WITH_EDITOR
-	// 编辑器下支持「从此处播放」
+	/** 仅为玩家控制器查找编辑器的“从此处播放”出生点。 */
 	UE_API APlayerStart* FindPlayFromHereStart(AController* Player);
 #endif
 };

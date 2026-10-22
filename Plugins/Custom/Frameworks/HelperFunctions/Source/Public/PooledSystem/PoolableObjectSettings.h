@@ -8,21 +8,19 @@
 
 #define UE_API HELPERFUNCTIONS_API
 
-/**
- * 简要对象池的配置
- */
+/** 配置各对象类型在池中的默认实例数量上限。 */
 UCLASS(MinimalAPI, Config = Game, Defaultconfig)
 class UPoolableObjectSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
 
 public:
-	/** 返回设置类别名称（在 Project Settings 中的路径） */
+	/** 返回 Project Settings 中的设置类别。 */
 	UE_API virtual FName GetCategoryName() const override { return TEXT("ZHYS"); }
 
 	UE_API virtual FText GetSectionDescription() const override;
 
-	//每个类的最大数量,未设置则为无限
+	/** 各类型的实例数量上限；未配置或值不大于零时不限制数量。 */
 	UPROPERTY(EditAnywhere, Config, Category = "PoolableObject")
 	TMap<TSoftClassPtr<UObject>, int32> DefaultMaxSizes;
 };

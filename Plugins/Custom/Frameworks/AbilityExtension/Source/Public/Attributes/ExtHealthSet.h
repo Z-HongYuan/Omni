@@ -9,10 +9,9 @@
 #define UE_API ABILITYEXTENSION_API
 
 /**
- * 最小生命属性集，伤害与治疗在结算后归零，生命值由服务器复制。
- * 对照 Lyra：保留四个生命属性及范围约束；允许简单 GE 直接修改 MetaDamage/MetaHealing。
- * GE 结算归零时，通过原生委托传递完整效果上下文，供 Health 触发死亡技能。
- * 后续按需添加伤害 Execution、免疫与自毁规则、伤害消息。
+ * 维护生命值、生命上限及伤害、治疗元属性，复制生命值和上限。
+ * GE 结算时消费并清零元属性；生命归零时通过委托传递效果上下文。
+ * 伤害免疫拦截正数 MetaDamage，自毁伤害不受此限制。
  */
 UCLASS(MinimalAPI, BlueprintType)
 class UExtHealthSet : public UExtAttributeSet
@@ -28,7 +27,7 @@ public:
 	ATTRIBUTE_ACCESSORS(UExtHealthSet, MetaDamage)
 	ATTRIBUTE_ACCESSORS(UExtHealthSet, MetaHealing)
 
-	// 只在 GE 结算时发送；直接设置属性仍由 ASC 属性变化委托通知 UI。
+	/** 只在 GE 结算归零时发送；直接设置属性仍通过 ASC 属性变化委托通知。 */
 	mutable FExtAttributeEvent OnOutOfHealth;
 
 	UE_API virtual bool PreGameplayEffectExecute(FGameplayEffectModCallbackData& Data) override;
@@ -55,10 +54,11 @@ private:
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_MaxHealth, Category = "AbilityExtension|Health", meta = (AllowPrivateAccess = "true"))
 	FGameplayAttributeData MaxHealth;
 
-	// 元属性：仅用于本次结算，消费后归零；不复制，不保存累计伤害或累计治疗。
+	/** 本次结算的伤害量，消费后归零，不复制。 */
 	UPROPERTY(BlueprintReadOnly, Category = "AbilityExtension|Health", meta = (AllowPrivateAccess = "true"))
 	FGameplayAttributeData MetaDamage;
 
+	/** 本次结算的治疗量，消费后归零，不复制。 */
 	UPROPERTY(BlueprintReadOnly, Category = "AbilityExtension|Health", meta = (AllowPrivateAccess = "true"))
 	FGameplayAttributeData MetaHealing;
 };

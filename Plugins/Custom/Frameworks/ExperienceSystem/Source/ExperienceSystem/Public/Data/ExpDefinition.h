@@ -11,11 +11,7 @@ class UExpActionSet;
 class UGameFeatureAction;
 class UExpPawnData;
 
-/**
- * 在体验系统中定义的体验资产
- * 包含各种必要配置信息
- * 例如 PawnData 和 要激活的 Game Feature Plugins
- */
+/** 体验定义资产，组合默认 PawnData、Game Feature 插件和 Action 集合。 */
 UCLASS(MinimalAPI, BlueprintType, Const)
 class UExpDefinition : public UPrimaryDataAsset
 {
@@ -35,20 +31,19 @@ public:
 	//~End of UPrimaryDataAsset interface
 
 public:
-	// 需要激活的游戏功能插件列表
+	/** 需要加载并激活的 Game Feature 插件名称。 */
 	UPROPERTY(EditDefaultsOnly, Category=Gameplay)
 	TArray<FString> GameFeaturesToEnable;
 
-	// 玩家使用的默认 PawnData 数据
-	//@TODO: 是否需要软引用?
+	/** 玩家默认 PawnData；TODO: 评估是否需要改为软引用。 */
 	UPROPERTY(EditDefaultsOnly, Category=Gameplay)
 	TObjectPtr<const UExpPawnData> DefaultPawnData;
 
-	// 加载/激活/停用/卸载 时要执行的操作列表
+	/** 随体验注册、加载、激活、停用和注销的 Action 实例。 */
 	UPROPERTY(EditDefaultsOnly, Instanced, Category=Actions)
 	TArray<TObjectPtr<UGameFeatureAction>> Actions;
 
-	// 额外执行的共享集
+	/** 与本体验共同加载和执行的共享 Action 集合。 */
 	UPROPERTY(EditDefaultsOnly, Category=Gameplay)
 	TArray<TObjectPtr<UExpActionSet>> ActionSets;
 };

@@ -6,11 +6,7 @@
 #include "ExtGameplayAbilityTargetData_SingleTargetHit.generated.h"
 
 
-/*
- * 针对单一目标命中追踪的游戏专属新增内容
- * 模版修改
- * 最基础的 FGameplayAbilityTargetData_SingleTargetHit 继承拓展方法
- */
+/** 单目标命中数据的扩展类型，当前沿用父类的上下文写入与网络序列化。 */
 USTRUCT()
 struct FExtGameplayAbilityTargetData_SingleTargetHit : public FGameplayAbilityTargetData_SingleTargetHit
 {
@@ -37,6 +33,7 @@ struct TStructOpsTypeTraits<FExtGameplayAbilityTargetData_SingleTargetHit> : pub
 {
 	enum
 	{
-		WithNetSerializer = true // 目前，FGameplayAbilityTargetDataHandle 网络序列化工作是必须的
+		/** 为 FGameplayAbilityTargetDataHandle 提供自定义类型的网络序列化入口。 */
+		WithNetSerializer = true
 	};
 };

@@ -11,18 +11,18 @@
 struct FUIExtensionRequest;
 class UGameUIExtensionManager;
 
-// 拓展点匹配模式
+/** 扩展点的标签匹配模式。 */
 UENUM(BlueprintType)
 enum class EUIExtensionPointMatch : uint8
 {
-	// 完全匹配 (A.B == A.B != A.B.C)
+	/** 仅匹配完全相同的标签。 */
 	ExactMatch,
 
-	// 模糊匹配 (e.g., A.B == A.B == A.B.C)
+	/** 允许按标签层级匹配。 */
 	PartialMatch
 };
 
-// 拓展点匹配规则
+/** 扩展的添加或移除通知类型。 */
 UENUM(BlueprintType)
 enum class EUIExtensionAction : uint8
 {
@@ -30,49 +30,42 @@ enum class EUIExtensionAction : uint8
 	Removed
 };
 
-/*
- * 向拓展点放置的拓展数据
- */
+/** 注册到管理器的扩展数据及其匹配条件。 */
 struct FUIExtension : TSharedFromThis<FUIExtension>
 {
 public:
-	// 查询拓展点的Tag
+	/** 用于匹配扩展点的标签。 */
 	FGameplayTag ExtensionPointTag;
-	// 拓展在拓展点内的排序
+	/** 供接收方决定显示顺序的优先级。 */
 	int32 Priority = INDEX_NONE;
-	// 拓展提供的上下文对象 (用于筛选)
+	/** 用于限制接收范围的上下文对象，不持有强引用。 */
 	TWeakObjectPtr<UObject> ContextObject;
-	// 保持存活 UUIExtensionSubsystem::AddReferencedObjects
-	// 拓展提供的实际数据对象
+	/** 扩展提供的数据对象，由 UGameUIExtensionManager::AddReferencedObjects 保持 GC 引用。 */
 	TObjectPtr<UObject> Data = nullptr;
 };
 
 DECLARE_DELEGATE_TwoParams(FExtendExtensionPointDelegate, EUIExtensionAction Action, const FUIExtensionRequest& Request);
 
-/**
- * 拓展点的接收器
- */
+/** 保存扩展点的接收条件及通知回调。 */
 struct FUIExtensionPoint : TSharedFromThis<FUIExtensionPoint>
 {
 public:
-	// 拓展点的识别Tag
+	/** 扩展点的识别标签。 */
 	FGameplayTag ExtensionPointTag;
-	// 拓展点允许的上下文
+	/** 扩展点要求的上下文对象。 */
 	TWeakObjectPtr<UObject> ContextObject;
-	// 拓展点的匹配规则
+	/** 扩展点的标签匹配规则。 */
 	EUIExtensionPointMatch ExtensionPointTagMatchType = EUIExtensionPointMatch::ExactMatch;
-	// 拓展点允许接收的数据类
+	/** 允许接收的类或接口，由管理器收集 GC 引用。 */
 	TArray<TObjectPtr<UClass>> AllowedDataClasses;
-	// 拓展点更改的委托
+	/** 匹配扩展添加或移除时执行的回调。 */
 	FExtendExtensionPointDelegate Callback;
 
-	// 测试扩展和当前扩展点是否匹配
+	/** 检查上下文及数据类型是否满足当前扩展点的接收条件。 */
 	bool DoesExtensionPassContract(const FUIExtension* Extension) const;
 };
 
-/**
- * 用于拓展点的句柄,可以用于注销拓展点
- */
+/** 用于显式注销扩展点的句柄；销毁句柄不会自动注销。 */
 USTRUCT(BlueprintType)
 struct FUIExtensionPointHandle
 {
@@ -108,14 +101,13 @@ struct TStructOpsTypeTraits<FUIExtensionPointHandle> : public TStructOpsTypeTrai
 {
 	enum
 	{
-		WithCopy = true, // 这可确保在BP中正确复制不透明类型
+		/** 允许蓝图复制包含共享指针的句柄。 */
+		WithCopy = true,
 		WithIdenticalViaEquality = true,
 	};
 };
 
-/**
- * 用于拓展数据的句柄,可以用于注销拓展
- */
+/** 用于显式注销扩展的句柄；销毁句柄不会自动注销。 */
 USTRUCT(BlueprintType)
 struct FUIExtensionHandle
 {
@@ -151,15 +143,14 @@ struct TStructOpsTypeTraits<FUIExtensionHandle> : public TStructOpsTypeTraitsBas
 {
 	enum
 	{
-		WithCopy = true, // 这可确保在BP中正确复制不透明类型
+		/** 允许蓝图复制包含共享指针的句柄。 */
+		WithCopy = true,
 		WithIdenticalViaEquality = true,
 	};
 };
 
 
-/**
- * 用于在 Manager 中注册一个拓展所使用的请求
- */
+/** 传给扩展点回调的扩展快照，包含句柄、数据和上下文。 */
 USTRUCT(BlueprintType)
 struct FUIExtensionRequest
 {
@@ -192,11 +183,11 @@ class UUIExtensionHandleFunctions : public UBlueprintFunctionLibrary
 public:
 	UUIExtensionHandleFunctions() { ; }
 
-	// 传入注册拓展的句柄,用于注销
+	/** 使用注册句柄注销扩展。 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "UI Extension")
 	static UE_API void Unregister(UPARAM(ref) FUIExtensionHandle& Handle);
 
-	// 传入注册拓展的句柄,用于判断是否有效
+	/** 检查句柄是否仍持有扩展记录，不代表记录仍在管理器中注册。 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "UI Extension")
 	static UE_API bool IsValid(UPARAM(ref) FUIExtensionHandle& Handle);
 };
@@ -209,11 +200,11 @@ class UUIExtensionPointHandleFunctions : public UBlueprintFunctionLibrary
 public:
 	UUIExtensionPointHandleFunctions() { ; }
 
-	// 传入注册拓展点的句柄,用于注销
+	/** 使用注册句柄注销扩展点。 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "UI Extension")
 	static UE_API void Unregister(UPARAM(ref) FUIExtensionPointHandle& Handle);
 
-	// 传入注册拓展点的句柄,用于判断是否有效
+	/** 检查句柄是否仍持有扩展点记录，不代表记录仍在管理器中注册。 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "UI Extension")
 	static UE_API bool IsValid(UPARAM(ref) FUIExtensionPointHandle& Handle);
 };

@@ -35,7 +35,7 @@ void FExtAbilitySet_GrantedHandles::TakeFromAbilitySystem(UExtAbilitySystemCompo
 
 	if (!ExtASC->IsOwnerActorAuthoritative())
 	{
-		// 必须是权威的，才能给予或接受能力组合。
+		// 能力集的授予和撤销仅在权威端执行。
 		return;
 	}
 
@@ -75,11 +75,11 @@ void UExtAbilitySet::GiveToAbilitySystem(UExtAbilitySystemComponent* ExtASC, FEx
 
 	if (!ExtASC->IsOwnerActorAuthoritative())
 	{
-		// 必须是权威的，才能给予或接受能力组合。
+		// 能力集的授予和撤销仅在权威端执行。
 		return;
 	}
 
-	// 授予属性集。
+	// 先创建属性集，供后续授予的能力和效果使用。
 	for (int32 SetIndex = 0; SetIndex < GrantedAttributes.Num(); ++SetIndex)
 	{
 		const FExtAbilitySet_AttributeSet& SetToGrant = GrantedAttributes[SetIndex];
@@ -99,7 +99,7 @@ void UExtAbilitySet::GiveToAbilitySystem(UExtAbilitySystemComponent* ExtASC, FEx
 		}
 	}
 
-	// 授予游戏能力。
+	// 将配置的输入标签写入能力 Spec，供 ASC 输入匹配。
 	for (int32 AbilityIndex = 0; AbilityIndex < GrantedGameplayAbilities.Num(); ++AbilityIndex)
 	{
 		const FExtAbilitySet_GameplayAbility& AbilityToGrant = GrantedGameplayAbilities[AbilityIndex];
@@ -124,7 +124,7 @@ void UExtAbilitySet::GiveToAbilitySystem(UExtAbilitySystemComponent* ExtASC, FEx
 		}
 	}
 
-	// 赋予游戏效果。
+	// 最后应用效果，并保留可撤销的活跃效果句柄。
 	for (int32 EffectIndex = 0; EffectIndex < GrantedGameplayEffects.Num(); ++EffectIndex)
 	{
 		const FExtAbilitySet_GameplayEffect& EffectToGrant = GrantedGameplayEffects[EffectIndex];

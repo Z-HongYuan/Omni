@@ -9,11 +9,7 @@
 
 #define UE_API ABILITYEXTENSION_API
 
-/*
- * 提供FGameplayTagStackContainer的组件
- * 提供TagStack使用
- * 标签的堆栈容器
- */
+/** 以组件形式提供可复制的标签计数容器。 */
 UCLASS(MinimalAPI, meta=(BlueprintSpawnableComponent))
 class UExtTagsStackComponent : public UActorComponent
 {
@@ -22,7 +18,7 @@ class UExtTagsStackComponent : public UActorComponent
 public:
 	UExtTagsStackComponent();
 
-	// 查找 Actor 上的标签堆栈组件；Actor 为空或未挂载该组件时返回 nullptr。
+	/** 查找 Actor 上的标签堆栈组件；Actor 为空或未挂载时返回空指针。 */
 	UFUNCTION(BlueprintPure, Category=TagsStack, meta=(DefaultToSelf="Actor"))
 	static UE_API UExtTagsStackComponent* FindTagsStack(const AActor* Actor) { return Actor ? Actor->FindComponentByClass<UExtTagsStackComponent>() : nullptr; }
 
@@ -31,15 +27,15 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=TagsStack)
 	void AddStatTagStack(FGameplayTag Tag, int32 StackCount);
 
-	// 返回指定标签的栈计数（如果标签不存在则返回0）
+	/** 返回指定标签的计数，不存在时返回零。 */
 	UFUNCTION(BlueprintCallable, Category=TagsStack)
 	int32 GetStatTagStackCount(FGameplayTag Tag) const;
 
-	// 从标签中移除指定数量的堆栈（如果StackCount低于1则无效）
+	/** 移除指定数量的标签计数，StackCount 小于一时不操作。 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=TagsStack)
 	void RemoveStatTagStack(FGameplayTag Tag, int32 StackCount);
 
-	// 如果至少存在一个指定标签的栈，则返回为真
+	/** 检查是否存在指定标签的计数记录。 */
 	UFUNCTION(BlueprintCallable, Category=TagsStack)
 	bool HasStatTag(FGameplayTag Tag) const;
 

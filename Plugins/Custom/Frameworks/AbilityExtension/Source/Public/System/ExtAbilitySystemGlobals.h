@@ -7,10 +7,7 @@
 
 #define UE_API ABILITYEXTENSION_API
 
-/**
- * 配置ASC系统的全局参数
- * 应该针对于不同的项目进行配置和重载,使用需要的 FGameplayEffectContext 和 FGameplayAbilityActorInfo
- */
+/** 提供效果上下文和 ActorInfo 的分配扩展入口，当前均沿用父类实现。 */
 UCLASS(MinimalAPI)
 class UExtAbilitySystemGlobals : public UAbilitySystemGlobals
 {

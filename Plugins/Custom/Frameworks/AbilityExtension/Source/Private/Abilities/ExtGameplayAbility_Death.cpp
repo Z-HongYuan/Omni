@@ -16,7 +16,7 @@ UExtGameplayAbility_Death::UExtGameplayAbility_Death(const FObjectInitializer& O
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
 
-	// CDO 中配置触发器
+	// 在 CDO 上配置死亡事件触发器，供能力授予时读取。
 	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
 		FAbilityTriggerData TriggerData;

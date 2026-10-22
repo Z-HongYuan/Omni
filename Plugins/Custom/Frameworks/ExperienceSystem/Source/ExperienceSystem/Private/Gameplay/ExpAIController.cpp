@@ -11,31 +11,31 @@
 AExpAIController::AExpAIController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	// Bot 同样需要 PlayerState，因为 PawnData 与 ASC 都挂在 PS 上
+	// Bot 也需要 PlayerState，以提供 PawnData 和 ASC。
 	bWantsPlayerState = true;
 
-	// 取消 Possess 时不停止 AI 逻辑，避免重生流程中行为树被打断
+	// 解除控制时保留 AI 逻辑，避免重生流程中断行为树。
 	bStopAILogicOnUnposses = false;
 }
 
 void AExpAIController::ServerRestartController()
 {
-	// 仅服务端有权限重生
+	// 仅服务器执行重生。
 	if (GetNetMode() == NM_Client) return;
 
-	// 只有处于 Inactive 或 Spectating 状态的控制器才需要重生
+	// 只处理 Inactive 或 Spectating 状态的控制器。
 	if (IsInState(NAME_Inactive) || IsInState(NAME_Spectating))
 	{
 		AExpGameMode* const GameMode = GetWorld()->GetAuthGameMode<AExpGameMode>();
 
-		// 询问 GameMode 是否允许重生,注意这里是 AIController
+		// 通过 GameMode 统一检查 Bot 是否允许重生。
 		if ((GameMode == nullptr) || !GameMode->ControllerCanRestart(this)) return;
 
-		// 如果还挂着一个 Pawn，先脱离
+		// 先解除旧 Pawn 的控制关系。
 		if (GetPawn() != nullptr)
 			UnPossess();
 
-		// 重新启用输入，与 ClientRestart 中的处理保持一致
+		// 重生前重置输入忽略标记。
 		ResetIgnoreInputFlags();
 
 		GameMode->RestartPlayer(this);

@@ -7,9 +7,7 @@
 
 #define UE_API ABILITYEXTENSION_API
 
-/**
- * 表示需要消耗玩家状态中一定数量的标签堆叠的成本
- */
+/** 从 PlayerState 的标签堆栈扣除能力消耗；需已建立 Controller 和 PlayerState。 */
 UCLASS(MinimalAPI)
 class UExtAbilityCost_PlayerTagStack : public UExtAbilityCost
 {
@@ -24,11 +22,11 @@ public:
 	//~End of UExtAbilityCost interface
 
 protected:
-	/** 该花多少标签（根据能力等级决定） */
+	/** 按能力等级计算消耗数量，并向零取整。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Costs)
 	FScalableFloat Quantity;
 
-	/** 该花哪些标签 */
+	/** 需要扣除的标签。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Costs)
 	FGameplayTag Tag;
 };

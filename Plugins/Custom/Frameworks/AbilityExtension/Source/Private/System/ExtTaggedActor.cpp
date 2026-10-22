@@ -17,7 +17,7 @@ void AExtTaggedActor::GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) 
 #if WITH_EDITOR
 bool AExtTaggedActor::CanEditChange(const FProperty* InProperty) const
 {
-	// 关闭编辑器的原生标签
+	// 使用 GameplayTag 配置，避免同时编辑原生 Actor Tags。
 	if (InProperty->GetFName() == GET_MEMBER_NAME_CHECKED(AActor, Tags)) return false;
 	return Super::CanEditChange(InProperty);
 }

@@ -7,9 +7,7 @@
 
 #define UE_API GAMEUI_API
 
-/**
- * 最基础的按钮按键
- */
+/** 随输入方式和输入动作更新显示文本及样式的按钮基类。 */
 UCLASS(MinimalAPI, Abstract)
 class UGameUIButtonBase : public UCommonButtonBase
 {

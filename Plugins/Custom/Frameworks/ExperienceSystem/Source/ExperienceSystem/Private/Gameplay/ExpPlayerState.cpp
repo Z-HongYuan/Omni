@@ -43,7 +43,7 @@ void AExpPlayerState::PostInitializeComponents()
 	check(AbilitySystemComponent);
 	AbilitySystemComponent->InitAbilityActorInfo(this, GetPawn());
 
-	// 初始化时注册 OnExperienceLoaded 事件
+	// 仅服务器游戏世界注册体验就绪通知，以授予 PawnData 中的能力。
 	UWorld* World = GetWorld();
 	if (World && World->IsGameWorld() && World->GetNetMode() != NM_Client)
 	{
@@ -62,7 +62,7 @@ void AExpPlayerState::ClientInitialize(class AController* C)
 {
 	Super::ClientInitialize(C);
 
-	// 使组件尝试进入下一步
+	// PlayerState 客户端初始化后，重新检查 Pawn 的初始化条件。
 	if (UExpPawnExtensionComponent* PawnExtComp = UExpPawnExtensionComponent::FindPawnExtensionComponent(GetPawn()))
 	{
 		PawnExtComp->CheckDefaultInitialization();
@@ -83,7 +83,7 @@ const FName AExpPlayerState::NAME_GiveCustomAbilityReady("GiveCustomAbilitiesRea
 
 void AExpPlayerState::SetPawnData(const UExpPawnData* InPawnData)
 {
-	// 检查 PawnData, 并且只能在权威中设置,且仅能设置一次
+	// 只允许权威端写入一次 PawnData，避免重复授予能力。
 	check(InPawnData);
 	if (GetLocalRole() != ROLE_Authority) { return; }
 	if (PawnData)
@@ -95,29 +95,29 @@ void AExpPlayerState::SetPawnData(const UExpPawnData* InPawnData)
 	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, PawnData, this);
 	PawnData = InPawnData;
 
-	// 给予能力集
+	// 将配置中的能力集授予玩家 ASC。
 	for (const UExtAbilitySet* AbilitySet : PawnData->AbilitySets)
 	{
 		if (AbilitySet) AbilitySet->GiveToAbilitySystem(AbilitySystemComponent, nullptr);
 	}
 
-	// 广播能力集已就绪
+	// 通知模块化功能：能力集已授予。
 	UGameFrameworkComponentManager::SendGameFrameworkComponentExtensionEvent(this, NAME_GiveCustomAbilityReady);
 
-	// 强制更新一次
+	// 请求尽快复制新 PawnData。
 	ForceNetUpdate();
 }
 
 void AExpPlayerState::OnExperienceLoaded(const class UExpDefinition* CurrentExperience)
 {
-	// GS加载Exp,然后根据Exp设置PawnData
+	// 体验就绪后通过 GameMode 解析玩家配置。
 
 	// check(CurrentExperience->DefaultPawnData);
 	//
 	// if (CurrentExperience->DefaultPawnData)
 	// 	SetPawnData(CurrentExperience->DefaultPawnData);
 
-	// 统一使用GameMode获取PawnData, 而不是直接使用Experience的DefaultPawnData,因为可能对PawnData有自定义处理
+	// 通过 GameMode 取 PawnData，保留项目自定义的选择逻辑。
 	if (AExpGameMode* CustomGameMode = GetWorld()->GetAuthGameMode<AExpGameMode>())
 	{
 		if (const UExpPawnData* NewPawnData = CustomGameMode->GetPawnDataForController(GetOwningController()))

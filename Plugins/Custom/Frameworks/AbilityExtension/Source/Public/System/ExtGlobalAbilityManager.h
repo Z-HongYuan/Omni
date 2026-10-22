@@ -13,7 +13,7 @@ class UGameplayEffect;
 class UGameplayAbility;
 class UExtAbilitySystemComponent;
 
-// 保存已添加能力  ASC:Handle
+/** 记录各 ASC 由此管理器授予的能力句柄。 */
 USTRUCT()
 struct FGlobalAppliedAbilityList
 {
@@ -27,7 +27,7 @@ struct FGlobalAppliedAbilityList
 	void RemoveFromAll();
 };
 
-// 保存已添加 Effect  ASC:Handle
+/** 记录各 ASC 由此管理器应用的活跃效果句柄。 */
 USTRUCT()
 struct FGlobalAppliedEffectList
 {
@@ -42,10 +42,7 @@ struct FGlobalAppliedEffectList
 };
 
 
-/**
- * Level中的全局技能/效果管理器
- * 会对所有注册到此管理器的ASC应用技能/效果(包括已有的)
- */
+/** 按世界维护全局能力和效果，同时应用于当前及后续注册的 ASC。 */
 UCLASS(MinimalAPI)
 class UExtGlobalAbilityManager : public UWorldSubsystem
 {
@@ -54,38 +51,38 @@ class UExtGlobalAbilityManager : public UWorldSubsystem
 public:
 	UE_API UExtGlobalAbilityManager() { ; }
 
-	// 应用技能到所有注册的ASC
+	/** 应在权威端调用，向已注册 ASC 授予能力，并保存配置供后续注册使用。 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AbilityExtension|GlobalAbility")
 	UE_API void ApplyAbilityToAll(TSubclassOf<UGameplayAbility> Ability);
 
-	// 应用效果到所有注册的ASC
+	/** 应在权威端调用，向已注册 ASC 应用效果，并保存配置供后续注册使用。 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AbilityExtension|GlobalAbility")
 	UE_API void ApplyEffectToAll(TSubclassOf<UGameplayEffect> Effect);
 
-	// 移除技能从所有注册的ASC
+	/** 从已注册 ASC 撤销此管理器授予的指定能力。 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "AbilityExtension|GlobalAbility")
 	UE_API void RemoveAbilityFromAll(TSubclassOf<UGameplayAbility> Ability);
 
-	// 移除效果从所有注册的ASC
+	/** 从已注册 ASC 撤销此管理器应用的指定效果。 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "AbilityExtension|GlobalAbility")
 	UE_API void RemoveEffectFromAll(TSubclassOf<UGameplayEffect> Effect);
 
-	// 在注册ASC，并应用所有的全局效果 (ASC内会自动处理,但是也可以手动)
+	/** 登记 ASC 并应用已有的全局能力和效果；扩展 ASC 在新 Pawn 就绪时调用。 */
 	UE_API void RegisterASC(UExtAbilitySystemComponent* ASC);
 
-	// 将ASC移除，同时移除所有的全局效果 (ASC内会自动处理,但是也可以手动)
+	/** 注销 ASC 并撤销此管理器授予的能力和效果；扩展 ASC 在 EndPlay 时调用。 */
 	UE_API void UnregisterASC(UExtAbilitySystemComponent* ASC);
 
 private:
-	//根据技能分类的 (ASC和Handle键值对)
+	/** 按能力类保存各 ASC 的授予记录。 */
 	UPROPERTY()
 	TMap<TSubclassOf<UGameplayAbility>, FGlobalAppliedAbilityList> AppliedAbilities;
 
-	//根据Effect分类的 (ASC和Handle键值对)
+	/** 按效果类保存各 ASC 的应用记录。 */
 	UPROPERTY()
 	TMap<TSubclassOf<UGameplayEffect>, FGlobalAppliedEffectList> AppliedEffects;
 
-	//注册的全部ASC
+	/** 当前注册到本管理器的 ASC。 */
 	UPROPERTY()
 	TArray<TObjectPtr<UExtAbilitySystemComponent>> RegisteredASCs;
 };

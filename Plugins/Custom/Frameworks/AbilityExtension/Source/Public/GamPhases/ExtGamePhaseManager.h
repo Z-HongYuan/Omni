@@ -19,20 +19,18 @@ DECLARE_DYNAMIC_DELEGATE_OneParam(FExtGamePhaseTagDynamicDelegate, const FGamepl
 
 DECLARE_DELEGATE_OneParam(FExtGamePhaseTagDelegate, const FGameplayTag& PhaseTag);
 
-// 配对规则
+/** 阶段通知的标签匹配规则。 */
 UENUM(BlueprintType)
 enum class EPhaseTagMatchType : uint8
 {
-	// 精确匹配 例如 "A.B" 配对 A.B 不配对 A.B.C)
+	/** 仅匹配相同标签，例如 A.B 不匹配 A.B.C。 */
 	ExactMatch,
 
-	// 模糊匹配 例如 "A.B" 配对 A.B 和 A.B.C)
+	/** 匹配指定标签及其子标签，例如 A.B 匹配 A.B.C。 */
 	PartialMatch
 };
 
-/**
- * 管理游戏阶段的管理器
- */
+/** 通过 GameState 上的 ASC 驱动阶段能力，维护活跃阶段并通知监听者。 */
 UCLASS(MinimalAPI)
 class UExtGamePhaseManager : public UWorldSubsystem
 {
@@ -45,9 +43,11 @@ public:
 
 	UE_API void StartPhase(TSubclassOf<UExtGamePhaseAbility> PhaseAbility, const FExtGamePhaseDelegate& PhaseEndedCallback = FExtGamePhaseDelegate());
 
-	//TODO 返回一个句柄，以便人们可以删除这些。他们只会增长，直到世界重置。
-	//TODO 我们是否应该偶尔清理这些观察者？即使有把手，也不是每个人都会正确地解开它们。
+	// TODO: 返回可注销的监听句柄，目前监听记录只随世界重置释放。
+	// TODO: 考虑定期清理失效监听者，避免遗漏解绑后持续累积。
+	/** 注册开始通知；已有自身或子阶段活跃时立即回调，后续通知按 MatchType 匹配。 */
 	UE_API void WhenPhaseStartsOrIsActive(FGameplayTag PhaseTag, EPhaseTagMatchType MatchType, const FExtGamePhaseTagDelegate& WhenPhaseActive);
+	/** 注册阶段结束通知，当前未提供单独注销接口。 */
 	UE_API void WhenPhaseEnds(FGameplayTag PhaseTag, EPhaseTagMatchType MatchType, const FExtGamePhaseTagDelegate& WhenPhaseEnd);
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, BlueprintPure = false, meta = (AutoCreateRefTerm = "PhaseTag"))
@@ -69,17 +69,17 @@ protected:
 	void OnEndPhase(const UExtGamePhaseAbility* PhaseAbility, const FGameplayAbilitySpecHandle PhaseAbilityHandle);
 
 private:
-	// 能力+阶段Tag+回调的映射
+	/** 活跃阶段对应的标签和结束回调。 */
 	struct FExtGamePhaseEntry
 	{
 		FGameplayTag PhaseTag;
 		FExtGamePhaseDelegate PhaseEndedCallback;
 	};
 
-	//当前活跃的阶段
+	/** 以能力句柄索引的活跃阶段记录。 */
 	TMap<FGameplayAbilitySpecHandle, FExtGamePhaseEntry> ActivePhaseMap;
 
-	// 注册的监听器
+	/** 阶段通知的匹配条件及回调。 */
 	struct FPhaseObserver
 	{
 		bool IsMatch(const FGameplayTag& ComparePhaseTag) const;
@@ -88,8 +88,9 @@ private:
 		FExtGamePhaseTagDelegate PhaseCallback;
 	};
 
-	//监听器
+	/** 注册的阶段开始监听者，当前保留到世界子系统销毁。 */
 	TArray<FPhaseObserver> PhaseStartObservers;
+	/** 注册的阶段结束监听者，当前保留到世界子系统销毁。 */
 	TArray<FPhaseObserver> PhaseEndObservers;
 };
 

@@ -24,7 +24,7 @@ UGameUIPolicy* UGameUIPolicy::GetGameUIPolicy(const UObject* WorldContextObject)
 
 UWorld* UGameUIPolicy::GetWorld() const
 {
-	//原来的逻辑将会在编辑器下崩溃
+	// 编辑器中的对象可能没有所属管理器，此时不提供 World。
 	if (const UGameUIManager* OwningManager = GetOwningUIManager())
 	{
 		return OwningManager->GetGameInstance()->GetWorld();
@@ -64,7 +64,7 @@ void UGameUIPolicy::AddLayoutToViewport(ULocalPlayer* LocalPlayer, UGameUIRootWi
 {
 	UE_LOG(LogGameUI, Log, TEXT("[%s] is adding player [%s]'s root layout [%s] to the viewport"), *GetName(), *GetNameSafe(LocalPlayer), *GetNameSafe(Layout));
 
-	// 设置关联的 LocalPlayer 并添加到视口
+	// 关联本地玩家，确保布局进入对应玩家的视口。
 	Layout->SetPlayerContext(FLocalPlayerContext(LocalPlayer));
 	Layout->AddToPlayerScreen(1000);
 
@@ -94,7 +94,7 @@ void UGameUIPolicy::OnRootLayoutAddedToViewport(ULocalPlayer* LocalPlayer, UGame
 #if WITH_EDITOR
 	if (GIsEditor && LocalPlayer->IsPrimaryPlayer())
 	{
-		// 所以我们的控制器可以在PIE中工作，无需点击视口
+		// PIE 中主动聚焦视口，使手柄无需先点击视口即可操作。
 		FSlateApplication::Get().SetUserFocusToGameViewport(0);
 	}
 #endif
@@ -130,7 +130,7 @@ TSubclassOf<UGameUIRootWidget> UGameUIPolicy::GetLayoutWidgetClass()
 
 void UGameUIPolicy::NotifyPlayerAdded(ULocalPlayer* LocalPlayer)
 {
-	// 在PC改变后重建一遍
+	// Controller 变化时重新挂接已有布局，尚未创建时才新建。
 	LocalPlayer->OnPlayerControllerChanged().AddWeakLambda(
 		this, [this, LocalPlayer](APlayerController*)
 		{
@@ -148,7 +148,7 @@ void UGameUIPolicy::NotifyPlayerAdded(ULocalPlayer* LocalPlayer)
 		}
 	);
 
-	// 直接添加
+	// 玩家加入时立即恢复已有布局，或创建新布局。
 	if (FRootViewportLayoutInfo* LayoutInfo = RootViewportLayouts.FindByKey(LocalPlayer))
 	{
 		AddLayoutToViewport(LocalPlayer, LayoutInfo->RootLayout);
@@ -165,11 +165,11 @@ void UGameUIPolicy::NotifyPlayerRemoved(ULocalPlayer* LocalPlayer)
 	FRootViewportLayoutInfo* LayoutInfo = RootViewportLayouts.FindByKey(LocalPlayer);
 	if (!LayoutInfo) return;
 
-	// 如果是有效数据,那么移除对应玩家的根控件
+	// 移除视口中的布局，保留记录以便后续恢复。
 	RemoveLayoutFromViewport(LocalPlayer, LayoutInfo->RootLayout);
 	LayoutInfo->bAddedToViewport = false;
 
-	// 模式是单人全屏 且 被移除的玩家是次要玩家 那么休眠次要玩家,并且激活主要玩家的控件
+	// SingleToggle 模式下，移除次要玩家的活跃布局时将控制权交回主要玩家。
 	if (LocalMultiplayerInteractionMode == ELocalMultiplayerViewMode::SingleToggle && !LocalPlayer->IsPrimaryPlayer())
 	{
 		UGameUIRootWidget* RootLayout = LayoutInfo->RootLayout;

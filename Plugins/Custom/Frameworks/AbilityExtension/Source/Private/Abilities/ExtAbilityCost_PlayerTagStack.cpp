@@ -17,7 +17,7 @@ bool UExtAbilityCost_PlayerTagStack::CheckCost(const UExtGameplayAbility* Abilit
 {
 	if (AController* PC = Ability->GetControllerFromActorInfo())
 	{
-		//查找组件,有没有UExtTagsStackComponent
+		// 消耗存放在 Controller 对应 PlayerState 的标签堆栈组件中。
 		if (UExtTagsStackComponent* TagsStackComponent = PC->PlayerState->GetComponentByClass<UExtTagsStackComponent>())
 		{
 			const int32 AbilityLevel = Ability->GetAbilityLevel(Handle, ActorInfo);

@@ -86,7 +86,7 @@ void UExtHealthSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackDa
 {
 	Super::PostGameplayEffectExecute(Data);
 
-	// 处理Mate伤害
+	// 消费 MetaDamage，再将生命值限制在有效范围内。
 	if (Data.EvaluatedData.Attribute == GetMetaDamageAttribute())
 	{
 		const float DamageAmount = FMath::Max(GetMetaDamage(), 0.0f);
@@ -94,7 +94,7 @@ void UExtHealthSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackDa
 		SetHealth(FMath::Clamp(GetHealth() - DamageAmount, 0.0f, GetMaxHealth()));
 	}
 
-	// 处理Mate治疗
+	// 消费 MetaHealing，超出生命上限的治疗不保留。
 	if (Data.EvaluatedData.Attribute == GetMetaHealingAttribute())
 	{
 		const float HealingAmount = FMath::Max(GetMetaHealing(), 0.0f);
@@ -102,13 +102,13 @@ void UExtHealthSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackDa
 		SetHealth(FMath::Clamp(GetHealth() + HealingAmount, 0.0f, GetMaxHealth()));
 	}
 
-	// 处理原生健康
+	// GE 直接修改生命值时也应用范围限制。
 	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
 	{
 		SetHealth(FMath::Clamp(GetHealth(), 0.0f, GetMaxHealth()));
 	}
 
-	// 进入死亡状态,并且广播此次的GE上下文
+	// 生命首次归零时广播本次 GE 上下文，死亡状态由外部流程推进。
 	if (GetHealth() <= 0.0f && !bOutOfHealth)
 	{
 		// 先标记，避免监听者同步施加另一个 GE 时重复发送归零事件。

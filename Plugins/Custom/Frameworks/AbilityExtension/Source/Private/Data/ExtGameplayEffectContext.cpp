@@ -16,7 +16,7 @@ FGameplayEffectContext* FExtGameplayEffectContext::Duplicate() const
 	*NewContext = *this;
 	if (GetHitResult())
 	{
-		// 深拷贝
+		// 独立复制命中结果，避免新旧上下文共享同一份结果。
 		NewContext->AddHitResult(*GetHitResult(), true);
 	}
 	return NewContext;

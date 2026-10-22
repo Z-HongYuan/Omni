@@ -10,17 +10,17 @@ bool FUIExtensionPoint::DoesExtensionPassContract(const FUIExtension* Extension)
 {
 	if (UObject* DataPtr = Extension->Data)
 	{
-		// 匹配双方上下文都无效,或者匹配双方上下文相等
+		// 仅双方都未指定上下文，或上下文弱引用相等时匹配。
 		const bool bMatchesContext = (ContextObject.IsExplicitlyNull() && Extension->ContextObject.IsExplicitlyNull()) || ContextObject == Extension->ContextObject;
 
-		// 确保上下文相符。
+		// 上下文匹配后再验证数据类型。
 		if (bMatchesContext)
 		{
-			// 数据可以是该数据类型的字面类，也可以是该类类型的实例。
+			// 数据既可以是 UClass，也可以是对象实例，统一取出待检验的类型。
 			const UClass* DataClass = DataPtr->IsA(UClass::StaticClass()) ? Cast<UClass>(DataPtr) : DataPtr->GetClass();
 			for (const UClass* AllowedDataClass : AllowedDataClasses)
 			{
-				// 如果是子类或者实现其接口都可以被匹配上
+				// 接受允许类型的派生类，以及实现允许接口的类型。
 				if (DataClass->IsChildOf(AllowedDataClass) || DataClass->ImplementsInterface(AllowedDataClass))
 				{
 					return true;

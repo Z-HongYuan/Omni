@@ -8,14 +8,8 @@
 #define UE_API ABILITYEXTENSION_API
 
 /**
- * 定义此游戏阶段能力所属的游戏阶段。例如，
-	如果你的游戏阶段是 GamePhase.RoundStart，那么它将取消所有同级阶段。
-	所以如果你有一个像 GamePhase.WaitingToStart 这样的活动阶段正在启动
-	RoundStart的能力部分将结束WaitingToStart。不过，要实现嵌套行为
-	你也可以嵌套阶段。例如，GamePhase.Playing.NormalPlay 就是一个子阶段
-	属于父游戏阶段 GamePhase.Playing，因此将子阶段更改为 GamePhase.Playing.SuddenDeath，
-	将停止与 GamePhase.Playing.* 相关的任何能力，但不会结束任何能力
-	与 GamePhase.Playing 阶段相关联。
+ * 由服务器驱动的游戏阶段能力，激活和结束时通知阶段管理器。
+ * 新阶段保留相同标签及其父阶段，取消其他活跃阶段，支持父子阶段共存。
  */
 UCLASS(MinimalAPI)
 class UExtGamePhaseAbility : public UExtGameplayAbility
@@ -35,14 +29,7 @@ protected:
 	UE_API virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 	UE_API virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
-	// 定义此游戏阶段能力所属的游戏阶段。例如，
-	// 如果你的游戏阶段是 GamePhase.RoundStart，那么它将取消所有同级阶段。
-	// 所以如果你有一个像 GamePhase.WaitingToStart 这样的活动阶段正在启动
-	// RoundStart的能力部分将结束WaitingToStart。不过，要实现嵌套行为
-	// 你也可以嵌套阶段。例如，GamePhase.Playing.NormalPlay 就是一个子阶段
-	// 属于父游戏阶段 GamePhase.Playing，因此将子阶段更改为 GamePhase.Playing.SuddenDeath，
-	// 将停止与 GamePhase.Playing.* 相关的任何能力，但不会结束任何能力
-	// 与 GamePhase.Playing 阶段相关联。
+	/** 阶段标签，通过标签层级定义父子关系；同一标签可以对应多个阶段能力。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AbilityExtension|Game Phase")
 	FGameplayTag GamePhaseTag;
 };

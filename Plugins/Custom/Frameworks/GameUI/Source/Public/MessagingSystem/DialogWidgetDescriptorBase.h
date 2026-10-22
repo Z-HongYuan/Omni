@@ -8,7 +8,7 @@
 
 #define UE_API GAMEUI_API
 
-/* 对话框的按钮所代表的结果等参数 */
+/** 对话框按钮的结果标签及可选显示文本。 */
 USTRUCT(BlueprintType)
 struct FConfirmationDialogAction
 {
@@ -29,9 +29,7 @@ public:
 	}
 };
 
-/**
- * 对话系统使用的数据基类,带有最基础的对话框信息,可以自定义按钮选项
- */
+/** 描述对话框标题、正文和按钮选项。 */
 UCLASS(MinimalAPI)
 class UDialogWidgetDescriptorBase : public UObject
 {
@@ -43,15 +41,15 @@ public:
 	static UE_API UDialogWidgetDescriptorBase* CreateConfirmationYesNo(const FText& Title, const FText& Body);
 	static UE_API UDialogWidgetDescriptorBase* CreateConfirmationYesNoCancel(const FText& Title, const FText& Body);
 
-	/** 要显示的消息头 */
+	/** 对话框标题。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText Title;
 
-	/** 要显示的消息正文 */
+	/** 对话框正文。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText Body;
 
-	/** 确认按钮的输入动作。 */
+	/** 对话框的按钮选项及对应结果。 */
 	UPROPERTY(BlueprintReadWrite)
 	TArray<FConfirmationDialogAction> ButtonActions;
 };

@@ -5,7 +5,7 @@
 #include "Gameplay/ExpPluginCountManager.h"
 #include "Modules/ModuleManager.h"
 
-// 在BeginPlay的时候重置插件计数器
+/** 转发 BeginPIE 事件以重置插件请求计数，并在模块退出时解除监听。 */
 class FExperienceSystemEditorModule : public IModuleInterface
 {
 public:

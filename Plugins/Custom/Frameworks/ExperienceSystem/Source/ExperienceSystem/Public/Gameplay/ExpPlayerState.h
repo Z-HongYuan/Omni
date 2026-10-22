@@ -11,11 +11,7 @@
 class UExpPawnData;
 class UExtAbilitySystemComponent;
 
-/**
- * 玩家状态
- * 支持 ASC
- * 支持 PawnData
- */
+/** 持有玩家 ASC 与复制的 PawnData，体验就绪后由服务器授予配置中的能力集。 */
 UCLASS(MinimalAPI)
 class AExpPlayerState : public AModularPlayerState, public IAbilitySystemInterface
 {
@@ -34,24 +30,24 @@ public:
 	UE_API virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	//~ ASC接口
 
-	// 用于在 ModularGameplay 中发布的消息名称
+	/** 通过 ModularGameplay 通知能力集已授予的扩展事件名。 */
 	static UE_API const FName NAME_GiveCustomAbilityReady;
 
 	template <class T>
 	const T* GetPawnData() const { return Cast<T>(PawnData); }
 
-	// 设置 PawnData 将会在 体验加载完成后调用
+	/** 由权威端设置一次 PawnData、授予能力集并通知就绪；已有配置时拒绝覆盖。 */
 	UE_API void SetPawnData(const UExpPawnData* InPawnData);
 
 protected:
-	// 使用 体验 来加载 PawnData
+	/** 体验就绪后通过 GameMode 取得 PawnData，保留项目自定义选择策略。 */
 	UE_API virtual void OnExperienceLoaded(const class UExpDefinition* CurrentExperience);
 
 	UFUNCTION()
 	UE_API virtual void OnRep_PawnData() { ; }
 
 private:
-	// 玩家使用的 ASC 组件子对象
+	/** 由 PlayerState 创建并持有的玩家 ASC 子对象。 */
 	UPROPERTY(VisibleAnywhere, Category = "PlayerState")
 	TObjectPtr<UExtAbilitySystemComponent> AbilitySystemComponent;
 

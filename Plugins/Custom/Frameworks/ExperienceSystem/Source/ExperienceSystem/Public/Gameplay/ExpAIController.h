@@ -7,9 +7,7 @@
 
 #define UE_API EXPERIENCESYSTEM_API
 
-/**
- * 体验系统使用的 AI 控制器基类
- */
+/** 体验系统的 AI 控制器，复用 PlayerState 的 PawnData、ASC 与 GameMode 重生流程。 */
 UCLASS(MinimalAPI)
 class AExpAIController : public AModularAIController
 {
@@ -18,10 +16,7 @@ class AExpAIController : public AModularAIController
 public:
 	UE_API AExpAIController(const FObjectInitializer& ObjectInitializer);
 
-	// 尝试重启此控制器（例如重生）
-	// 仅服务端生效，内部会先走 GameMode 的 ControllerCanRestart 判定，再交给 GameMode 统一重生
-	// 与 APlayerController 的 ServerRestartPlayer_Implementation 是一对，由 GameMode 的 RequestPlayerRestartNextFrame 调用
-	// 将 AIController 统一重启流程，与 APlayerController 保持一致
+	/** 仅服务器尝试重生 Inactive 或 Spectating 状态的控制器；通过 ControllerCanRestart 后交给 GameMode。 */
 	UFUNCTION(BlueprintCallable, Category = "Experience")
 	UE_API void ServerRestartController();
 };

@@ -11,20 +11,18 @@
 class AController;
 class UObject;
 
-// 出生点的占用状态
+/** 出生点对待生成 Pawn 的碰撞容纳状态。 */
 enum class EExpPlayerStartLocationOccupancy : uint8
 {
-	// 完全空着，可以直接放
+	/** 当前位置无阻挡，可直接放置 Pawn。 */
 	Empty,
-	// 有碰撞但可以找到一个传送落点
+	/** 当前位置有阻挡，但可找到附近的传送落点。 */
 	Partial,
-	// 放不下
+	/** 无法容纳 Pawn，或当前无权威端检测条件。 */
 	Full
 };
 
-/**
- * 体验系统使用的出生点基类
- */
+/** 提供碰撞占用检测、声明占用和筛选标签的体验出生点。 */
 UCLASS(MinimalAPI, Config = Game)
 class AExpPlayerStart : public APlayerStart
 {
@@ -33,35 +31,35 @@ class AExpPlayerStart : public APlayerStart
 public:
 	UE_API AExpPlayerStart(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	// 获取此出生点的 GameplayTag，供生成管理组件过滤
+	/** 返回出生点标签，供选点策略过滤。 */
 	const FGameplayTagContainer& GetGameplayTags() const { return StartPointTags; }
 
-	// 判断能否放得下这个控制器即将生成的 Pawn
+	/** 在权威端按控制器实际使用的 Pawn 类型检测碰撞空间；客户端返回 Full。 */
 	UE_API EExpPlayerStartLocationOccupancy GetLocationOccupancy(AController* const ControllerPawnToFit) const;
 
-	// 此出生点是否已经被某个控制器声明占用
+	/** 是否存在声明占用的控制器，与碰撞占用检测分开记录。 */
 	UE_API bool IsClaimed() const;
 
-	// 如果尚未被占用，则为指定的控制器声明占用
+	/** 尚未声明占用时记录控制器并启动检查计时，不进行碰撞检测。 */
 	UE_API bool TryClaim(AController* OccupyingController);
 
 protected:
-	// 检查此出生点是否已经不再被占用（占用者已经离开且位置空出来了就释放）
+	/** 控制器已有 Pawn 且出生位置无阻挡时，释放声明占用并停止计时。 */
 	UE_API void CheckUnclaimed();
 
-	// 当前声明占用此出生点的控制器
+	/** 当前声明占用出生点的控制器。 */
 	UPROPERTY(Transient)
 	TObjectPtr<AController> ClaimingController = nullptr;
 
-	// 检查占用是否过期的时间间隔
+	/** 检查声明占用能否释放的间隔，单位为秒。 */
 	UPROPERTY(EditDefaultsOnly, Category = "Player Start Claiming")
 	float ExpirationCheckInterval = 1.f;
 
-	// 用于识别此出生点的标签
+	/** 供选点策略识别出生点的标签。 */
 	UPROPERTY(EditAnywhere)
 	FGameplayTagContainer StartPointTags;
 
-	// 用于跟踪过期检查的定时器句柄
+	/** 声明占用释放检查的定时器句柄。 */
 	FTimerHandle ExpirationTimerHandle;
 };
 

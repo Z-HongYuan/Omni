@@ -13,18 +13,16 @@ struct FStreamableHandle;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FCreateWidgetAsyncDelegate, UUserWidget*, UserWidget);
 
-/**
- * 异步加载控件类，加载完成后创建控件实例，并在 OnComplete 返回指针。
- */
+/** 异步加载并创建控件，通过 OnComplete 通知结果。 */
 UCLASS(MinimalAPI, BlueprintType)
 class UAsyncAction_CreateWidget : public UCancellableAsyncAction
 {
 	GENERATED_BODY()
 
 public:
-	/*
-	 * 异步加载控件类,并且在加载完成后创建控件实例并返回
-	 * 可选择是否暂停输入；加载或创建失败时返回空控件，主动取消时不广播。
+	/**
+	 * 异步加载控件类并创建实例，可选择在加载期间暂停所属本地玩家的输入。
+	 * 加载或创建失败时广播空控件；取消时恢复输入且不广播完成事件。
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, meta=(WorldContext = "WorldContextObject", BlueprintInternalUseOnly="true"), Category=GameUI)
 	static UE_API UAsyncAction_CreateWidget* CreateWidgetAsync(UObject* WorldContextObject, TSoftClassPtr<UUserWidget> InUserWidgetSoftClass, APlayerController* InOwningPlayer, bool bSuspendInputUntilComplete = true);

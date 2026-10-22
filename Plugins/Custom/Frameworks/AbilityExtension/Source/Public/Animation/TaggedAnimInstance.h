@@ -8,9 +8,7 @@
 
 #define UE_API ABILITYEXTENSION_API
 
-/**
- * 带有 Tag 绑定的 AnimInstance
- */
+/** 将 ASC 的标签变化映射到动画蓝图属性。 */
 UCLASS(MinimalAPI)
 class UTaggedAnimInstance : public UAnimInstance
 {
@@ -21,6 +19,7 @@ public:
 
 	UE_API virtual void NativeInitializeAnimation() override;
 
+	/** 绑定有效 ASC；动画初始化时未找到 ASC 的调用方应在其就绪后补调。 */
 	UE_API virtual void InitializeWithAbilitySystem(UAbilitySystemComponent* ASC);
 
 #if WITH_EDITOR
@@ -28,7 +27,7 @@ public:
 #endif
 
 protected:
-	// 可以映射到蓝图变量的游戏标签。变量会随着标签的添加或移除自动更新。这些应该用来代替手动查询游戏标签。
+	/** 将游戏标签映射到蓝图变量，标签变化时自动更新变量。 */
 	UPROPERTY(EditDefaultsOnly, Category = "GameplayTags")
 	FGameplayTagBlueprintPropertyMap GameplayTagPropertyMap;
 };

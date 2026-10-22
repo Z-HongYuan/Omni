@@ -15,9 +15,7 @@ enum class EGameUserPrivilege : uint8;
 class UGameUserInfo;
 struct FGameplayTag;
 
-/**
- * 自定义的游戏实例,充当胶水模块
- */
+/** 连接用户、会话和消息系统，转发游戏实例级流程。 */
 UCLASS(MinimalAPI, Abstract, Config = Game)
 class UExtGameInstance : public UGameInstance
 {
@@ -29,7 +27,7 @@ public:
 	UE_API virtual void Init() override;
 	UE_API virtual void ReturnToMainMenu() override;
 
-	/** 处理 GameUser 的错误 使用 MessagingSystem 进行 UI 展示*/
+	/** 将 GameUser 错误转发给首个本地玩家的消息对话框。 */
 	UFUNCTION()
 	UE_API virtual void HandleSystemMessage(FGameplayTag MessageType, FText Title, FText Message);
 	UFUNCTION()
@@ -38,24 +36,18 @@ public:
 	UE_API virtual void HandlerUserInitialized(const UGameUserInfo* UserInfo, bool bSuccess, FText Error, EGameUserPrivilege RequestedPrivilege, EGameUserOnlineContext OnlineContext);
 
 
-	/** 调用重置用户和会话状态，通常是因为某位玩家已经断开连接 传递到 GameUser 和 SessionSubsystem */
+	/** 重置 GameUser 状态并清理会话，供返回主菜单等流程调用。 */
 	UE_API virtual void ResetUserAndSessionState();
 
-	/**
-	 * 请求会话流程
-	 *   某处请求用户加入特定会话（例如，通过平台覆盖层触发 OnUserRequestedSession）。
-	 *   此请求在 SetRequestedSession 中处理。
-	 *   检查是否可以立即加入请求的会话（CanJoinRequestedSession）。如果可以，加入该会话（JoinRequestedSession）。
-	 *   如果不行，缓存请求的会话并指示游戏进入可以加入会话的状态（ResetGameAndJoinRequestedSession）。
-	 */
+	// 外部邀请经 SetRequestedSession 缓存；无法立即加入时先切换到可加入会话的状态。
 
-	/** 获取缓存的会话 */
+	/** 获取尚待处理的会话请求。 */
 	UGameUserSession_SearchResult* GetRequestedSession() const { return RequestedSession; }
 
 	/** 处理用户从外部源（例如平台覆盖层）接受会话邀请。预期由每个游戏重写。 */
 	UE_API virtual void OnUserRequestedSession(const FPlatformUserId& PlatformUserId, UGameUserSession_SearchResult* InRequestedSession, const FOnlineResultInformation& RequestedSessionResult);
 
-	/** 处理 OSS 请求销毁会话 */
+	/** 处理 OSS 的会话销毁请求，并返回主菜单。 */
 	UE_API virtual void OnDestroySessionRequested(const FPlatformUserId& PlatformUserId, const FName& SessionName);
 
 	/** 设置（或清除）请求的会话。设置后，请求会话流程开始。 */
@@ -64,10 +56,10 @@ public:
 	/** 检查是否可以加入请求的会话。可由每个游戏重写。 */
 	UE_API virtual bool CanJoinRequestedSession() const;
 
-	/** 加入请求的会话 */
+	/** 使用首个本地玩家加入缓存的会话；提交前清除缓存。 */
 	UE_API virtual void JoinRequestedSession();
 
-	/** 使游戏进入可以加入请求会话的状态 */
+	/** 默认返回主菜单；派生类在游戏就绪后应调用 JoinRequestedSession。 */
 	UE_API virtual void ResetGameAndJoinRequestedSession();
 
 private:

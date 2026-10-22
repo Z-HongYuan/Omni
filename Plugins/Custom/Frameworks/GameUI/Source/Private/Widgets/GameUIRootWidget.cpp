@@ -39,7 +39,7 @@ void UGameUIRootWidget::SetIsDormant(bool InDormant)
 {
 	if (bIsDormant == InDormant) return;
 
-	// 打印 Log 信息
+	// 记录所属玩家及休眠状态变化，便于定位控制权切换。
 	const ULocalPlayer* LP = GetOwningLocalPlayer();
 	const int32 PlayerId = LP ? LP->GetControllerId() : -1;
 	const TCHAR* OldDormancyStr = bIsDormant ? TEXT("Dormant") : TEXT("Not-Dormant");
@@ -53,7 +53,7 @@ void UGameUIRootWidget::SetIsDormant(bool InDormant)
 
 void UGameUIRootWidget::OnIsDormantChanged()
 {
-	// 暂时禁用过渡动画，避免手柄焦点在切换控件时落到错误位置。
+	// 留给派生类响应休眠变化；基类不直接改变可见性。
 }
 
 void UGameUIRootWidget::FindAndRemoveWidgetFromLayer(UCommonActivatableWidget* ActivatableWidget)
@@ -74,9 +74,7 @@ void UGameUIRootWidget::RegisterLayer(FGameplayTag LayerTag, UCommonActivatableW
 	if (!IsDesignTime())
 	{
 		LayerWidget->OnTransitioningChanged.AddUObject(this, &UGameUIRootWidget::OnWidgetStackTransitioning);
-		// TODO: Consider allowing a transition duration, we currently set it to 0, because if it's not 0, the
-		//       transition effect will cause focus to not transition properly to the new widgets when using
-		//       gamepad always.
+		// TODO: 支持非零过渡时长前需解决手柄焦点切换问题，目前使用零时长。
 		LayerWidget->SetTransitionDuration(0.0);
 
 		Layers.Add(LayerTag, LayerWidget);
@@ -85,7 +83,7 @@ void UGameUIRootWidget::RegisterLayer(FGameplayTag LayerTag, UCommonActivatableW
 
 void UGameUIRootWidget::OnWidgetStackTransitioning(UCommonActivatableWidgetContainerBase* Widget, bool bIsTransitioning)
 {
-	// 在转换过程中禁用输入
+	// 过渡期间暂停输入；每次结束只归还对应的一枚令牌。
 	if (bIsTransitioning)
 	{
 		const FName SuspendToken = UUIHelperFunctions::SuspendInputForPlayer(GetOwningLocalPlayer(), TEXT("GlobalStackTransion"));

@@ -40,7 +40,7 @@ void UAsyncAction_ExperienceReady::Activate()
 	}
 	else
 	{
-		// 如果无效的话,直接结束监听
+		// 世界无效时结束监听，不广播就绪。
 		UE_LOG(LogExpSystem, Warning, TEXT("UAsyncAction_ExperienceReady::Activate: World is null"));
 		SetReadyToDestroy();
 	}
@@ -68,11 +68,10 @@ void UAsyncAction_ExperienceReady::ListenToExperienceLoading(const AGameStateBas
 		UWorld* World = GameState->GetWorld();
 		check(World);
 
-		// The experience happened to be already loaded, but still delay a frame to
-		// make sure people don't write stuff that relies on this always being true
-		//@TODO: Consider not delaying for dynamically spawned stuff / any time after the loading screen has dropped?
-		//@TODO: Maybe just inject a random 0-1s delay in the experience load itself?
-		// 已加载的情况下,下帧触发委托并且销毁异步操作
+		// 即使体验已就绪也延后一帧，避免调用方依赖同步完成。
+		// TODO: 评估动态生成对象或加载界面结束后是否仍需延迟一帧。
+		// TODO: 评估是否可统一使用体验加载阶段的随机延迟测试。
+		// 下一帧检查操作仍有效后通知，并释放操作。
 		World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([WeakThis]()
 		{
 			if (WeakThis.IsValid())
@@ -84,7 +83,7 @@ void UAsyncAction_ExperienceReady::ListenToExperienceLoading(const AGameStateBas
 	}
 	else
 	{
-		// 如果还在加载,就注册一个委托,当体验完成后触发,体验加载完成后会自动销毁委托
+		// 等待体验回调后通知并释放操作，管理器在广播后清空委托列表。
 		ExperienceComponent->CallOrRegister_OnExperienceLoaded(FExpLoaded::FDelegate::CreateLambda([WeakThis](const UExpDefinition* CurrentExperience)
 		{
 			WeakThis->OnReady.Broadcast();

@@ -92,7 +92,7 @@ bool UExtHealthComponent::InitializeHealthForSpawn()
 		return false;
 	}
 
-	// 沿用 Lyra 的基础值设置方式，但由项目出生流程显式调用，不放进 ASC 绑定。
+	// 出生流程显式设置基础生命值，ASC 绑定本身不触发治疗。
 	// 先标记，避免属性通知中的重入再次初始化；已有 GE 的保留策略仍由玩法决定。
 	bHasInitializedSpawnHealth = true;
 	AbilitySystemComponent->SetNumericAttributeBase(UExtHealthSet::GetHealthAttribute(), GetMaxHealth());
@@ -147,7 +147,7 @@ void UExtHealthComponent::FinishDeath()
 
 	if (AbilitySystemComponent)
 	{
-		// 与 Lyra 一致，结束时保留 Dying，注销 ASC 时统一清理两个标签。
+		// 结束时保留 Dying，解绑 ASC 时统一清理两个死亡标签。
 		AbilitySystemComponent->SetLooseGameplayTagCount(ExtAbilitySystemTags::TAG_Status_Death_Dead, 1);
 	}
 
@@ -159,7 +159,7 @@ void UExtHealthComponent::FinishDeath()
 
 void UExtHealthComponent::DamageSelfDestruct(bool bFellOutOfWorld)
 {
-	// 项目额外约束：蓝图和 C++ 调用都只允许服务器应用自毁伤害。
+	// 显式检查网络权限，蓝图和 C++ 调用均只允许服务器结算自毁伤害。
 	if (!GetOwner()->HasAuthority() || IsDeadOrDying() || !AbilitySystemComponent) return;
 
 	const UExtAbilitySystemSettings* Settings = GetDefault<UExtAbilitySystemSettings>();

@@ -4,7 +4,7 @@
 
 #include "Logging/LogCategory.h"
 
-//定义Log
+// CoreExtension 日志分类。
 DECLARE_LOG_CATEGORY_EXTERN(LogCoreExtension, Log, All);
 
 COREEXTENSION_API FString GetClientServerContextString(UObject* ContextObject = nullptr);

@@ -16,7 +16,7 @@
 UExpPawnExtensionComponent::UExpPawnExtensionComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	// 不需要Tick更新
+	// 初始化由事件推动，不需要 Tick。
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 	PrimaryComponentTick.bCanEverTick = false;
 
@@ -44,7 +44,7 @@ void UExpPawnExtensionComponent::OnRegister()
 	Pawn->GetComponents(UExpPawnExtensionComponent::StaticClass(), PawnExtensionComponents);
 	ensureAlwaysMsgf((PawnExtensionComponents.Num() == 1), TEXT("Only one PawnExtensionComponent should exist on [%s]."), *GetNameSafe(GetOwner()));
 
-	// 将次插件注册到初始化状态系统中,前面的都是检查条件
+	// 确认组件只挂载于 Pawn 且没有重复实例后，注册初始化功能。
 	RegisterInitStateFeature();
 }
 
@@ -52,48 +52,40 @@ void UExpPawnExtensionComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// 监听其他所有的组件变化
+	// 监听同一 Actor 上所有初始化功能的状态变化。
 	BindOnActorInitStateChanged(NAME_None, FGameplayTag(), false);
 
-	// 直接尝试进入第一个状态,并且推动一下其他状态
+	// 先进入 Spawned，再尝试推进后续状态。
 	ensure(TryToChangeInitState(ExpSystemTags::TAG_InitState_Spawned));
 	CheckDefaultInitialization();
 }
 
 void UExpPawnExtensionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	// 注销 ASC
 	UninitializeAbilitySystem();
 
-	// 注销初始化状态功能
 	UnregisterInitStateFeature();
 
 	Super::EndPlay(EndPlayReason);
 }
 
-// 初始化状态使用的判断标志
 const FName UExpPawnExtensionComponent::NAME_ActorFeatureName("PawnExtension");
 
 bool UExpPawnExtensionComponent::CanChangeInitState(UGameFrameworkComponentManager* Manager, FGameplayTag CurrentState, FGameplayTag DesiredState) const
 {
-	// 前置条件
 	check(Manager);
 	APawn* Pawn = GetPawn<APawn>();
 
-	// 从 None 进入 Spawned 状态
 	if (!CurrentState.IsValid() && DesiredState == ExpSystemTags::TAG_InitState_Spawned)
 	{
-		// 只要Pawn存在，就认为是已生成
 		if (Pawn) return true;
 	}
 
-	// 从 Spawned 进入 DataAvailable 状态
 	if (CurrentState == ExpSystemTags::TAG_InitState_Spawned && DesiredState == ExpSystemTags::TAG_InitState_DataAvailable)
 	{
-		// 需要PawnData有效
 		if (!PawnData) return false;
 
-		// 在客户端或者服务器 都需要有控制器
+		// 权威端和本地控制端需要 Controller；模拟代理不以此为前置条件。
 		const bool bHasAuthority = Pawn->HasAuthority();
 		const bool bIsLocallyControlled = Pawn->IsLocallyControlled();
 		if (bHasAuthority || bIsLocallyControlled)
@@ -104,18 +96,14 @@ bool UExpPawnExtensionComponent::CanChangeInitState(UGameFrameworkComponentManag
 		return true;
 	}
 
-	// 从 DataAvailable 进入 DataInitialized 状态
 	if (CurrentState == ExpSystemTags::TAG_InitState_DataAvailable && DesiredState == ExpSystemTags::TAG_InitState_DataInitialized)
 	{
-		//如果所有功能都有可用数据，则转换为初始化
-		//相当于其他的所有组件都需要进入到 DataAvailable
+		// 所有功能都达到 DataAvailable 后才能跨过共同初始化屏障。
 		return Manager->HaveAllFeaturesReachedInitState(Pawn, ExpSystemTags::TAG_InitState_DataAvailable);
 	}
 
-	// 从 DataInitialized 进入 GameplayReady 状态
 	if (CurrentState == ExpSystemTags::TAG_InitState_DataInitialized && DesiredState == ExpSystemTags::TAG_InitState_GameplayReady)
 	{
-		// 无条件进入
 		return true;
 	}
 
@@ -126,14 +114,13 @@ void UExpPawnExtensionComponent::HandleChangeInitState(UGameFrameworkComponentMa
 {
 	if (DesiredState == ExpSystemTags::TAG_InitState_DataInitialized)
 	{
-		// 不做任何处理,这个组件仅是保证其他组件的流程时机
-		// 其他组件将会处理
+		// 此处只提供初始化屏障，具体数据初始化由其他功能负责。
 	}
 }
 
 void UExpPawnExtensionComponent::OnActorInitStateChanged(const FActorInitStateChangedParams& Params)
 {
-	// 在其他任何组件进入 DataAvailable 状态时，检查是否需要推进下一个状态,这样就确保了所有组件都有可用数据，才会进入 DataInitialized 状态
+	// 其他功能达到 DataAvailable 时重新检查屏障，全部就绪后才能推进。
 	if (Params.FeatureName != NAME_ActorFeatureName)
 	{
 		if (Params.FeatureState == ExpSystemTags::TAG_InitState_DataAvailable)
@@ -145,10 +132,10 @@ void UExpPawnExtensionComponent::OnActorInitStateChanged(const FActorInitStateCh
 
 void UExpPawnExtensionComponent::CheckDefaultInitialization()
 {
-	//在检查我们的进度之前，请尝试开发我们可能依赖的任何其他功能
+	// 先推动其他初始化功能，再检查本组件依赖是否满足。
 	CheckDefaultInitializationForImplementers();
 
-	// 按照状态链依次尝试推进
+	// 按已注册状态链依次推进，不回退状态。
 	ContinueInitStateChain(ExpSystemTags::ComponentStateChain);
 }
 
@@ -158,10 +145,10 @@ void UExpPawnExtensionComponent::SetPawnData(const UExpPawnData* InPawnData)
 
 	APawn* Pawn = GetPawnChecked<APawn>();
 
-	// 必须 在权威中设置
+	// 仅权威端写入 PawnData，由复制通知客户端。
 	if (!Pawn->HasAuthority()) return;
 
-	// 如果已经设置了PawnData,则不允许重复设置
+	// PawnData 只设置一次，避免初始化后替换配置。
 	if (PawnData)
 	{
 		UE_LOG(LogExpSystemPawnData, Error, TEXT("Trying to set PawnData [%s] on pawn [%s] that already has valid PawnData [%s]."), *GetNameSafe(InPawnData), *GetNameSafe(Pawn), *GetNameSafe(PawnData));
@@ -170,14 +157,13 @@ void UExpPawnExtensionComponent::SetPawnData(const UExpPawnData* InPawnData)
 
 	PawnData = InPawnData;
 
-	// 强制网络更新,并推进初始化状态链
+	// 请求网络更新并重新检查初始化条件。
 	Pawn->ForceNetUpdate();
 	CheckDefaultInitialization();
 }
 
 void UExpPawnExtensionComponent::CallOrRegister_AbilitySystemInitialized(FSimpleMulticastDelegate::FDelegate Delegate)
 {
-	// 没有被绑定过，才添加
 	if (!OnAbilitySystemInitialized.IsBoundToObject(Delegate.GetUObject()))
 	{
 		OnAbilitySystemInitialized.Add(Delegate);
@@ -191,7 +177,6 @@ void UExpPawnExtensionComponent::CallOrRegister_AbilitySystemInitialized(FSimple
 
 void UExpPawnExtensionComponent::Register_AbilitySystemUninitialized(FSimpleMulticastDelegate::FDelegate Delegate)
 {
-	// 没有被绑定过，才添加
 	if (!OnAbilitySystemUninitialized.IsBoundToObject(Delegate.GetUObject()))
 	{
 		OnAbilitySystemUninitialized.Add(Delegate);
@@ -200,14 +185,13 @@ void UExpPawnExtensionComponent::Register_AbilitySystemUninitialized(FSimpleMult
 
 void UExpPawnExtensionComponent::InitializeAbilitySystem(UExtAbilitySystemComponent* InASC, AActor* InOwnerActor)
 {
-	// 前置条件
 	check(InASC);
 	check(InOwnerActor);
 
-	// 没有改变的话就不做任何事情
+	// ASC 未变时不重复绑定和广播。
 	if (AbilitySystemComponent == InASC) return;
 
-	// 先清理一遍 旧的 ASC
+	// 先解除本组件已有的 ASC 绑定。
 	if (AbilitySystemComponent) UninitializeAbilitySystem();
 
 
@@ -220,8 +204,7 @@ void UExpPawnExtensionComponent::InitializeAbilitySystem(UExtAbilitySystemCompon
 	{
 		UE_LOG(LogExpSystem, Log, TEXT("Existing avatar (authority=%d)"), ExistingAvatar->HasAuthority() ? 1 : 0);
 
-		//已经有一枚棋子充当ASC的化身，所以我们需要把它踢出去
-		//客户滞后会导致 NewPawn在OldPawn移除之前生成并控制了
+		// 客户端复制顺序可能使新 Pawn 先于旧 Pawn 清理完成，需要先解除旧 Avatar 绑定。
 		ensure(!ExistingAvatar->HasAuthority());
 
 		if (UExpPawnExtensionComponent* OtherExtensionComponent = FindPawnExtensionComponent(ExistingAvatar))
@@ -233,7 +216,7 @@ void UExpPawnExtensionComponent::InitializeAbilitySystem(UExtAbilitySystemCompon
 	AbilitySystemComponent = InASC;
 	AbilitySystemComponent->InitAbilityActorInfo(InOwnerActor, Pawn);
 
-	// 设置 ASC 的能力关系映射
+	// 将 PawnData 的能力标签关系映射应用到 ASC。
 	if (ensure(PawnData))
 	{
 		InASC->SetTagRelationshipMapping(PawnData->TagRelationshipMapping);
@@ -244,10 +227,9 @@ void UExpPawnExtensionComponent::InitializeAbilitySystem(UExtAbilitySystemCompon
 
 void UExpPawnExtensionComponent::UninitializeAbilitySystem()
 {
-	// 前置检查
 	if (!AbilitySystemComponent) return;
 
-	// 确保 ASC 的化身就是 当前Pawn
+	// 只清理仍以当前 Pawn 为 Avatar 的 ASC，避免旧 Pawn 影响新的绑定。
 	if (AbilitySystemComponent->GetAvatarActor() == GetOwner())
 	{
 		// 与死亡技能共用豁免标签；这里只取消运行中的技能，不移除授予。
@@ -264,7 +246,7 @@ void UExpPawnExtensionComponent::UninitializeAbilitySystem()
 		}
 		else
 		{
-			// 如果 ASC 没有有效信息,那么要清除所有的演员信息
+			// ASC 已无 Owner 时清空 ActorInfo，不只清空 Avatar。
 			AbilitySystemComponent->ClearActorInfo();
 		}
 

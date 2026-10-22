@@ -12,10 +12,7 @@ struct FGameplayTag;
 class UExtInputConfig;
 class UEnhancedInputLocalPlayerSubsystem;
 
-/*
- * 自定义的增强输入插件,支持输入与Tag之间绑定
- * 用于使用输入配置数据资产管理输入映射和绑定。
- */
+/** 按输入配置绑定原生动作及能力标签回调的增强输入组件。 */
 UCLASS(MinimalAPI, ClassGroup=(Input))
 class UExtInputComponent : public UEnhancedInputComponent
 {
@@ -24,7 +21,9 @@ class UExtInputComponent : public UEnhancedInputComponent
 public:
 	UE_API UExtInputComponent();
 
+	/** 输入映射扩展入口，当前仅检查参数，不添加映射。 */
 	UE_API void AddInputMappings(const UExtInputConfig* InputConfig, UEnhancedInputLocalPlayerSubsystem* InputSubsystem) const;
+	/** 输入映射移除入口，当前仅检查参数，不移除映射。 */
 	UE_API void RemoveInputMappings(const UExtInputConfig* InputConfig, UEnhancedInputLocalPlayerSubsystem* InputSubsystem) const;
 
 	template <class UserClass, typename FuncType>
@@ -37,6 +36,7 @@ public:
 		}
 	};
 
+	/** 绑定 Triggered 为按下、Completed/Canceled 为释放，并记录句柄供 RemoveBinds 解除。 */
 	template <class UserClass, typename PressedFuncType, typename ReleasedFuncType>
 	void BindAbilityActions(const UExtInputConfig* InputConfig, UserClass* Object, PressedFuncType PressedFunc, ReleasedFuncType ReleasedFunc, TArray<uint32>& BindHandles)
 	{

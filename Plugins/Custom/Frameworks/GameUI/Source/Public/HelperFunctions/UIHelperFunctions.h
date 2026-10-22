@@ -22,48 +22,48 @@ class UUIHelperFunctions : public UBlueprintFunctionLibrary
 public:
 	UUIHelperFunctions() { ; }
 
-	// 在控件蓝图中获取当前的输入模式 (键鼠/手柄/...)
+	/** 查询控件所属本地玩家的输入设备类型；无法查询时返回 Count。 */
 	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category = "GameUI", meta = (WorldContext = "WidgetContextObject"))
 	static UE_API ECommonInputType GetOwningPlayerInputType(const UUserWidget* WidgetContextObject);
 
-	// 在控件蓝图中获取当前的输入模式是否为触摸
+	/** 查询控件所属玩家是否使用触摸输入。 */
 	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category = "GameUI", meta = (WorldContext = "WidgetContextObject"))
 	static UE_API bool IsOwningPlayerUsingTouch(const UUserWidget* WidgetContextObject);
 
-	// 在控件蓝图中获取当前的输入模式是否为手柄
+	/** 查询控件所属玩家是否使用手柄输入。 */
 	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category = "GameUI", meta = (WorldContext = "WidgetContextObject"))
 	static UE_API bool IsOwningPlayerUsingGamepad(const UUserWidget* WidgetContextObject);
 
-	// 同步推送控件到指定本地玩家 并获取控件引用
+	/** 同步推送控件到指定本地玩家的 UI 层，失败时返回空指针。 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GameUI")
 	static UE_API UCommonActivatableWidget* PushWidgetToLayerForPlayer(const ULocalPlayer* LocalPlayer,
 	                                                                   UPARAM(meta = (Categories = "GameUI.UIStack")) FGameplayTag LayerName,
 	                                                                   UPARAM(meta = (AllowAbstract = false)) TSubclassOf<UCommonActivatableWidget> WidgetClass);
 
-	// 异步推送控件到指定本地玩家
+	/** 异步推送控件到指定本地玩家的 UI 层，并在加载期间暂停输入。 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GameUI")
 	static UE_API void PushSoftWidgetToLayerForPlayer(const ULocalPlayer* LocalPlayer,
 	                                                  UPARAM(meta = (Categories = "GameUI.UIStack")) FGameplayTag LayerName,
 	                                                  UPARAM(meta = (AllowAbstract = false)) TSoftClassPtr<UCommonActivatableWidget> WidgetClass);
 
-	// 在所有堆栈中寻找并删除指定的控件
+	/** 从所属玩家的各个 UI 堆栈中移除指定控件。 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GameUI")
 	static UE_API void RemoveWidgetFromLayer(UCommonActivatableWidget* ActivatableWidget);
 
-	// 从控制器中获取本地玩家
+	/** 从控制器获取本地玩家；控制器无效时返回空指针。 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GameUI")
 	static UE_API ULocalPlayer* GetLocalPlayerFromController(APlayerController* PlayerController);
 
-	// 有原因的暂停玩家输入 本质上是使用 UCommonInputSubsystem 过滤了所有输入
+	/** 为玩家的各类输入添加过滤令牌；调用方须保存令牌并在结束时恢复。 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GameUI")
 	static UE_API FName SuspendInputForPlayer(APlayerController* PlayerController, FName SuspendReason);
-	// 有原因的暂停玩家输入 本质上是使用 UCommonInputSubsystem 过滤了所有输入
+	/** 为玩家的各类输入添加过滤令牌；调用方须保存令牌并在结束时恢复。 */
 	static UE_API FName SuspendInputForPlayer(const ULocalPlayer* LocalPlayer, FName SuspendReason);
 
-	// 有原因的恢复玩家输入 本质上是使用 UCommonInputSubsystem 过滤了所有输入
+	/** 移除指定令牌的输入过滤；其他暂停令牌仍然有效。 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "GameUI")
 	static UE_API void ResumeInputForPlayer(APlayerController* PlayerController, FName SuspendToken);
-	// 有原因的恢复玩家输入 本质上是使用 UCommonInputSubsystem 过滤了所有输入
+	/** 移除指定令牌的输入过滤；其他暂停令牌仍然有效。 */
 	static UE_API void ResumeInputForPlayer(const ULocalPlayer* LocalPlayer, FName SuspendToken);
 
 private:

@@ -5,9 +5,7 @@
 #include "GameplayEffectTypes.h"
 #include "ExtGameplayEffectContext.generated.h"
 
-/*
- * 最基础的 GameplayEffectContext 继承拓展方法
- */
+/** 效果上下文的扩展类型，复制时独立保存命中结果，当前未新增序列化字段。 */
 USTRUCT()
 struct FExtGameplayEffectContext : public FGameplayEffectContext
 {
@@ -15,16 +13,16 @@ struct FExtGameplayEffectContext : public FGameplayEffectContext
 
 	FExtGameplayEffectContext() { ; }
 
-	// 必须！告诉引擎"我是自定义类型"
+	/** 返回扩展类型信息，供类型检查及序列化使用。 */
 	virtual UScriptStruct* GetScriptStruct() const override;
 
-	// 必须！引擎内部复制 EffectContext 时调用
+	/** 复制上下文，并深拷贝已有命中结果。 */
 	virtual FGameplayEffectContext* Duplicate() const override;
 
-	// 必须！如果有网络需求
+	/** 使用父类逻辑序列化效果上下文。 */
 	virtual bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess) override;
 
-	// 必须！静态工厂函数,安全提取
+	/** 校验实际类型并提取扩展上下文；类型不符或句柄为空时返回空指针。 */
 	static FExtGameplayEffectContext* ExtractEffectContext(FGameplayEffectContextHandle Handle);
 
 	// 自定义 UPROPERTY() 字段	需要传额外的上下文数据
@@ -39,8 +37,10 @@ struct TStructOpsTypeTraits<FExtGameplayEffectContext> : public TStructOpsTypeTr
 {
 	enum
 	{
-		WithNetSerializer = true, // 如果需要网络同步
-		WithCopy = true // 允许引擎复制
+		/** 使用自定义网络序列化入口。 */
+		WithNetSerializer = true,
+		/** 允许引擎复制结构体数据。 */
+		WithCopy = true
 	};
 };
 

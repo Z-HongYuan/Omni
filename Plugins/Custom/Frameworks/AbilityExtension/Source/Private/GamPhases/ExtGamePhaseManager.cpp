@@ -147,13 +147,8 @@ void UExtGamePhaseManager::OnBeginPhase(const UExtGamePhaseAbility* PhaseAbility
 			const UExtGamePhaseAbility* ActivePhaseAbility = CastChecked<UExtGamePhaseAbility>(ActivePhase->Ability);
 			const FGameplayTag ActivePhaseTag = ActivePhaseAbility->GetGamePhaseTag();
 
-			// 因此，如果当前活动阶段与传入的阶段标签匹配，我们就允许它。
-			// 即多个游戏玩法能力都可以与同一阶段标签相关联。
-			// 例如，
-			//你可以处于Game.Playing阶段，然后开始一个子阶段，比如Game.Playing.SuddenDeath
-			//游戏进行阶段仍将处于活跃状态，如果有人推搡另一个人，比如
-			// Game.Playing.ActualSuddenDeath，它将结束 Game.Playing.SuddenDeath 阶段，但 Game.Playing 会
-			//继续。同样，如果我们激活了 Game.GameOver，所有的 Game.Playing* 阶段都会结束。
+			// 保留新阶段自身及其父阶段；同标签能力可并存，兄弟阶段会被取消。
+			// 例如从 Game.Playing.Normal 切到 Game.Playing.SuddenDeath 时保留 Game.Playing。
 			if (!IncomingPhaseTag.MatchesTag(ActivePhaseTag))
 			{
 				UE_LOG(LogAbilityExtension, Log, TEXT("\tEnding Phase '%s' (%s)"), *ActivePhaseTag.ToString(), *GetNameSafe(ActivePhaseAbility));

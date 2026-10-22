@@ -19,7 +19,7 @@ class UGameUISettings : public UDeveloperSettings
 	GENERATED_BODY()
 
 public:
-	/** 返回设置类别名称（在 Project Settings 中的路径） */
+	/** 返回 Project Settings 中的设置类别。 */
 	virtual FName GetCategoryName() const override { return TEXT("ZHYS"); }
 
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "UI Settings")

@@ -16,20 +16,14 @@ GAMEPLAYATTRIBUTE_VALUE_INITTER(PropertyName)
 struct FGameplayEffectSpec;
 class UExtAbilitySystemComponent;
 
-/** 
- * 用于广播属性事件的委托，其中一些参数在客户端上可能为空：
- * @param EffectInstigator	本次变更的原发起人
- * @param EffectCauser		导致变化的物理演员
- * @param EffectSpec		此更改的完整效果规范
- * @param EffectMagnitude	原始数值，这是夹紧之前的数值
- * @param OldValue			属性更改前的值
- * @param NewValue			更改后的值
-*/
+/**
+ * 广播属性变化及效果上下文；客户端的来源对象和 EffectSpec 可能为空。
+ * EffectInstigator 为原始发起者，EffectCauser 为直接来源 Actor。
+ * EffectMagnitude 为范围限制前的效果幅值，OldValue 和 NewValue 为变化前后的属性值。
+ */
 DECLARE_MULTICAST_DELEGATE_SixParams(FExtAttributeEvent, AActor* /*EffectInstigator*/, AActor* /*EffectCauser*/, const FGameplayEffectSpec* /*EffectSpec*/, float /*EffectMagnitude*/, float /*OldValue*/, float /*NewValue*/);
 
-/**
- * 基础的属性集
- */
+/** 提供扩展 ASC 访问接口的属性集基类。 */
 UCLASS(MinimalAPI)
 class UExtAttributeSet : public UAttributeSet
 {

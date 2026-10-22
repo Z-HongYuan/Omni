@@ -7,11 +7,10 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ExtGlobalAbilityManager)
 
-// FGlobalAppliedAbilityList
-//
+// 全局能力授予记录。
 void FGlobalAppliedAbilityList::AddToASC(TSubclassOf<UGameplayAbility> Ability, UExtAbilitySystemComponent* ASC)
 {
-	//先移除技能再添加技能
+	// 撤销此管理器之前的授予，避免同一 ASC 留下重复记录。
 	if (FGameplayAbilitySpecHandle* SpecHandle = Handles.Find(ASC))
 	{
 		RemoveFromASC(ASC);
@@ -44,11 +43,10 @@ void FGlobalAppliedAbilityList::RemoveFromAll()
 	Handles.Empty();
 }
 
-// FGlobalAppliedEffectList
-//
+// 全局效果应用记录。
 void FGlobalAppliedEffectList::AddToASC(TSubclassOf<UGameplayEffect> Effect, UExtAbilitySystemComponent* ASC)
 {
-	//先移除效果再添加效果
+	// 撤销此管理器之前的效果，再保存新应用的句柄。
 	if (FActiveGameplayEffectHandle* EffectHandle = Handles.Find(ASC))
 	{
 		RemoveFromASC(ASC);
@@ -80,11 +78,10 @@ void FGlobalAppliedEffectList::RemoveFromAll()
 	Handles.Empty();
 }
 
-// UExtGlobalAbilityManager
-//
+// 世界级全局能力和效果管理。
 void UExtGlobalAbilityManager::ApplyAbilityToAll(TSubclassOf<UGameplayAbility> Ability)
 {
-	//如果技能有效且未被添加过
+	// 按能力类去重，已有全局配置不重复应用。
 	if ((Ability.Get() != nullptr) && (!AppliedAbilities.Contains(Ability)))
 	{
 		FGlobalAppliedAbilityList& Entry = AppliedAbilities.Add(Ability);

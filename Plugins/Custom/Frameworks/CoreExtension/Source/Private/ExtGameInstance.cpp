@@ -26,10 +26,10 @@ void UExtGameInstance::Init()
 {
 	Super::Init();
 
-	// 链接各个子系统
+	// 读取平台特性，供用户系统判断当前平台能力。
 	FGameplayTagContainer PlatformTraits = ICommonUIModule::GetSettings().GetPlatformTraits();
 
-	// 绑定链接用户系统
+	// 向用户系统注册消息、权限和初始化回调。
 	UGameUserSubsystem* UserSubsystem = GetSubsystem<UGameUserSubsystem>();
 	if (ensure(UserSubsystem))
 	{
@@ -39,7 +39,7 @@ void UExtGameInstance::Init()
 		UserSubsystem->OnUserInitializeComplete.AddDynamic(this, &ThisClass::HandlerUserInitialized);
 	}
 
-	// 绑定链接会话系统
+	// 接收外部会话邀请和会话销毁请求。
 	UGameUserSessionSubsystem* SessionSubsystem = GetSubsystem<UGameUserSessionSubsystem>();
 	if (ensure(SessionSubsystem))
 	{
@@ -59,7 +59,7 @@ void UExtGameInstance::HandleSystemMessage(FGameplayTag MessageType, FText Title
 {
 	ULocalPlayer* FirstPlayer = GetFirstGamePlayer();
 
-	// 将严重错误转发到第一个玩家的错误对话框
+	// 将错误转发到首个本地玩家的对话框。
 	if (FirstPlayer && MessageType.MatchesTag(CoreExtensionTags::TAG_SystemMessage_Error))
 	{
 		if (UMessagingManager* Messaging = FirstPlayer->GetSubsystem<UMessagingManager>())
@@ -71,18 +71,18 @@ void UExtGameInstance::HandleSystemMessage(FGameplayTag MessageType, FText Title
 
 void UExtGameInstance::HandlePrivilegeChanged(const UGameUserInfo* UserInfo, EGameUserPrivilege Privilege, EGameUserAvailability OldAvailability, EGameUserAvailability NewAvailability)
 {
-	// 默认情况下，如果第一个玩家的游戏权限丢失，则显示错误并断开连接
+	// 玩家失去游戏权限时记录错误；当前实现不主动断开会话。
 	if (Privilege == EGameUserPrivilege::CanPlay && OldAvailability == EGameUserAvailability::NowAvailable && NewAvailability != EGameUserAvailability::NowAvailable)
 	{
 		UE_LOG(LogCoreExtension, Error, TEXT("HandlePrivilegeChanged: Player %d no longer has permission to play the game!"), UserInfo->LocalPlayerIndex);
-		// TODO: 游戏玩法可以在子类中做一些特定的事情
+		// TODO: 在派生类中补充游戏权限丢失后的处理。
 		// ReturnToMainMenu();
 	}
 }
 
 void UExtGameInstance::HandlerUserInitialized(const UGameUserInfo* UserInfo, bool bSuccess, FText Error, EGameUserPrivilege RequestedPrivilege, EGameUserOnlineContext OnlineContext)
 {
-	// 子类可以覆盖这一点
+	// 留给派生类处理用户初始化结果。
 }
 
 void UExtGameInstance::ResetUserAndSessionState()
@@ -114,7 +114,7 @@ void UExtGameInstance::OnUserRequestedSession(const FPlatformUserId& PlatformUse
 
 void UExtGameInstance::OnDestroySessionRequested(const FPlatformUserId& PlatformUserId, const FName& SessionName)
 {
-	// 当请求会话销毁时，请确保你的项目处于正确状态，可以销毁会话并转离
+	// 返回主菜单时统一清理用户和会话状态。
 
 	UE_LOG(LogCoreExtension, Verbose, TEXT("[%hs] PlatformUserId:%d, SessionName: %s)"), __FUNCTION__, PlatformUserId.GetInternalId(), *SessionName.ToString());
 
@@ -139,7 +139,7 @@ void UExtGameInstance::SetRequestedSession(UGameUserSession_SearchResult* InRequ
 
 bool UExtGameInstance::CanJoinRequestedSession() const
 {
-	// 默认行为总是允许加入请求的会话
+	// 默认允许立即加入，派生类可根据游戏状态限制。
 	return true;
 }
 
@@ -152,7 +152,7 @@ void UExtGameInstance::JoinRequestedSession()
 			UGameUserSessionSubsystem* SessionSubsystem = GetSubsystem<UGameUserSessionSubsystem>();
 			if (ensure(SessionSubsystem))
 			{
-				// 清理我们当前请求的会话，因为我们现在正在执行。
+				// 提交加入请求前清除缓存，避免后续流程重复消费。
 				UGameUserSession_SearchResult* TempRequestedSession = RequestedSession;
 				RequestedSession = nullptr;
 				SessionSubsystem->JoinSession(FirstPlayer->PlayerController, TempRequestedSession);

@@ -8,9 +8,7 @@
 
 #define UE_API ABILITYEXTENSION_API
 
-/*
- * 使用 GameplayTag 替代了 UE 原生 Actor 的标签
- */
+/** 提供 GameplayTag 查询接口，并在编辑器中禁用原生 Actor Tags 的编辑。 */
 UCLASS(MinimalAPI)
 class AExtTaggedActor : public AActor, public IGameplayTagAssetInterface
 {
@@ -30,7 +28,7 @@ public:
 	//~End of UObject interface
 
 protected:
-	// 与Actor相关的游戏性标签
+	/** 此 Actor 对外提供的静态 GameplayTag。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Actor)
 	FGameplayTagContainer StaticGameplayTags;
 };

@@ -7,9 +7,7 @@
 
 #define UE_API COREEXTENSION_API
 
-/**
- * 转发游戏流程(事件)到 CustomLocalPlayer
- */
+/** 将 Controller、PlayerState 和 Pawn 的变化转发给 UExtLocalPlayer。 */
 UCLASS(MinimalAPI, Config = Game)
 class AExtPlayerController : public AModularPlayerController
 {

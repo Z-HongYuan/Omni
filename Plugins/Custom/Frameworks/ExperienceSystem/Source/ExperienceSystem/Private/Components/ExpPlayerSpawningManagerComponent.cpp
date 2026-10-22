@@ -29,7 +29,7 @@ void UExpPlayerSpawningManagerComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 
-	// 关卡是流送进来的，所以除了遍历当前世界，还要监听后续加入的关卡
+	// 同时监听后续流入的关卡和新生成 Actor，补充初始遍历未覆盖的出生点。
 	FWorldDelegates::LevelAddedToWorld.AddUObject(this, &ThisClass::OnLevelAdded);
 
 	UWorld* World = GetWorld();
@@ -67,13 +67,10 @@ void UExpPlayerSpawningManagerComponent::HandleOnActorSpawned(AActor* SpawnedAct
 	}
 }
 
-// AExpGameMode 转发过来的调用
-// 之所以要转发，是为了让每一次重生（无论玩家还是 Bot）都能被本组件接管
-//======================================================================
 
 AActor* UExpPlayerSpawningManagerComponent::OnChoosePlayerStart(AController* Player, TArray<AExpPlayerStart*>& PlayerStarts)
 {
-	// 默认不做任何过滤，交给蓝图钩子或默认的随机选点逻辑处理
+	// 默认交给蓝图钩子或随机选点策略。
 	return nullptr;
 }
 
@@ -85,14 +82,14 @@ AActor* UExpPlayerSpawningManagerComponent::ChoosePlayerStart(AController* Playe
 	}
 
 #if WITH_EDITOR
-	// 编辑器下「从此处播放」优先
+	// 编辑器的“从此处播放”优先于普通出生点。
 	if (APlayerStart* PlayerStart = FindPlayFromHereStart(Player))
 	{
 		return PlayerStart;
 	}
 #endif
 
-	// 先整理出一份有效的出生点，顺手把失效的弱引用清掉
+	// 收集有效出生点，并从缓存移除失效弱引用。
 	TArray<AExpPlayerStart*> StarterPoints;
 	for (auto StartIt = CachedPlayerStarts.CreateIterator(); StartIt; ++StartIt)
 	{
@@ -106,7 +103,7 @@ AActor* UExpPlayerSpawningManagerComponent::ChoosePlayerStart(AController* Playe
 		}
 	}
 
-	// 纯观战者随便给一个点即可，并且不占用它
+	// 纯观战者随机选点，不声明占用。
 	if (APlayerState* PlayerState = Player->GetPlayerState<APlayerState>())
 	{
 		if (PlayerState->IsOnlyASpectator())
@@ -120,10 +117,10 @@ AActor* UExpPlayerSpawningManagerComponent::ChoosePlayerStart(AController* Playe
 		}
 	}
 
-	// 扩展点①：C++ 自定义选点
+	// 优先调用 C++ 选点钩子。
 	AActor* PlayerStart = OnChoosePlayerStart(Player, StarterPoints);
 
-	// 扩展点②：蓝图自定义选点
+	// C++ 未选中时尝试蓝图钩子。
 	if (PlayerStart == nullptr)
 	{
 		TArray<AActor*> CandidateActors;
@@ -136,7 +133,7 @@ AActor* UExpPlayerSpawningManagerComponent::ChoosePlayerStart(AController* Playe
 		PlayerStart = K2_OnChoosePlayerStart(Player, CandidateActors);
 	}
 
-	// 默认逻辑：随机取一个没被占用的点
+	// 最后按碰撞占用状态随机选点。
 	if (PlayerStart == nullptr)
 	{
 		PlayerStart = GetFirstRandomUnoccupiedPlayerStart(Player, StarterPoints);
@@ -148,7 +145,7 @@ AActor* UExpPlayerSpawningManagerComponent::ChoosePlayerStart(AController* Playe
 		return nullptr;
 	}
 
-	// 选中的点声明占用，避免同一帧被别的控制器重复选中
+	// 尝试记录声明占用；当前默认选点不检查该标记，且此处不因声明失败重新选点。
 	if (AExpPlayerStart* ExperienceStart = Cast<AExpPlayerStart>(PlayerStart))
 	{
 		ExperienceStart->TryClaim(Player);
@@ -159,8 +156,7 @@ AActor* UExpPlayerSpawningManagerComponent::ChoosePlayerStart(AController* Playe
 
 bool UExpPlayerSpawningManagerComponent::ControllerCanRestart(AController* Player)
 {
-	// 默认永远允许重生
-	// 项目层可在此接入：复活冷却、回合制只在回合开始时重生、场次结束禁止重生等
+	// 当前不施加额外重生限制。
 	bool bCanRestart = true;
 
 	return bCanRestart;
@@ -172,7 +168,6 @@ void UExpPlayerSpawningManagerComponent::FinishRestartPlayer(AController* NewPla
 	K2_OnFinishRestartPlayer(NewPlayer, StartRotation);
 }
 
-//======================================================================
 
 APlayerStart* UExpPlayerSpawningManagerComponent::GetFirstRandomUnoccupiedPlayerStart(AController* Controller, const TArray<AExpPlayerStart*>& StartPoints) const
 {
@@ -214,7 +209,7 @@ APlayerStart* UExpPlayerSpawningManagerComponent::GetFirstRandomUnoccupiedPlayer
 #if WITH_EDITOR
 APlayerStart* UExpPlayerSpawningManagerComponent::FindPlayFromHereStart(AController* Player)
 {
-	// 「从此处播放」只对玩家控制器生效，Bot 一律走正常出生点
+	// “从此处播放”只对玩家控制器生效，Bot 使用普通出生点。
 	if (Player->IsA<APlayerController>())
 	{
 		if (UWorld* World = GetWorld())

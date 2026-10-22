@@ -34,14 +34,14 @@ void UMessagingManager::Deinitialize()
 
 bool UMessagingManager::ShouldCreateSubsystem(UObject* Outer) const
 {
-	//保持继承链单例
+	// 专用服务器不创建消息界面；存在派生实现时由派生类创建。
 	UGameInstance* GameInstance = CastChecked<ULocalPlayer>(Outer)->GetGameInstance();
 	if (GameInstance && !GameInstance->IsDedicatedServerInstance())
 	{
 		TArray<UClass*> ChildClasses;
 		GetDerivedClasses(GetClass(), ChildClasses, false);
 
-		// 只有在其他地方没有定义覆盖实现的情况下才创建实例
+		// 避免与已加载的派生实现重复创建。
 		return ChildClasses.Num() == 0;
 	}
 

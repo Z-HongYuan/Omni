@@ -29,7 +29,7 @@ UExtAbilitySystemComponent::UExtAbilitySystemComponent(const FObjectInitializer&
 
 void UExtAbilitySystemComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	// 从全局技能/效果管理器中移除ASC
+	// 结束生命周期时注销 ASC，并撤销管理器授予的全局能力和效果。
 	if (UExtGlobalAbilityManager* GlobalAbilitySystem = UWorld::GetSubsystem<UExtGlobalAbilityManager>(GetWorld()))
 		GlobalAbilitySystem->UnregisterASC(this);
 
@@ -38,19 +38,19 @@ void UExtAbilitySystemComponent::EndPlay(const EEndPlayReason::Type EndPlayReaso
 
 void UExtAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor)
 {
-	// 检查ActorInfo
+	// 初始化前需要有效的 ActorInfo 和 Owner。
 	const FGameplayAbilityActorInfo* ActorInfo = AbilityActorInfo.Get();
 	check(ActorInfo);
 	check(InOwnerActor);
 
-	// 是否是新的AvatarPawn
+	// 只在 Avatar 切换为新的 Pawn 时执行后续初始化。
 	const bool bHasNewPawnAvatar = Cast<APawn>(InAvatarActor) && (InAvatarActor != ActorInfo->AvatarActor);
 
 	Super::InitAbilityActorInfo(InOwnerActor, InAvatarActor);
 
 	if (bHasNewPawnAvatar)
 	{
-		// 通知所有可激活技能新角色已设定
+		// 通知已有扩展能力实例，新的 Pawn Avatar 已就绪。
 		for (const FGameplayAbilitySpec& AbilitySpec : ActivatableAbilities.Items)
 		{
 			PRAGMA_DISABLE_DEPRECATION_WARNINGS
@@ -63,21 +63,21 @@ void UExtAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AAct
 			{
 				if (UExtGameplayAbility* ExtAbilityInstance = Cast<UExtGameplayAbility>(AbilityInstance))
 				{
-					// 回放时可能缺少技能实例
+					// 只向扩展能力实例转发 Pawn 就绪通知。
 					ExtAbilityInstance->OnPawnAvatarSet();
 				}
 			}
 		}
 
-		// 只要拥有了Pawn才向全局系统注册。因为有些全局的效果可能需要一个Pawn。
+		// Pawn 就绪后才注册全局能力和效果，避免其使用尚未设置的 Avatar。
 		if (UExtGlobalAbilityManager* GlobalAbilitySystem = UWorld::GetSubsystem<UExtGlobalAbilityManager>(GetWorld()))
 			GlobalAbilitySystem->RegisterASC(this);
 
-		// 向动画实例注册ASC
+		// 将 ASC 标签绑定到支持标签映射的动画实例。
 		if (UTaggedAnimInstance* TaggedAnimInst = Cast<UTaggedAnimInstance>(ActorInfo->GetAnimInstance()))
 			TaggedAnimInst->InitializeWithAbilitySystem(this);
 
-		// 尝试激活技能(属于Spawn后立即执行)
+		// 尝试激活采用 OnSpawn 策略的能力。
 		TryActivateAbilitiesOnSpawn();
 	}
 }
@@ -87,7 +87,7 @@ void UExtAbilitySystemComponent::CancelAbilitiesByFunc(const TShouldCancelAbilit
 	ABILITYLIST_SCOPE_LOCK();
 	for (const FGameplayAbilitySpec& AbilitySpec : ActivatableAbilities.Items)
 	{
-		// 过滤未激活技能
+		// 未激活的能力无需取消。
 		if (!AbilitySpec.IsActive())
 		{
 			continue;
@@ -104,7 +104,7 @@ void UExtAbilitySystemComponent::CancelAbilitiesByFunc(const TShouldCancelAbilit
 		ensureMsgf(AbilitySpec.Ability->GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced, TEXT("CancelAbilitiesByFunc: All Abilities should be Instanced (NonInstanced is being deprecated due to usability issues)."));
 		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
-		// 取消所有生成的实例。
+		// 逐个检查实例，仅取消满足条件且允许取消的实例。
 		TArray<UGameplayAbility*> Instances = AbilitySpec.GetAbilityInstances();
 		for (UGameplayAbility* AbilityInstance : Instances)
 		{
@@ -177,9 +177,9 @@ void UExtAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGame
 	static TArray<FGameplayAbilitySpecHandle> AbilitiesToActivate;
 	AbilitiesToActivate.Reset();
 
-	//@TODO: See if we can use FScopedServerAbilityRPCBatcher ScopedRPCBatcher in some of these loops
+	// TODO: 评估是否可在这些循环中使用 FScopedServerAbilityRPCBatcher 合并 RPC。
 
-	// 1. 处理所有在按住输入时激活的能力。
+	// 收集按住期间需要尝试激活的能力。
 	for (const FGameplayAbilitySpecHandle& SpecHandle : InputHeldSpecHandles)
 	{
 		if (const FGameplayAbilitySpec* AbilitySpec = FindAbilitySpecFromHandle(SpecHandle))
@@ -195,7 +195,7 @@ void UExtAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGame
 		}
 	}
 
-	// 2. 处理所有在按下输入时激活的能力。
+	// 记录按下状态，并向已经激活的能力转发输入事件。
 	for (const FGameplayAbilitySpecHandle& SpecHandle : InputPressedSpecHandles)
 	{
 		if (FGameplayAbilitySpec* AbilitySpec = FindAbilitySpecFromHandle(SpecHandle))
@@ -206,7 +206,7 @@ void UExtAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGame
 
 				if (AbilitySpec->IsActive())
 				{
-					// 当前技能已激活,所以再次传递一下输入事件
+					// 已激活的能力接收本次按下事件。
 					AbilitySpecInputPressed(*AbilitySpec);
 				}
 				else
@@ -221,17 +221,13 @@ void UExtAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGame
 		}
 	}
 
-	/*
-	 * 一次性（同一帧内）批量处理所有由"按下"和"长按"触发的技能激活。
-	 * 如果按顺序逐个处理（先激活技能，再发输入事件），会出现一个 bug：某个按钮的长按判定满足了 → 激活了技能 → 但同一帧这按钮还是按着的 → 于是又立刻往这个刚激活的技能里塞了一个输入事件。
-	 * 把"激活"和"发输入事件"放在一起批量判断
-	 */
+	// 收集完按住和按下输入后统一激活，避免新激活能力在同一帧又收到一次按下事件。
 	for (const FGameplayAbilitySpecHandle& AbilitySpecHandle : AbilitiesToActivate)
 	{
 		TryActivateAbility(AbilitySpecHandle);
 	}
 
-	// 3. 处理所有在本帧释放输入的能力
+	// 处理本帧释放事件，并更新能力的输入状态。
 	for (const FGameplayAbilitySpecHandle& SpecHandle : InputReleasedSpecHandles)
 	{
 		if (FGameplayAbilitySpec* AbilitySpec = FindAbilitySpecFromHandle(SpecHandle))
@@ -242,14 +238,14 @@ void UExtAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGame
 
 				if (AbilitySpec->IsActive())
 				{
-					// 当前能力已激活,所以再次传递一下输入事件
+					// 已激活的能力接收本次释放事件。
 					AbilitySpecInputReleased(*AbilitySpec);
 				}
 			}
 		}
 	}
 
-	// 清除缓存输入,保存 Held 输入缓存
+	// 清空本帧边沿事件，保留持续按住的输入。
 	InputPressedSpecHandles.Reset();
 	InputReleasedSpecHandles.Reset();
 }
@@ -268,13 +264,13 @@ bool UExtAbilitySystemComponent::IsActivationGroupBlocked(EExtAbilityActivationG
 	switch (Group)
 	{
 	case EExtAbilityActivationGroup::Independent:
-		// 独立能力从不被阻挡。
+		// 独立能力不受激活组阻塞，其他激活条件仍然有效。
 		bBlocked = false;
 		break;
 
 	case EExtAbilityActivationGroup::Exclusive_Replaceable:
 	case EExtAbilityActivationGroup::Exclusive_Blocking:
-		// 专属技能可以在没有阻挡的情况下激活。
+		// 存在独占阻塞能力时，其他独占能力不能激活。
 		bBlocked = (ActivationGroupCounts[static_cast<uint8>(EExtAbilityActivationGroup::Exclusive_Blocking)] > 0);
 		break;
 
@@ -298,7 +294,7 @@ void UExtAbilitySystemComponent::AddAbilityToActivationGroup(EExtAbilityActivati
 	switch (Group)
 	{
 	case EExtAbilityActivationGroup::Independent:
-		// Independent abilities do not cancel any other abilities.
+		// 独立能力不因激活组规则取消其他能力。
 		break;
 
 	case EExtAbilityActivationGroup::Exclusive_Replaceable:
@@ -411,8 +407,7 @@ void UExtAbilitySystemComponent::AbilitySpecInputPressed(FGameplayAbilitySpec& S
 {
 	Super::AbilitySpecInputPressed(Spec);
 
-	// 我们不支持UGameplayAbility：：bReplicateInputDirectly。
-	// 请改用复制事件，以便WaitInputPress功能任务正常工作。
+	// 使用通用复制事件通知 WaitInputPress，输入配置不应依赖 bReplicateInputDirectly。
 	if (Spec.IsActive())
 	{
 		PRAGMA_DISABLE_DEPRECATION_WARNINGS
@@ -420,7 +415,7 @@ void UExtAbilitySystemComponent::AbilitySpecInputPressed(FGameplayAbilitySpec& S
 		FPredictionKey OriginalPredictionKey = Instance ? Instance->GetCurrentActivationInfo().GetActivationPredictionKey() : Spec.ActivationInfo.GetActivationPredictionKey();
 		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
-		// 调用InputPressed事件。这里没有重复。如果有人在监听，他们可能会将InputPressed事件复制到服务器。
+		// 此处触发本地 InputPressed 事件，由监听任务按需复制到服务器。
 		InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputPressed, Spec.Handle, OriginalPredictionKey);
 	}
 }
@@ -429,8 +424,7 @@ void UExtAbilitySystemComponent::AbilitySpecInputReleased(FGameplayAbilitySpec& 
 {
 	Super::AbilitySpecInputReleased(Spec);
 
-	// 我们不支持UGameplayAbility：：bReplicateInputDirectly。
-	// 请改用复制事件，以便WaitInputRelease功能任务能够工作。
+	// 使用通用复制事件通知 WaitInputRelease，输入配置不应依赖 bReplicateInputDirectly。
 	if (Spec.IsActive())
 	{
 		PRAGMA_DISABLE_DEPRECATION_WARNINGS
@@ -438,7 +432,7 @@ void UExtAbilitySystemComponent::AbilitySpecInputReleased(FGameplayAbilitySpec& 
 		FPredictionKey OriginalPredictionKey = Instance ? Instance->GetCurrentActivationInfo().GetActivationPredictionKey() : Spec.ActivationInfo.GetActivationPredictionKey();
 		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
-		// 调用InputRelease事件。这里没有重复。如果有人在监听，他们可能会将InputRelease事件复制到服务器。
+		// 此处触发本地 InputReleased 事件，由监听任务按需复制到服务器。
 		InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputReleased, Spec.Handle, OriginalPredictionKey);
 	}
 }
@@ -482,13 +476,13 @@ void UExtAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle H
 void UExtAbilitySystemComponent::ApplyAbilityBlockAndCancelTags(const FGameplayTagContainer& AbilityTags, UGameplayAbility* RequestingAbility, bool bEnableBlockTags, const FGameplayTagContainer& BlockTags, bool bExecuteCancelTags,
                                                                 const FGameplayTagContainer& CancelTags)
 {
-	//通过 TagRelationshipMapping 数据资产进行扩展。
+	// 保留调用方标签，并追加关系表中的规则。
 	FGameplayTagContainer ModifiedBlockTags = BlockTags;
 	FGameplayTagContainer ModifiedCancelTags = CancelTags;
 
 	if (TagRelationshipMapping)
 	{
-		// 使用映射将能力标签展开为块并取消标签
+		// 追加关系表中配置的阻塞和取消标签。
 		TagRelationshipMapping->GetAbilityTagsToBlockAndCancel(AbilityTags, &ModifiedBlockTags, &ModifiedCancelTags);
 	}
 

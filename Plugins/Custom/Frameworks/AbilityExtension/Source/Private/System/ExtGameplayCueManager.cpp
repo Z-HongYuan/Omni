@@ -23,6 +23,7 @@ namespace ExtGameplayCueManagerCvars
 
 const bool bPreloadEvenInEditor = true;
 
+/** 将序列化期间收集到的标签处理调度回游戏线程。 */
 struct FGameplayCueTagThreadSynchronizeGraphTask : public FAsyncGraphTaskBase
 {
 	TFunction<void()> TheTask;
@@ -187,7 +188,7 @@ void UExtGameplayCueManager::OnGameplayTagLoaded(const FGameplayTag& Tag)
 			{
 				if (UExtGameplayCueManager* StrongThis = Get())
 				{
-					// If we are garbage collecting we cannot call StaticFindObject (or a few other static uobject functions), so we'll just wait until the GC is over and process the tags then
+					// GC 期间不能调用 StaticFindObject 等对象查询，延迟到 GC 完成后处理。
 					if (IsGarbageCollecting())
 					{
 						StrongThis->bProcessLoadedTagsAfterGC = true;
@@ -215,13 +216,13 @@ void UExtGameplayCueManager::ProcessLoadedTags()
 {
 	TArray<FLoadedGameplayTagToProcessData> TaskLoadedGameplayTagsToProcess;
 	{
-		// Lock LoadedGameplayTagsToProcess just long enough to make a copy and clear
+		// 仅在复制并清空队列时持锁，后续对象查询在锁外执行。
 		FScopeLock TaskScopeLock(&LoadedGameplayTagsToProcessCS);
 		TaskLoadedGameplayTagsToProcess = LoadedGameplayTagsToProcess;
 		LoadedGameplayTagsToProcess.Empty();
 	}
 
-	// This might return during shutdown, and we don't want to proceed if that is the case
+	// 排队任务可能在退出期间返回，此时不再处理对象加载。
 	if (GIsRunning)
 	{
 		if (RuntimeGameplayCueObjectLibrary.CueSet)
@@ -286,6 +287,7 @@ void UExtGameplayCueManager::ProcessTagToPreload(const FGameplayTag& Tag, UObjec
 
 void UExtGameplayCueManager::OnPreloadCueComplete(FSoftObjectPath Path, TWeakObjectPtr<UObject> OwningObject, bool bAlwaysLoadedCue)
 {
+	// 异步加载完成时重新检查引用者；已失效的内容对象不再持有 Cue。
 	if (bAlwaysLoadedCue || OwningObject.IsValid())
 	{
 		if (UClass* LoadedGameplayCueClass = Cast<UClass>(Path.ResolveObject()))

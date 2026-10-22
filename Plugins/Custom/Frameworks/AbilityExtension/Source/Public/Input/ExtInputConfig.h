@@ -10,9 +10,7 @@
 
 class UInputAction;
 
-/*
- * 用于 InputAction 与 GameplayTag 的映射
- */
+/** InputAction 与 GameplayTag 的映射项。 */
 USTRUCT(BlueprintType)
 struct FExtInputAction
 {
@@ -26,9 +24,7 @@ public:
 	FGameplayTag InputTag;
 };
 
-/**
- * 用于配置输入的数据资产
- */
+/** 配置原生动作和能力动作的输入标签映射。 */
 UCLASS(MinimalAPI, BlueprintType, Const)
 class UExtInputConfig : public UDataAsset
 {
@@ -41,11 +37,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AbilityExtension|Input")
 	UE_API const UInputAction* FindAbilityInputActionForTag(const FGameplayTag& InputTag, bool bLogNotFound = true) const;
 
-	// 所有者使用的输入操作列表。这些输入操作会映射到游戏标签，必须手动绑定。
+	/** 原生动作映射，由调用方按标签选择并绑定回调。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Meta = (TitleProperty = "InputAction"))
 	TArray<FExtInputAction> NativeInputActions;
 
-	// 所有者使用的输入操作列表。这些输入动作被映射到游戏标签上，并自动绑定到输入标签匹配的能力上。
+	/** 能力动作映射，由 BindAbilityActions 绑定标签回调，再交给 ASC 匹配能力。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Meta = (TitleProperty = "InputAction"))
 	TArray<FExtInputAction> AbilityInputActions;
 };

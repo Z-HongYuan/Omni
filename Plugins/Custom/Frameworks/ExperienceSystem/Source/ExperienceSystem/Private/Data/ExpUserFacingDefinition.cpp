@@ -15,7 +15,7 @@
 
 UGameUserSession_HostSessionRequest* UExpUserFacingDefinition::CreateHostingRequest(const UObject* WorldContextObject) const
 {
-	// 体验名会写进 URL，玩法名用于会话广告，两者都取主资产名
+	// 体验名称写入 URL，玩法定义名称用于会话广告。
 	const FString ExperienceName = ExperienceID.PrimaryAssetName.ToString();
 	const FString PlaylistName = GetPrimaryAssetId().PrimaryAssetName.ToString();
 
@@ -28,7 +28,7 @@ UGameUserSession_HostSessionRequest* UExpUserFacingDefinition::CreateHostingRequ
 		Request = SessionSubsystem->CreateOnlineHostSessionRequest();
 	}
 
-	// 取不到会话子系统时自己造一个，保证离线环境下前端也能把请求构造出来
+	// 会话子系统不可用时仍构造请求；这里只创建请求对象，不代表已建立会话。
 	if (Request == nullptr)
 	{
 		Request = NewObject<UGameUserSession_HostSessionRequest>(GetTransientPackage());
@@ -41,7 +41,7 @@ UGameUserSession_HostSessionRequest* UExpUserFacingDefinition::CreateHostingRequ
 	Request->MapID = MapID;
 	Request->ModeNameForAdvertisement = PlaylistName;
 	Request->ExtraArgs = ExtraArgs;
-	// 体验名最后写入，避免被 ExtraArgs 里的同名选项覆盖
+	// 最后写入 Experience，确保额外参数不能覆盖所选体验。
 	Request->ExtraArgs.Add(TEXT("Experience"), ExperienceName);
 	Request->MaxPlayerCount = MaxPlayerCount;
 
@@ -55,7 +55,7 @@ TArray<UExpUserFacingDefinition*> UExpUserFacingDefinition::LoadAllPlaylists(boo
 	const FPrimaryAssetType PlaylistType(UExpUserFacingDefinition::StaticClass()->GetFName());
 	UAssetManager& AssetManager = UAssetManager::Get();
 
-	// 先同步加载，否则后面取到的只有已经加载过的对象
+	// 等待主资产加载完成，避免列表只包含此前已驻留的对象。
 	TSharedPtr<FStreamableHandle> LoadHandle = AssetManager.LoadPrimaryAssetsWithType(PlaylistType);
 	if (ensure(LoadHandle.IsValid()))
 	{

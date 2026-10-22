@@ -8,7 +8,7 @@
 
 namespace ExpSystemTags
 {
-	// 初始化状态链条,由 ModularGameplay 使用
+	// ModularGameplay 使用的组件初始化状态链。
 	UE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_InitState_Spawned)
 	UE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_InitState_DataAvailable)
 	UE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_InitState_DataInitialized)

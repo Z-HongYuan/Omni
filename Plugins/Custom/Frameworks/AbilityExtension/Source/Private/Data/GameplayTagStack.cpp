@@ -42,7 +42,7 @@ void FGameplayTagStackContainer::RemoveStack(FGameplayTag Tag, int32 StackCount)
 		return;
 	}
 
-	//@TODO: 如果你试图移除一个不存在或数量较少的堆栈，我们应该出错吗？
+	// TODO: 确定移除不存在的标签或超过现有计数时是否需要报告错误。
 	if (StackCount > 0)
 	{
 		for (auto It = Stacks.CreateIterator(); It; ++It)

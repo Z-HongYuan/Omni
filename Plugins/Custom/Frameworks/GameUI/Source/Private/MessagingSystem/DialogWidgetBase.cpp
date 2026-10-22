@@ -46,7 +46,7 @@ void UDialogWidgetBase::SetupDialog(UDialogWidgetDescriptorBase* Descriptor, FDi
 		}
 		else
 		{
-			// 未匹配到预设结果的按钮使用默认点击动作,避免按钮没有任何触发输入动作
+			// 自定义结果使用默认点击动作，避免按钮缺少输入绑定。
 			UE_LOG(LogGameUI, Warning, TEXT("UDialogWidgetBase::SetupDialog: Action result [%s] has no predefined input action, falling back to default click action"), *Action.ActionResult.ToString());
 			ActionRow = ICommonInputModule::GetSettings().GetDefaultClickAction();
 		}
@@ -62,7 +62,6 @@ void UDialogWidgetBase::SetupDialog(UDialogWidgetDescriptorBase* Descriptor, FDi
 
 void UDialogWidgetBase::KillDialog()
 {
-	// 明确关闭对话框(无用户输入),以 Killed 结果通知调用方
 	CloseConfirmationWindow(GameUITags::TAG_GameUI_Dialog_Killed);
 }
 

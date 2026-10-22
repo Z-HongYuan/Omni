@@ -9,10 +9,7 @@
 #define UE_API EXPERIENCESYSTEM_API
 
 class UExpDefinition;
-/**
- * 世界设置类
- * 附带体验设置
- */
+/** 提供地图默认体验和体验相关编辑器检查的世界设置。 */
 UCLASS(MinimalAPI)
 class AExpWorldSettings : public AWorldSettings
 {
@@ -26,17 +23,16 @@ public:
 #endif
 
 #if WITH_EDITORONLY_DATA
-	//这个地图是UI体验还是其他独立体验的一部分？
-	//设置后，当您在编辑器中点击“播放”时，网络模式将强制为独立模式
+	/** 供编辑器启动流程读取的独立模式标记；本类本身不修改 PIE 网络模式。 */
 	UPROPERTY(EditDefaultsOnly, Category=PIE)
 	bool ForceStandaloneNetMode = false;
 #endif
 
-	//如果服务器打开关卡时没有被UI体验覆盖，则使用的默认体验
+	/** 返回地图默认体验的主资产 ID；未注册为主资产时返回无效 ID 并记录错误。 */
 	UE_API FPrimaryAssetId GetDefaultGameplayExperience() const;
 
 protected:
-	// 如果服务器打开关卡时没有被 UI 体验覆盖，则使用此数据资产；引用对象而非蓝图类。
+	/** URL、PIE 开发者设置和命令行均未指定体验时使用的默认数据资产。 */
 	UPROPERTY(EditDefaultsOnly, Category=GameMode)
 	TSoftObjectPtr<UExpDefinition> DefaultGameplayExperience;
 };
