@@ -26,11 +26,11 @@ FHitResult AGameplayAbilityTargetActor_Interact::PerformTrace(AActor* InSourceAc
 	FVector TraceEnd;
 	AimWithPlayerController(InSourceActor, Params, TraceStart, TraceEnd); // 仅在服务器和启动客户端生效
 
-	// ------------------------------------------------------
+	// 执行过滤后的线追踪并更新准星。
 
 	FHitResult ReturnHitResult;
 	LineTraceWithFilter(ReturnHitResult, InSourceActor->GetWorld(), Filter, TraceStart, TraceEnd, TraceProfile.Name, Params);
-	// 如果没碰到任何东西，默认切换到追踪线末端。
+	// 无阻挡命中时，将准星放在线追踪末端。
 	if (!ReturnHitResult.bBlockingHit)
 	{
 		ReturnHitResult.Location = TraceEnd;

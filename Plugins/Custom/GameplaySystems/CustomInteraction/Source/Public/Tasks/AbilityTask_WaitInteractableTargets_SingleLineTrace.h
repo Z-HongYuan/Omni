@@ -8,9 +8,7 @@
 
 #define UE_API CUSTOMINTERACTION_API
 
-/**
- * 等待交互目标,使用线追踪
- */
+/** 周期执行线追踪，在可交互选项变化时通知调用方。 */
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitInteractableTargets_SingleLineTrace : public UAbilityTask_WaitInteractableTargets
 {
@@ -22,7 +20,7 @@ public:
 protected:
 	virtual void Activate() override;
 
-	/** 等我们追踪到新的互动对象。这个任务会自动循环。 */
+	/** 创建周期线追踪任务；任务销毁时清除扫描定时器。 */
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_WaitInteractableTargets_SingleLineTrace* WaitForInteractableTargets_SingleLineTrace(
 		UGameplayAbility* OwningAbility,
@@ -34,7 +32,7 @@ protected:
 		bool bShowDebug = false);
 
 private:
-	// 执行追踪
+	/** 追踪当前瞄准方向，并更新命中目标的可用交互选项。 */
 	void PerformTrace();
 
 	UPROPERTY()

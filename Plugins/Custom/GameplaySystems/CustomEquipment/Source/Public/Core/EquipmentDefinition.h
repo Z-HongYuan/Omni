@@ -18,23 +18,21 @@ struct FEquipmentActorToSpawn
 
 	FEquipmentActorToSpawn() { ; }
 
-	// 要生成的 Actor
+	/** 装备时生成的外观 Actor 类型。 */
 	UPROPERTY(EditAnywhere, Category=Equipment)
 	TSubclassOf<AActor> ActorToSpawn;
 
-	// Actor 的挂载点
+	/** 外观 Actor 使用的挂载点名称。 */
 	UPROPERTY(EditAnywhere, Category=Equipment)
 	FName AttachSocket;
 
-	// Actor 的挂载点变换
+	/** 外观 Actor 相对挂载点的变换。 */
 	UPROPERTY(EditAnywhere, Category=Equipment)
 	FTransform AttachTransform;
 };
 
 
-/**
- * 定义可用于装备到角色的装备定义,静态定义
- */
+/** 装备的静态配置，指定实例类型、能力集和外观 Actor。 */
 UCLASS(MinimalAPI, Blueprintable, Const, Abstract, BlueprintType)
 class UEquipmentDefinition : public UObject
 {
@@ -43,15 +41,15 @@ class UEquipmentDefinition : public UObject
 public:
 	UEquipmentDefinition();
 
-	// 生成的实例
+	/** 创建装备时使用的实例类型。 */
 	UPROPERTY(EditDefaultsOnly, Category=Equipment)
 	TSubclassOf<UEquipmentInstance> InstanceType;
 
-	// 装备后会获得游戏能力集
+	/** 权威端在装备时授予、卸装时撤销的能力集。 */
 	UPROPERTY(EditDefaultsOnly, Category=Equipment)
 	TArray<TObjectPtr<const UExtAbilitySet>> AbilitySetsToGrant;
 
-	// 当角色装备后会生成在角色身上的Actor
+	/** 装备时生成并挂接到 Pawn 的外观 Actor 配置。 */
 	UPROPERTY(EditDefaultsOnly, Category=Equipment)
 	TArray<FEquipmentActorToSpawn> ActorsToSpawn;
 };

@@ -10,10 +10,8 @@
 class SActorIcon;
 
 /**
- * 指示器容器控件
- * 作为指示器面板的UMG包装器
- * 当控件被纳入UMG布局时,会自动监听指示器组件的事件,并且更新指示器
- * 内部会自动获取在PC上指示器组件,所以推荐将指示器组件添加进PC中
+ * 指示器 Slate 面板的 UMG 包装器。
+ * 运行时从所属本地玩家的 PlayerController 获取管理组件，监听指示器增删。
  */
 UCLASS(MinimalAPI)
 class UIndicatorContainerWidget : public UWidget
@@ -23,7 +21,7 @@ class UIndicatorContainerWidget : public UWidget
 public:
 	UIndicatorContainerWidget(const FObjectInitializer& ObjectInitializer);
 
-	// 当UI被压缩到屏幕需要显示箭头时使用的默认箭头刷子
+	/** 指示器被限制在屏幕边缘时使用的箭头画刷。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Appearance)
 	FSlateBrush ArrowBrush;
 

@@ -28,7 +28,7 @@ void UEquipmentInstance::RegisterReplicationFragments(UE::Net::FFragmentRegistra
 {
 	using namespace UE::Net;
 
-	// 构建描述符并为该对象分配PropertyReplicationFragments
+	// 为装备子对象注册 Iris 属性复制片段。
 	FReplicationFragmentUtil::CreateAndRegisterFragmentsForObject(this, Context, RegistrationFlags);
 }
 

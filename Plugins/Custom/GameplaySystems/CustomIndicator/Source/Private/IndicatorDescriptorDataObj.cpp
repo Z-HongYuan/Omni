@@ -124,7 +124,7 @@ bool UIndicatorDescriptorDataObj::Project(const UIndicatorDescriptorDataObj& Ind
 
 void UIndicatorDescriptorDataObj::SetIndicatorManagerComponent(UIndicatorManagerComponent* InManager)
 {
-	// 确保没人设置过这个
+	// 描述对象只允许首次绑定管理器，避免覆盖已有归属。
 	if (ensure(IndicatorDescriptorParameter.ManagerPtr.IsExplicitlyNull()))
 	{
 		IndicatorDescriptorParameter.ManagerPtr = InManager;

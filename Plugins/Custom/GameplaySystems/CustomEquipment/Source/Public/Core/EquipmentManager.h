@@ -11,9 +11,7 @@
 class UEquipmentInstance;
 class UEquipmentDefinition;
 
-/*
- * 装备管理器
- */
+/** 管理 Pawn 的装备实例、能力授予及子对象复制。 */
 UCLASS(MinimalAPI, MinimalAPI, BlueprintType, Const, meta=(BlueprintSpawnableComponent))
 class UEquipmentManager : public UPawnComponent
 {
@@ -40,11 +38,11 @@ public:
 	UE_API virtual void ReadyForReplication() override;
 	//~End of UActorComponent interface
 
-	/** 返回给定类型的第一个装备实例，若未发现则返回 nullptr */
+	/** 返回首个匹配类型的装备实例；没有匹配项时返回 nullptr。 */
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	UE_API UEquipmentInstance* GetFirstInstanceOfType(TSubclassOf<UEquipmentInstance> InstanceType);
 
-	/** 返回所有装备的类型实例，或如果找不到则返回空数组 */
+	/** 返回所有匹配类型的装备实例；没有匹配项时返回空数组。 */
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	UE_API TArray<UEquipmentInstance*> GetEquipmentInstancesOfType(TSubclassOf<UEquipmentInstance> InstanceType) const;
 

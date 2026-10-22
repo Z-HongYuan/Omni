@@ -9,54 +9,48 @@ class UAbilitySystemComponent;
 class UGameplayAbility;
 class IInteractableTargetInterface;
 
-/*
- * 交互选项
- */
+/** 描述交互目标、能力触发方式和界面展示内容。 */
 USTRUCT(BlueprintType, MinimalAPI)
 struct FInteractionOption
 {
 	GENERATED_BODY()
 
 public:
-	/** 可互动目标的接口 */
+	/** 提供该选项的交互目标。 */
 	UPROPERTY(BlueprintReadWrite)
 	TScriptInterface<IInteractableTargetInterface> InteractableTarget;
 
-	/** 互动的简单文本选项 */
+	/** 交互选项的主文本。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText Text;
 
-	/** 互动的简单潜台词 */
+	/** 交互选项的补充文本。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText SubText;
 
-	//
-	// 方法1: 给角色一个技能,当交互时，赋予角色技能
+	// 方式一：由附近扫描任务给交互发起方授予能力。
 
-	/** 当角色靠近可互动物体时，赋予角色能力. */
+	/** 附近扫描任务需要授予交互发起方的能力类型。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TSubclassOf<UGameplayAbility> InteractionAbilityToGrant;
 
-	//
-	// 方法2: 可交互目标自己拥有技能组件,使之激活
+	// 方式二：使用指定能力系统中已有的能力。
 
-	/** 目标上的能力系统可用于TargetInteractionHandle并发送事件（如有需要） */
+	/** 承载待触发能力的能力系统，与 TargetInteractionAbilityHandle 配合使用。 */
 	UPROPERTY(BlueprintReadOnly)
 	TObjectPtr<UAbilitySystemComponent> TargetAbilitySystem = nullptr;
 
-	/** 这个选项需要在物体上激活的能力专精 */
+	/** 在 TargetAbilitySystem 中触发交互所用的能力句柄。 */
 	UPROPERTY(BlueprintReadOnly)
 	FGameplayAbilitySpecHandle TargetInteractionAbilityHandle;
 
-	//
-	// UI
+	// 界面展示。
 
-	/** 这类互动的控件*/
+	/** 该交互选项使用的指示器控件类。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSoftClassPtr<UUserWidget> InteractionWidgetClass;
 
-	//
-	// 重载运算符
+	// 选项比较与排序。
 
 	FORCEINLINE bool operator==(const FInteractionOption& Other) const
 	{

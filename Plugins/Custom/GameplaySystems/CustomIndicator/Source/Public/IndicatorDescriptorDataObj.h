@@ -11,21 +11,19 @@
 class UIndicatorDescriptorDataObj;
 class UIndicatorManagerComponent;
 
-/*
- * Actor所使用的投影模式,在UI中
- */
+/** 将场景组件或所属 Actor 投影到指示器画布的方式。 */
 UENUM(BlueprintType)
 enum class EActorCanvasProjectionMode : uint8
 {
-	//组件点
+	/** 投影组件位置或指定插槽位置。 */
 	ComponentPoint,
-	//组件边界盒
+	/** 先在组件世界包围盒中选择锚点，再投影到屏幕。 */
 	ComponentBoundingBox,
-	//组件屏幕边界盒
+	/** 先投影组件包围盒，再在屏幕包围盒中选择锚点。 */
 	ComponentScreenBoundingBox,
-	//演员边界盒
+	/** 先在 Actor 世界包围盒中选择锚点，再投影到屏幕。 */
 	ActorBoundingBox,
-	//演员屏幕边界盒
+	/** 先投影 Actor 包围盒，再在屏幕包围盒中选择锚点。 */
 	ActorScreenBoundingBox
 };
 
@@ -34,69 +32,69 @@ struct FIndicatorDescriptorStruct
 {
 	GENERATED_BODY()
 
-	// 绑定的 Obj, 就是此说明符的上下文Obj,如果Widget实现了接口,那么可以通过这个指针进行获取数据
+	/** 供指示器控件读取的业务上下文对象。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Binding")
 	TObjectPtr<UObject> DataObject;
-	// 绑定的场景组件, 提供位置信息
+	/** 提供投影位置和包围盒的场景组件。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Binding")
 	TObjectPtr<USceneComponent> SceneComponent;
-	// 绑定的组件Socket, 提供位置信息, 如果没有的话, 则使用组件的位置
+	/** 投影使用的组件插槽；NAME_None 表示使用组件位置。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Binding")
 	FName ComponentSocketName = NAME_None;
-	// 绑定使用的UI控件, 用于展示指示器的控件
+	/** 异步加载并用于显示指示器的控件类。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Binding")
 	TSoftClassPtr<UUserWidget> IndicatorWidgetClass;
-	// 绑定的管理器, 此指示器数据所属的管理器
+	/** 所属管理组件的弱引用，不延长管理组件的生命周期。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Binding")
 	TWeakObjectPtr<UIndicatorManagerComponent> ManagerPtr;
 
-	//是否可见, 默认可见
+	/** 是否允许显示指示器；仍需关联有效的场景组件。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Display")
 	bool bVisible = true;
-	//是否限制到屏幕, 默认不限制
+	/** 是否将屏幕外的指示器限制到屏幕边缘。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Display")
 	bool bClampToScreen = false;
-	//是否限制箭头到屏幕, 默认不显示箭头
+	/** 指示器被限制到屏幕边缘时是否显示方向箭头。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Display")
 	bool bShowClampToScreenArrow = false;
-	//是否自动删除，当关联的组件为空时自动删除, 默认不自动删除
+	/** 关联场景组件无效时，是否自动注销指示器。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Display")
 	bool bAutoRemoveWhenIndicatorComponentIsNull = false;
-	//是否启用360°旋转的夹取箭头, 默认关闭, 使用固定的四方向箭头
+	/** 是否按目标真实方向旋转边缘箭头；关闭时使用四个固定方向。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Display")
 	bool bUse360ClampArrow = false;
-	//最大绘制距离, 超出此距离的指示器不投影不绘制, 默认0 = 不限制
+	/** 最大绘制距离；超过距离时跳过投影和绘制，0 表示不限制。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Display")
 	float MaxDrawDistance = 0.f;
 
-	//投影模式
+	/** 场景数据到屏幕位置的投影方式。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Offset")
 	EActorCanvasProjectionMode ProjectionMode = EActorCanvasProjectionMode::ComponentPoint;
-	//边界盒锚点
+	/** 包围盒内的归一化锚点，0.5 表示中心。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Offset")
 	FVector BoundingBoxAnchor = FVector(0.5, 0.5, 0.5);
-	//屏幕空间偏移
+	/** 投影后附加的屏幕空间偏移。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Offset")
 	FVector2D ScreenSpaceOffset = FVector2D(0, 0);
-	//世界空间偏移
+	/** 附加到组件或插槽位置的世界空间偏移。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Offset")
 	FVector WorldPositionOffset = FVector(0, 0, 0);
 
-	//水平对齐
+	/** 控件相对投影位置的水平对齐方式。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Layout")
 	TEnumAsByte<EHorizontalAlignment> HAlignment = HAlign_Center;
-	//垂直对齐
+	/** 控件相对投影位置的垂直对齐方式。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Layout")
 	TEnumAsByte<EVerticalAlignment> VAlignment = VAlign_Center;
-	//UI中的优先级
+	/** 绘制优先级；数值较大的指示器后绘制。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Layout")
 	int32 Priority = 0;
 };
 
 
 /**
- * 描述并控制一个活动指示器,本体为指示器的配置数据
- * 如果指示器Icon实现了IIndicatorWidgetInterface，那么可以通过接口获取到此指示器数据上下文
+ * 保存活动指示器的投影、布局和业务上下文，并记录对应控件的弱引用。
+ * 实现 IIndicatorWidgetInterface 的控件通过绑定回调接收该描述对象。
  */
 UCLASS(MinimalAPI, BlueprintType, Blueprintable)
 class UIndicatorDescriptorDataObj : public UObject
@@ -106,27 +104,28 @@ class UIndicatorDescriptorDataObj : public UObject
 public:
 	UIndicatorDescriptorDataObj() { ; }
 
+	/** 将指示器投影到屏幕；输出 XY 为屏幕坐标，Z 为到相机的距离。 */
 	static bool Project(
-		const UIndicatorDescriptorDataObj& IndicatorDescriptor, // 指示器配置
-		const FSceneViewProjectionData& InProjectionData, // 相机投影数据（从 LocalPlayer 拿）
-		const FVector2f& ScreenSize, // 当前屏幕分辨率
-		FVector& OutScreenPositionWithDepth // 输出：XY = 屏幕坐标, Z = 距相机距离
+		const UIndicatorDescriptorDataObj& IndicatorDescriptor,
+		const FSceneViewProjectionData& InProjectionData,
+		const FVector2f& ScreenSize,
+		FVector& OutScreenPositionWithDepth
 	);
 
 	// TODO 更好的组织
 	TWeakObjectPtr<UUserWidget> IndicatorWidget;
 
-	// 是否可以自动删除，当关联的组件为空时自动删除
+	/** 返回是否启用了自动注销且关联场景组件已无效。 */
 	bool CanAutomaticallyRemove() const { return IndicatorDescriptorParameter.bAutoRemoveWhenIndicatorComponentIsNull && !IsValid(IndicatorDescriptorParameter.SceneComponent); }
 
-	// 获取可见性
+	/** 返回场景组件有效且配置允许显示时的可见状态。 */
 	UFUNCTION(BlueprintCallable, Category = "Indicator")
 	bool GetIsVisible() const { return IsValid(IndicatorDescriptorParameter.SceneComponent) && IndicatorDescriptorParameter.bVisible; }
 
-	// 设置指示器管理器组件
+	/** 首次注册时设置所属管理组件；已有管理器关联时不覆盖。 */
 	UE_API void SetIndicatorManagerComponent(UIndicatorManagerComponent* InManager);
 
-	// 删除指示器
+	/** 通知所属管理组件注销指示器，不直接销毁描述对象。 */
 	UFUNCTION(BlueprintCallable, Category = "Indicator")
 	UE_API void UnregisterIndicator();
 

@@ -11,7 +11,7 @@ class UEquipmentDefinition;
 class UEquipmentManager;
 struct FEquipmentList;
 
-/** 单个装备项目 继承于快速复制的基类 */
+/** 快速数组中的单个装备条目，记录定义、实例及已授予能力。 */
 USTRUCT(BlueprintType)
 struct FAppliedEquipmentEntry : public FFastArraySerializerItem
 {
@@ -25,20 +25,20 @@ private:
 	friend FEquipmentList;
 	friend UEquipmentManager;
 
-	// 被装备的CDO类别
+	/** 创建该装备实例所用的定义类。 */
 	UPROPERTY()
 	TSubclassOf<UEquipmentDefinition> EquipmentDefinition;
 
 	UPROPERTY()
 	TObjectPtr<UEquipmentInstance> Instance = nullptr;
 
-	// Authority-only list of granted handles
+	/** 仅由权威端保存的能力授予句柄，用于卸装时撤销能力。 */
 	UPROPERTY(NotReplicated)
 	FExtAbilitySet_GrantedHandles GrantedHandles;
 };
 
 
-/** 装备的装备 */
+/** 复制装备条目，并在增删时管理能力与外观 Actor 的生命周期。 */
 USTRUCT(BlueprintType)
 struct FEquipmentList : public FFastArraySerializer
 {
@@ -60,6 +60,7 @@ public:
 		return FFastArraySerializer::FastArrayDeltaSerialize<FAppliedEquipmentEntry, FEquipmentList>(Entries, DeltaParms, *this);
 	}
 
+	/** 由权威端创建装备实例，授予能力并生成外观 Actor。 */
 	UEquipmentInstance* AddEntry(TSubclassOf<UEquipmentDefinition> EquipmentDefinition);
 	void RemoveEntry(UEquipmentInstance* Instance);
 
@@ -68,7 +69,7 @@ private:
 
 	friend UEquipmentManager;
 
-	// 需要复制的装备数据
+	/** 通过快速数组复制的装备条目。 */
 	UPROPERTY()
 	TArray<FAppliedEquipmentEntry> Entries;
 

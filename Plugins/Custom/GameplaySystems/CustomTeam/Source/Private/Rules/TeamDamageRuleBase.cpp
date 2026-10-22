@@ -7,6 +7,6 @@
 
 ETeamDamageRuleResult UTeamDamageRuleBase::EvaluateDamage_Implementation(const FTeamDamageRuleContext& Context) const
 {
-	// 基类默认: 不表态(弃权), 由子类决定
+	// 基类默认弃权，具体策略由子类提供。
 	return ETeamDamageRuleResult::Continue;
 }

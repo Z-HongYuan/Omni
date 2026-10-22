@@ -20,9 +20,7 @@ UCosmeticsControllerComponent* UCosmeticCheats::GetCosmeticComponent() const
 
 UCosmeticCheats::UCosmeticCheats()
 {
-	/*
-	 * 向作弊管理器添加拓展
-	 */
+	// 仅由 CDO 注册创建回调，避免每个扩展实例重复注册。
 #if UE_WITH_CHEAT_MANAGER
 	if (HasAnyFlags(RF_ClassDefaultObject))
 	{

@@ -40,7 +40,7 @@ void ATeamInfoBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		UTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<UTeamSubsystem>();
 		if (TeamSubsystem)
 		{
-			// 终局游戏可能发生在子系统已经被摧毁的奇怪时间点
+			// EndPlay 期间子系统可能已销毁，仅在其仍有效时注销。
 			TeamSubsystem->UnregisterTeamInfo(this);
 		}
 	}
@@ -66,7 +66,7 @@ void ATeamInfoBase::TryRegisterWithTeamSubsystem()
 
 void ATeamInfoBase::SetTeamId(int32 NewTeamId)
 {
-	// 仅能设置一次, 且必须在Authority端设置
+	// TeamId 只在初始化时复制，因此只允许权威端首次赋值。
 	check(HasAuthority());
 	check(TeamId == INDEX_NONE);
 	check(NewTeamId != INDEX_NONE);

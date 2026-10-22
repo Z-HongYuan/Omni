@@ -18,13 +18,11 @@ class UIndicatorDescriptorDataObj;
 class UIndicatorManagerComponent;
 struct FSlateBrush;
 
-/*
- * 实质上作为指示器的计算和渲染的控件
- */
+/** 计算指示器投影和边缘箭头布局，并管理异步加载的控件池。 */
 class SActorIcon : public SPanel, public FAsyncLoadMixin, public FGCObject
 {
 public:
-	/** ActorIcon 专用槽类 */
+	/** 指示器面板使用的槽位。 */
 	class FSlot : public TSlotBase<FSlot>
 	{
 	public:
@@ -152,7 +150,7 @@ public:
 			GetWidget()->SetVisibility(bIsVisible ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed);
 		}
 
-		//由 SActorCanvas：：AddReferencedObjects维持生命
+		/** 由 SActorIcon::AddReferencedObjects 通过 AllIndicators 保持引用。 */
 		UIndicatorDescriptorDataObj* Indicator;
 		FVector2D ScreenPosition;
 		double Depth;
@@ -163,30 +161,28 @@ public:
 		uint8 bHasValidScreenPosition : 1;
 		uint8 bDirty : 1;
 
-		/** 
-		 缓存和帧延迟值，显示指示器是否在上一帧被视觉屏蔽;半黑客式的可变实现，作为在const绘画操作中缓存的
-		 */
+		/** 布局阶段缓存的屏幕边缘限制状态，在后续更新中检测变化。 */
 		mutable uint8 bWasIndicatorClamped : 1;
 		mutable uint8 bWasIndicatorClampedStatusChanged : 1;
 
 		friend class SActorIcon;
 	};
 
-	/** ActorIcon 专用槽类 */
+	/** 指示器面板使用的槽位。 */
 	class FArrowSlot : public TSlotBase<FArrowSlot>
 	{
 	};
 
-	/** 开始定义此 Slate 小部件的参数 */
+	// Slate 构造参数。
 	SLATE_BEGIN_ARGS(SActorIcon)
 		{
 			_Visibility = EVisibility::HitTestInvisible;
 		}
 
-		/** 表示我们有一个槽位，这个小部件支持它 */
+		/** 构造时可配置的指示器槽位。 */
 		SLATE_SLOT_ARGUMENT(SActorIcon::FSlot, Slots)
 
-		/** 这总是在最后 */
+		// 结束 Slate 参数声明。
 	SLATE_END_ARGS()
 
 	SActorIcon()
@@ -226,7 +222,7 @@ private:
 	void SetShowAnyIndicators(bool bIndicators);
 	EActiveTimerReturnType UpdateCanvas(double InCurrentTime, float InDeltaTime);
 
-	/** 用于计算偏移的辅助函数 */
+	/** 根据控件期望尺寸与对齐方式，计算位置偏移及屏幕边界留白。 */
 	void GetOffsetAndSize(const UIndicatorDescriptorDataObj* Indicator,
 	                      FVector2D& OutSize,
 	                      FVector2D& OutOffset,
@@ -242,7 +238,7 @@ private:
 	FLocalPlayerContext LocalPlayerContext;
 	TWeakObjectPtr<UIndicatorManagerComponent> IndicatorComponentPtr;
 
-	/** 这幅画布上的所有槽位 */
+	/** 画布中的指示器槽位。 */
 	TPanelChildren<FSlot> CanvasChildren;
 	mutable TPanelChildren<FArrowSlot> ArrowChildren;
 	FCombinedChildren AllChildren;
@@ -254,7 +250,7 @@ private:
 	mutable int32 NextArrowIndex = 0;
 	mutable int32 ArrowIndexLastUpdate = 0;
 
-	/** 是否按添加元素到画布的顺序绘制。注意：启用此功能会禁用批处理，并导致更多抽取调用 */
+	/** 是否为依次绘制的控件累进绘制层级；启用后可能减少批处理机会。 */
 	bool bDrawElementsInOrder = false;
 
 	bool bShowAnyIndicators = false;

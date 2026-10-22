@@ -10,40 +10,38 @@
 class UNiagaraSystem;
 class UInventoryItemDefinition;
 
-/**
- * 
- */
+/** 配置拾取物对应的库存物品、展示资源和重生冷却。 */
 UCLASS(MinimalAPI, Blueprintable, BlueprintType, Const)
 class UPickupDefinition : public UDataAsset
 {
 	GENERATED_BODY()
 
 public:
-	//定义拾取物的演员生成对象、赋予的能力以及添加标签
+	/** 拾取后添加到库存的物品定义类。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pickup|Equipment")
 	TSubclassOf<UInventoryItemDefinition> InventoryItemDefinition;
 
-	//拾取的视觉模型
+	/** 拾取物的展示模型。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pickup|Mesh")
 	TObjectPtr<UStaticMesh> DisplayMesh;
 
-	//拾取之间的冷却时间
+	/** 拾取物重新生成的冷却时间，单位为秒。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pickup")
 	int32 SpawnCoolDownSeconds;
 
-	//拾取时的音效
+	/** 拾取时播放的音效。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pickup")
 	TObjectPtr<USoundBase> PickedUpSound;
 
-	//拾取重新生成时播放的声音
+	/** 重新生成时播放的音效。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pickup")
 	TObjectPtr<USoundBase> RespawnedSound;
 
-	//拾起时播放的粒子特效
+	/** 拾取时播放的粒子特效。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pickup")
 	TObjectPtr<UNiagaraSystem> PickedUpEffect;
 
-	//拾取物重生时播放的粒子效果
+	/** 重新生成时播放的粒子特效。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pickup")
 	TObjectPtr<UNiagaraSystem> RespawnedEffect;
 };
@@ -54,11 +52,11 @@ class UWeaponPickupDefinition : public UPickupDefinition
 	GENERATED_BODY()
 
 public:
-	//设置显示网格在武器生成器上方的高度
+	/** 展示模型相对武器生成器的位置偏移。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pickup|Mesh")
 	FVector WeaponMeshOffset;
 
-	//设置显示网格在武器生成器上方的高度
+	/** 展示模型的缩放。 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Pickup|Mesh")
 	FVector WeaponMeshScale = FVector(1.0f, 1.0f, 1.0f);
 };

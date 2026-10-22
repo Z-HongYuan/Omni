@@ -64,24 +64,24 @@ void UTeamSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	// 非侵入式的添加作弊管理器拓展
+	// 通过 CheatManager 创建事件注册队伍调试扩展。
 	auto AddTeamCheats = [](UCheatManager* CheatManager)
 	{
 		CheatManager->AddCheatManagerExtension(NewObject<UTeamCheats>(CheatManager));
 	};
 	CheatManagerRegistrationHandle = UCheatManager::RegisterForOnCheatManagerCreated(FOnCheatManagerCreated::FDelegate::CreateLambda(AddTeamCheats));
 
-	// 按项目全局设置(Project Settings → Custom Team)挂载基础伤害规则
+	// 从项目设置加载基础伤害规则。
 	const UCustomTeamSettings* Settings = GetDefault<UCustomTeamSettings>();
 
-	// 1. 插件内置默认规则(默认开启; 关闭后需自行配置等效规则, 否则默认"全部禁止")
+	// 仅在配置启用时注册内置自伤与队伍关系规则。
 	if (Settings->bUseDefaultRules)
 	{
 		AddDamageRuleFromClass(UTeamDamageRule_SelfDamage::StaticClass());
 		AddDamageRuleFromClass(UTeamDamageRule_TeamRelationship::StaticClass());
 	}
 
-	// 2. 项目配置的全局规则(整个项目的基础规则)
+	// 加载并注册项目配置的全局规则。
 	for (const TSoftClassPtr<UTeamDamageRuleBase>& RuleClass : Settings->GlobalRules)
 	{
 		if (UClass* LoadedRuleClass = RuleClass.LoadSynchronous())
@@ -128,7 +128,7 @@ bool UTeamSubsystem::UnregisterTeamInfo(ATeamInfoBase* TeamInfoBase)
 	const int32 TeamId = TeamInfoBase->GetTeamId();
 	if (ensure(TeamId != INDEX_NONE))
 	{
-		// 如果找不到这个条目，这很可能是前一个世界的遗留演员，忽略它
+		// 只移除当前世界已登记的队伍信息，缺少记录时直接返回失败。
 		if (FTeamTrackingInfo* Entry = TeamMap.Find(TeamId))
 		{
 			Entry->RemoveTeamInfo(TeamInfoBase);
@@ -155,28 +155,28 @@ bool UTeamSubsystem::ChangeTeamForActor(AActor* ActorToChange, int32 NewTeamId)
 
 int32 UTeamSubsystem::FindTeamFromObject(const UObject* TestObject) const
 {
-	// 检查是否实现了团队接口
+	// 优先使用对象自身提供的队伍接口。
 	if (const ITeamAgentInterface* ObjectWithTeamInterface = Cast<ITeamAgentInterface>(TestObject))
 	{
 		return GenericTeamIdToInteger(ObjectWithTeamInterface->GetGenericTeamId());
 	}
 
-	// 如果是Actor的话,看看他的Instigator的团队信息
+	// Actor 还可通过发起者、信息类型或关联 PlayerState 提供归属。
 	if (const AActor* TestActor = Cast<const AActor>(TestObject))
 	{
-		// 看看发起者是不是团队成员
+		// 优先查询 Instigator 的队伍接口。
 		if (const ITeamAgentInterface* InstigatorWithTeamInterface = Cast<ITeamAgentInterface>(TestActor->GetInstigator()))
 		{
 			return GenericTeamIdToInteger(InstigatorWithTeamInterface->GetGenericTeamId());
 		}
 
-		// 或者测试的Actor是团队信息,直接获取他的ID
+		// 队伍信息 Actor 直接保存队伍 ID。
 		if (const ATeamInfoBase* TeamInfo = Cast<ATeamInfoBase>(TestActor))
 		{
 			return TeamInfo->GetTeamId();
 		}
 
-		//看看相关的PS上是否有团队ID
+		// 最后查询关联 PlayerState 的队伍接口。
 		if (const APlayerState* PlayerState = FindPlayerStateFromActor(TestActor))
 		{
 			if (const ITeamAgentInterface* PSWithTeamInterface = Cast<ITeamAgentInterface>(PlayerState))
@@ -200,7 +200,7 @@ ETeamComparison UTeamSubsystem::CompareTeams(const UObject* A, const UObject* B,
 	TeamIdA = FindTeamFromObject(Cast<const AActor>(A));
 	TeamIdB = FindTeamFromObject(Cast<const AActor>(B));
 
-	// 如果其中一个对象不属于队伍,则返回InvalidArgument
+	// 任一方缺少队伍归属时，都不能比较队伍关系。
 	if ((TeamIdA == INDEX_NONE) || (TeamIdB == INDEX_NONE))
 	{
 		return ETeamComparison::InvalidArgument;
@@ -230,7 +230,7 @@ TArray<int32> UTeamSubsystem::GetTeamIDs() const
 
 bool UTeamSubsystem::CanCauseDamage(const UObject* Instigator, const UObject* Target) const
 {
-	// 构建伤害判定上下文(队伍关系与同一玩家判定由子系统统一计算)
+	// 为所有规则构造同一份队伍关系和玩家关系上下文。
 	FTeamDamageRuleContext Context;
 	Context.Instigator = Instigator;
 	Context.Target = Target;
@@ -254,7 +254,7 @@ bool UTeamSubsystem::CanCauseDamage(const UObject* Instigator, const UObject* Ta
 		if (Result == ETeamDamageRuleResult::Allow)
 			bHasAllow = true;
 
-		// 其余就是Continue: 弃权, 继续下一条
+		// Continue 表示弃权，不改变已有的放行结果。
 	}
 
 	return bHasAllow;
@@ -267,7 +267,7 @@ void UTeamSubsystem::AddDamageRule(UTeamDamageRuleBase* Rule)
 
 void UTeamSubsystem::AddDamageRuleFromClass(TSubclassOf<UTeamDamageRuleBase> RuleClass)
 {
-	// 过滤抽象类(基类本身不可实例化)
+	// 仅实例化有效的非抽象规则类。
 	if (RuleClass && !RuleClass->HasAnyClassFlags(CLASS_Abstract))
 	{
 		AddDamageRule(NewObject<UTeamDamageRuleBase>(this, RuleClass));
@@ -314,7 +314,7 @@ UTeamDisplayAssetBase* UTeamSubsystem::GetEffectiveTeamDisplayAsset(int32 TeamId
 
 void UTeamSubsystem::NotifyTeamDisplayAssetModified(UTeamDisplayAssetBase* ModifiedAsset)
 {
-	//当显示资源正在编辑时，向所有观察者广播，而不仅仅是编辑后的显示资源
+	// 资产编辑后刷新全部队伍观察者，当前不按 ModifiedAsset 筛选。
 	for (const auto& KVP : TeamMap)
 	{
 		const int32 TeamId = KVP.Key;
@@ -334,18 +334,18 @@ const APlayerState* UTeamSubsystem::FindPlayerStateFromActor(const AActor* Possi
 	if (PossibleTeamActor == nullptr) return nullptr;
 
 	//@TODO：考虑使用一个接口，还是让团队参与者向子系统注册并维护一个映射？（或LWC风格）
-	// 如果是Pawn,获取他的PS
+	// Pawn 使用其关联的 PlayerState。
 	if (const APawn* Pawn = Cast<const APawn>(PossibleTeamActor))
 		if (APlayerState* PS = Pawn->GetPlayerState())
 			return PS;
 
 
-	// 如果是PC,获取他的PS
+	// Controller 使用其 PlayerState。
 	if (const AController* PC = Cast<const AController>(PossibleTeamActor))
 		if (PC->PlayerState)
 			return PC->PlayerState;
 
-	// 如果是PS,直接返回
+	// 输入已是 PlayerState 时直接返回。
 	if (const APlayerState* PS = Cast<const APlayerState>(PossibleTeamActor))
 		return PS;
 

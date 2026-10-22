@@ -4,22 +4,22 @@
 
 #include "InteractionQuery.generated.h"
 
-/** 交互时的请求 */
+/** 收集交互选项时使用的请求上下文。 */
 USTRUCT(BlueprintType, MinimalAPI)
 struct FInteractionQuery
 {
 	GENERATED_BODY()
 
 public:
-	/** 请求的 Pawn */
+	/** 发起交互的 Avatar Actor。 */
 	UPROPERTY(BlueprintReadWrite)
 	TWeakObjectPtr<AActor> RequestingAvatar;
 
-	/** 允许我们指定一个控制器——不需要匹配请求头像的所有者。 */
+	/** 请求使用的控制器，可与 RequestingAvatar 的 Owner 不同。 */
 	UPROPERTY(BlueprintReadWrite)
 	TWeakObjectPtr<AController> RequestingController;
 
-	/** 一个通用的UObject，用于插入交互所需的额外数据 */
+	/** 交互查询所需的可选附加数据；此弱引用不延长对象生命周期。 */
 	UPROPERTY(BlueprintReadWrite)
 	TWeakObjectPtr<UObject> OptionalObjectData;
 };

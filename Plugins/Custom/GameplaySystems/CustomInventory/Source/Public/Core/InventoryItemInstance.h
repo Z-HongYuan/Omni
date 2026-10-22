@@ -12,9 +12,7 @@
 class UInventoryItemFragmentBase;
 class UInventoryItemDefinition;
 
-/**
- * 运行时的库存实例,支持堆叠, 例如 木材*100
- */
+/** 库存物品的运行时实例，保存定义类和可复制的属性标签计数。 */
 UCLASS(BlueprintType, MinimalAPI)
 class UInventoryItemInstance : public UObject
 {
@@ -23,7 +21,7 @@ class UInventoryItemInstance : public UObject
 public:
 	UInventoryItemInstance(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	/** 注册所有复制片段 */
+	/** 注册实例需要复制的属性。 */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void RegisterReplicationFragments(UE::Net::FFragmentRegistrationContext& Context, UE::Net::EFragmentRegistrationFlags RegistrationFlags) override;
 
@@ -31,19 +29,19 @@ public:
 	virtual bool IsSupportedForNetworking() const override { return true; }
 	//~End of UObject interface
 
-	// 向实例添加堆叠标签计数
+	/** 由权威端增加指定属性标签的计数。 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
 	void AddStatTagStack(FGameplayTag Tag, int32 StackCount);
 
-	// 向实例移除堆叠标签计数
+	/** 由权威端减少指定属性标签的计数。 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category= Inventory)
 	void RemoveStatTagStack(FGameplayTag Tag, int32 StackCount);
 
-	// 返回指定标签的堆叠计数（不存在则返回0）
+	/** 返回指定标签的计数；不存在时返回 0。 */
 	UFUNCTION(BlueprintCallable, Category=Inventory)
 	int32 GetStatTagStackCount(FGameplayTag Tag) const;
 
-	// 返回指定标签是否存在堆叠
+	/** 返回实例是否持有指定属性标签。 */
 	UFUNCTION(BlueprintCallable, Category=Inventory)
 	bool HasStatTag(FGameplayTag Tag) const;
 
@@ -66,7 +64,7 @@ private:
 	UPROPERTY(Replicated)
 	FGameplayTagStackContainer StatTags;
 
-	// 实例的CDO定义
+	/** 该实例对应的物品定义类。 */
 	UPROPERTY(Replicated)
 	TSubclassOf<UInventoryItemDefinition> ItemDef;
 };

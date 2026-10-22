@@ -5,4 +5,4 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InteractionInstigatorInterface)
 
-// Add default functionality here for any IInteractionInstigatorInterface functions that are not pure virtual.
+// IInteractionInstigatorInterface 的选项选择策略由实现方提供。

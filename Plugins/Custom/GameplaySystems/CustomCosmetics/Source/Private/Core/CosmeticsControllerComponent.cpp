@@ -22,7 +22,7 @@ void UCosmeticsControllerComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// 监听 Pawn 更改的事件, 事件位于 AController 中
+	// 由权威端监听 Pawn 切换，并把控制器保存的外观应用到当前 Pawn。
 	if (HasAuthority())
 	{
 		if (AController* OwningController = GetController<AController>())
@@ -99,11 +99,11 @@ void UCosmeticsControllerComponent::ApplyDeveloperSettings()
 #if UE_WITH_CHEAT_MANAGER
 	const UCosmeticDeveloperSettings* Settings = GetDefault<UCosmeticDeveloperSettings>();
 
-	// 是否需要覆盖
+	// 只有替换模式且存在调试部件时才抑制常规部件。
 	const bool bSuppressNaturalParts = (Settings->CheatMode == ECosmeticCheatMode::ReplaceParts) && (Settings->CheatCharacterParts.Num() > 0);
 	SetSuppressionOnNaturalParts(bSuppressNaturalParts);
 
-	// 移除开发者设置添加的任何内容，然后重新添加
+	// 先移除上次开发者设置生成的部件，避免重复叠加。
 	UCosmeticsClientComponent* PawnCustomizer = GetPawnCustomizer();
 	for (auto It = CharacterParts.CreateIterator(); It; ++It)
 	{
@@ -117,7 +117,7 @@ void UCosmeticsControllerComponent::ApplyDeveloperSettings()
 		}
 	}
 
-	// 添加 新外观
+	// 应用当前开发者设置中的部件。
 	for (const FCharacterPart& PartDesc : Settings->CheatCharacterParts)
 	{
 		AddCharacterPartInternal(PartDesc, ECharacterPartSource::AppliedViaDeveloperSettingsCheat);
@@ -136,7 +136,7 @@ UCosmeticsClientComponent* UCosmeticsControllerComponent::GetPawnCustomizer() co
 
 void UCosmeticsControllerComponent::OnPossessedPawnChanged(APawn* OldPawn, APawn* NewPawn)
 {
-	// 从旧的 Pawn 中移除所有外观
+	// 从旧 Pawn 移除本组件管理的部件，并清空对应句柄。
 	if (UCosmeticsClientComponent* OldCustomizer = OldPawn ? OldPawn->FindComponentByClass<UCosmeticsClientComponent>() : nullptr)
 	{
 		for (FCharacterPartControllerEntry& Entry : CharacterParts)
@@ -146,12 +146,12 @@ void UCosmeticsControllerComponent::OnPossessedPawnChanged(APawn* OldPawn, APawn
 		}
 	}
 
-	// 向新 Pawn 中添加所有外观
+	// 将未受调试抑制的外观应用到新 Pawn。
 	if (UCosmeticsClientComponent* NewCustomizer = NewPawn ? NewPawn->FindComponentByClass<UCosmeticsClientComponent>() : nullptr)
 	{
 		for (FCharacterPartControllerEntry& Entry : CharacterParts)
 		{
-			// 如果已经存在，不要重新添加，否则可能会被旧 Pawn 调用
+			// 仅创建尚未应用的部件，避免重复添加有效句柄对应的外观。
 			if (!Entry.Handle.IsValid() && Entry.Source != ECharacterPartSource::NaturalSuppressedViaCheat)
 			{
 				Entry.Handle = NewCustomizer->AddCharacterPart(Entry.Part);
@@ -188,7 +188,7 @@ void UCosmeticsControllerComponent::ClearCheatParts()
 #if UE_WITH_CHEAT_MANAGER
 	UCosmeticsClientComponent* PawnCustomizer = GetPawnCustomizer();
 
-	// 移除所有由作弊添加的外观
+	// 只移除 CheatManager 命令添加的部件，开发者设置稍后重新应用。
 	for (auto It = CharacterParts.CreateIterator(); It; ++It)
 	{
 		if (It->Source == ECharacterPartSource::AppliedViaCheatManager)
@@ -214,7 +214,7 @@ void UCosmeticsControllerComponent::SetSuppressionOnNaturalParts(bool bSuppresse
 	{
 		if ((Entry.Source == ECharacterPartSource::Natural) && bSuppressed)
 		{
-			// 覆盖
+			// 移除当前表现并保留常规部件描述，供取消抑制时恢复。
 			if (PawnCustomizer != nullptr)
 			{
 				PawnCustomizer->RemoveCharacterPart(Entry.Handle);
@@ -224,7 +224,7 @@ void UCosmeticsControllerComponent::SetSuppressionOnNaturalParts(bool bSuppresse
 		}
 		else if ((Entry.Source == ECharacterPartSource::NaturalSuppressedViaCheat) && !bSuppressed)
 		{
-			// 不覆盖
+			// 恢复此前被调试覆盖抑制的常规部件。
 			if (PawnCustomizer != nullptr)
 			{
 				Entry.Handle = PawnCustomizer->AddCharacterPart(Entry.Part);

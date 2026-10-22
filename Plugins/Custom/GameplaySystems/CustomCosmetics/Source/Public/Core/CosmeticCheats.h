@@ -8,9 +8,7 @@
 
 #define UE_API CUSTOMCOSMETICS_API
 
-/**
- * 用于外观装扮的作弊函数,自动添加到CheatManager中
- */
+/** 外观调试命令扩展，在启用 CheatManager 的构建中自动注册。 */
 UCLASS(MinimalAPI, NotBlueprintable)
 class UCosmeticCheats : public UCheatManagerExtension
 {
@@ -19,15 +17,15 @@ class UCosmeticCheats : public UCheatManagerExtension
 public:
 	UCosmeticCheats();
 
-	// 添加一个外观
+	/** 添加调试外观，可同时隐藏常规外观部件。 */
 	UFUNCTION(Exec, BlueprintAuthorityOnly)
 	UE_API void AddCharacterPart(const FString& AssetName, bool bSuppressNaturalParts = true);
 
-	// 替换一个外观
+	/** 清除现有命令覆盖后，添加指定的调试外观。 */
 	UFUNCTION(Exec, BlueprintAuthorityOnly)
 	UE_API void ReplaceCharacterPart(const FString& AssetName, bool bSuppressNaturalParts = true);
 
-	// 清除所有的外观
+	/** 清除命令添加的调试外观，并重新应用开发者设置。 */
 	UFUNCTION(Exec, BlueprintAuthorityOnly)
 	UE_API void ClearCharacterPartOverrides();
 

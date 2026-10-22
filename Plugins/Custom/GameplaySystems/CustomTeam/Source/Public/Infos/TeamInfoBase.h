@@ -10,11 +10,7 @@
 
 class UTeamSubsystem;
 
-/*
- * 队伍信息基类
- * 目前只提供 队伍ID的存储和获取
- * 其他信息类需要根据具体项目具体分析
- */
+/** 保存仅初始化时复制的队伍 ID，并在生命周期内向队伍子系统注册。 */
 UCLASS(MinimalAPI, Abstract)
 class ATeamInfoBase : public AInfo
 {
@@ -26,6 +22,7 @@ public:
 	UE_API virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UE_API int32 GetTeamId() const { return TeamId; }
+	/** 仅由权威端设置一次有效队伍 ID，并尝试注册到队伍子系统。 */
 	UE_API void SetTeamId(int32 NewTeamId);
 
 protected:

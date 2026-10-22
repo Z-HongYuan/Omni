@@ -13,8 +13,8 @@ class APawn;
 struct FEquipmentActorToSpawn;
 
 /**
- * 生成一个装备,并且应用到角色上
- * 承载装备的外观,可以批量生成Actor外观件
+ * 承载装备运行时状态，管理挂接到所属 Pawn 的外观 Actor。
+ * 通过 Outer 获取 Pawn；Instigator 用于记录装备的来源对象。
  */
 UCLASS(MinimalAPI, BlueprintType, Blueprintable)
 class UEquipmentInstance : public UObject
@@ -62,7 +62,7 @@ private:
 	UFUNCTION()
 	void OnRep_Instigator();
 
-	// 本质上是装备的拥有者
+	/** 装备的来源对象；快捷栏装备时设为对应的库存物品实例。 */
 	UPROPERTY(ReplicatedUsing=OnRep_Instigator)
 	TObjectPtr<UObject> Instigator;
 

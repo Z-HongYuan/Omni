@@ -5,4 +5,4 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(IndicatorWidgetInterface)
 
-// Add default functionality here for any IIndicatorWidgetInterface functions that are not pure virtual.
+// 绑定与解绑行为由具体指示器控件实现。

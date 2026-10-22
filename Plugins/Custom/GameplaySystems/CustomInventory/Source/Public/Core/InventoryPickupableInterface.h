@@ -13,9 +13,7 @@ class UInventoryManager;
 class UInventoryItemInstance;
 class UInventoryItemDefinition;
 
-/*
- * 提供能够拾取的模版结构体
- */
+/** 拾取时用于创建库存条目的物品定义与数量。 */
 USTRUCT(BlueprintType)
 struct FPickupTemplate
 {
@@ -29,9 +27,7 @@ public:
 	TSubclassOf<UInventoryItemDefinition> ItemDef;
 };
 
-/*
- * 提供拾取实例结构体
- */
+/** 拾取内容中引用的已有物品实例。 */
 USTRUCT(BlueprintType)
 struct FPickupInstance
 {
@@ -55,9 +51,7 @@ public:
 	TArray<FPickupTemplate> Templates;
 };
 
-/*
- * 提供拾取的接口
- */
+/** 提供可加入库存的物品定义和已有实例。 */
 UINTERFACE(MinimalAPI, BlueprintType, meta = (CannotImplementInterfaceInBlueprint))
 class UInventoryPickupableInterface : public UInterface
 {
@@ -81,6 +75,7 @@ class UPickupableStatics : public UBlueprintFunctionLibrary
 public:
 	UPickupableStatics();
 
+	/** 优先查询 Actor 自身，再返回首个实现拾取接口的组件。 */
 	UFUNCTION(BlueprintPure, Category = "Inventory")
 	static TScriptInterface<IInventoryPickupableInterface> GetFirstPickupableFromActor(AActor* Actor);
 

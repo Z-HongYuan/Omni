@@ -43,15 +43,15 @@ UInventoryItemInstance* FInventoryList::AddEntry(TSubclassOf<UInventoryItemDefin
 {
 	UInventoryItemInstance* Result = nullptr;
 
-	// 空指针检查
+	// 创建条目前必须提供有效定义和所属组件。
 	check(ItemClass != nullptr);
 	check(OwnerComponent);
 
-	// 检查联网权限
+	// 仅允许权威端创建并复制库存条目。
 	AActor* OwningActor = OwnerComponent->GetOwner();
 	check(OwningActor->HasAuthority());
 
-	// 添加一个默认构造,并且对其进行修改
+	// 新实例先接收定义及片段初始化，再写入条目数量。
 	FInventoryEntry& NewEntry = Entries.AddDefaulted_GetRef();
 	NewEntry.Instance = NewObject<UInventoryItemInstance>(OwnerComponent->GetOwner()); //@TODO: 由于 UE-127172，外部使用actor而非组件
 	NewEntry.Instance->SetItemDef(ItemClass);

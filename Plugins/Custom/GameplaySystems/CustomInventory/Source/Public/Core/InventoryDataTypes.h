@@ -14,7 +14,7 @@ class UInventoryManager;
 class UInventoryItemDefinition;
 class UInventoryItemInstance;
 
-/** 用于在物品添加到库存时 使用 消息子系统发布信息 */
+/** 库存条目复制增删或数量变化时，通过消息路由发布的变更信息。 */
 USTRUCT(BlueprintType, MinimalAPI)
 struct FInventoryChangeMessage
 {
@@ -34,7 +34,7 @@ struct FInventoryChangeMessage
 	int32 Delta = 0;
 };
 
-/** 库存中的单个条目 */
+/** 快速数组中的库存条目，记录物品实例及堆叠数量。 */
 USTRUCT(BlueprintType, MinimalAPI)
 struct FInventoryEntry : public FFastArraySerializerItem
 {
@@ -58,7 +58,7 @@ private:
 	int32 LastObservedCount = INDEX_NONE;
 };
 
-/** 库存物品列表 */
+/** 管理库存条目复制，并通过复制回调发布数量变化消息。 */
 USTRUCT(BlueprintType, MinimalAPI)
 struct FInventoryList : public FFastArraySerializer
 {
@@ -82,6 +82,7 @@ struct FInventoryList : public FFastArraySerializer
 	}
 
 	UInventoryItemInstance* AddEntry(TSubclassOf<UInventoryItemDefinition> ItemClass, int32 StackCount);
+	/** 添加已有物品实例尚未实现，当前调用会触发 unimplemented()。 */
 	void AddEntry(UInventoryItemInstance* Instance);
 
 	void RemoveEntry(UInventoryItemInstance* Instance);
@@ -91,7 +92,7 @@ private:
 
 	friend UInventoryManager;
 
-	// 复制物品的列表
+	/** 通过快速数组复制的库存条目。 */
 	UPROPERTY()
 	TArray<FInventoryEntry> Entries;
 

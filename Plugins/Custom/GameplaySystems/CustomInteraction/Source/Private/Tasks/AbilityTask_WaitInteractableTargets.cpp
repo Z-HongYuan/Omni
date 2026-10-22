@@ -21,7 +21,7 @@ void UAbilityTask_WaitInteractableTargets::LineTrace(FHitResult& OutHitResult, c
 	OutHitResult.TraceStart = Start;
 	OutHitResult.TraceEnd = End;
 
-	// 只获取第一个的交互对象
+	// 后续交互筛选只使用首个命中结果。
 	if (HitResults.Num() > 0)
 	{
 		OutHitResult = HitResults[0];
@@ -30,7 +30,7 @@ void UAbilityTask_WaitInteractableTargets::LineTrace(FHitResult& OutHitResult, c
 
 void UAbilityTask_WaitInteractableTargets::AimWithPlayerController(const AActor* InSourceActor, FCollisionQueryParams Params, const FVector& TraceStart, float MaxRange, FVector& OutTraceEnd, bool bIgnorePitch) const
 {
-	if (!Ability) // 仅权威中执行
+	if (!Ability) // 没有所属能力时无法读取玩家视角。
 	{
 		return;
 	}
@@ -67,7 +67,7 @@ void UAbilityTask_WaitInteractableTargets::AimWithPlayerController(const AActor*
 
 		if (!OriginalAimDir.IsZero())
 		{
-			// 转换为角度并使用原始俯仰
+			// 禁用命中点俯仰修正时，保留原始瞄准俯仰角。
 			const FRotator OriginalAimRot = OriginalAimDir.Rotation();
 
 			FRotator AdjustedAimRot = AdjustedAimDir.Rotation();
@@ -84,15 +84,15 @@ bool UAbilityTask_WaitInteractableTargets::ClipCameraRayToAbilityRange(FVector C
 {
 	FVector CameraToCenter = AbilityCenter - CameraLocation;
 	float DotToCenter = FVector::DotProduct(CameraToCenter, CameraDirection);
-	if (DotToCenter >= 0) // 如果失败，我们会朝远离中心的方向，但我们可能在球体内部，能找到一个好的出口点。
+	if (DotToCenter >= 0) // 仅处理球心在相机射线前方的情况。
 	{
 		float DistanceSquared = CameraToCenter.SizeSquared() - (DotToCenter * DotToCenter);
 		float RadiusSquared = (AbilityRange * AbilityRange);
 		if (DistanceSquared <= RadiusSquared)
 		{
 			float DistanceFromCamera = FMath::Sqrt(RadiusSquared - DistanceSquared);
-			float DistanceAlongRay = DotToCenter + DistanceFromCamera; // 减法而不是加法会得到另一个交点
-			ClippedPosition = CameraLocation + (DistanceAlongRay * CameraDirection); // 凸轮瞄准点与射程球体截获
+			float DistanceAlongRay = DotToCenter + DistanceFromCamera; // 取沿射线方向较远的球面交点。
+			ClippedPosition = CameraLocation + (DistanceAlongRay * CameraDirection); // 将相机射线终点裁到能力范围球面上。
 			return true;
 		}
 	}
@@ -113,21 +113,21 @@ void UAbilityTask_WaitInteractableTargets::UpdateInteractableOptions(const FInte
 		{
 			FGameplayAbilitySpec* InteractionAbilitySpec = nullptr;
 
-			// 如果有手柄和目标能力系统，我们就是在目标上触发该技能。
+			// 显式指定能力系统和句柄时，直接使用该系统中的能力。
 			if (Option.TargetAbilitySystem && Option.TargetInteractionAbilityHandle.IsValid())
 			{
-				// 寻找 spec
+				// 查询已授予的能力规格。
 				InteractionAbilitySpec = Option.TargetAbilitySystem->FindAbilitySpecFromHandle(Option.TargetInteractionAbilityHandle);
 			}
-			// 如果有互动能力，那我们是在自己身上激活它。
+			// 仅指定能力类型时，从交互发起方的能力系统查找。
 			else if (Option.InteractionAbilityToGrant)
 			{
-				// 寻找 spec
+				// 查询已授予的能力规格。
 				InteractionAbilitySpec = AbilitySystemComponent->FindAbilitySpecFromClass(Option.InteractionAbilityToGrant);
 
 				if (InteractionAbilitySpec)
 				{
-					// 更新交互选项
+					// 补齐最终触发能力所需的系统与句柄。
 					Option.TargetAbilitySystem = AbilitySystemComponent.Get();
 					Option.TargetInteractionAbilityHandle = InteractionAbilitySpec->Handle;
 				}

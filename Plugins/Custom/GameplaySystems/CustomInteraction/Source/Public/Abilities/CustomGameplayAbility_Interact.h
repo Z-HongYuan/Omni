@@ -10,9 +10,7 @@
 
 
 class UIndicatorDescriptorDataObj;
-/**
- * 
- */
+/** 维护交互选项和屏幕指示器，并触发当前首个选项对应的能力。 */
 UCLASS(MinimalAPI, Abstract)
 class UCustomGameplayAbility_Interact : public UExtGameplayAbility
 {
@@ -33,7 +31,7 @@ protected:
 	UPROPERTY(BlueprintReadWrite)
 	TArray<FInteractionOption> CurrentOptions;
 
-	//UI 小部件
+	/** 当前交互选项在指示器管理组件中注册的描述对象。 */
 	UPROPERTY()
 	TArray<TObjectPtr<UIndicatorDescriptorDataObj>> Indicators;
 

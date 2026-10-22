@@ -7,24 +7,22 @@
 
 #define UE_API CUSTOMTEAM_API
 
-/**
- * 
- */
+/** 提供切换玩家队伍和打印队伍 ID 的调试命令。 */
 UCLASS(MinimalAPI)
 class UTeamCheats : public UCheatManagerExtension
 {
 	GENERATED_BODY()
 
 public:
-	//将此玩家移动到下一个可用的团队
+	/** 按队伍 ID 顺序将当前玩家切换到下一个队伍。 */
 	UFUNCTION(Exec, BlueprintAuthorityOnly)
 	virtual void CycleTeam();
 
-	// 将该球员移动到指定队伍
+	/** 将当前玩家切换到已存在的指定队伍。 */
 	UFUNCTION(Exec, BlueprintAuthorityOnly)
 	virtual void SetTeam(int32 TeamID);
 
-	// 打印所有队伍名单
+	/** 打印当前登记的全部队伍 ID。 */
 	UFUNCTION(Exec)
 	virtual void ListTeams();
 };

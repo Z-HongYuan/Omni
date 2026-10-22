@@ -10,16 +10,14 @@
 class UTexture;
 class UTeamDisplayAssetBase;
 
-/**
- * 队伍系统的帮助函数
- */
+/** 为蓝图查询队伍归属和展示资产。 */
 UCLASS(MinimalAPI)
 class UTeamHelper : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
 public:
-	// 返回该对象所属的队伍，若不属于队伍则返回INDEX_NONE
+	/** 输出对象的队伍 ID 和展示资产；未找到队伍时 ID 为 INDEX_NONE。 */
 	UFUNCTION(BlueprintCallable, Category=Teams, meta=(Keywords="GetTeamFromObject", DefaultToSelf="Agent", AdvancedDisplay="bLogIfNotSet"))
 	static void FindTeamFromObject(const UObject* Agent, bool& bIsPartOfTeam, int32& TeamId, UTeamDisplayAssetBase*& DisplayAsset, bool bLogIfNotSet = false);
 

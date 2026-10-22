@@ -10,10 +10,7 @@
 
 enum class ECosmeticCheatMode;
 
-/**
- * 可由控制台变量控制的开发者设置
- * 用于在 外观系统 中自动添加测试 外观部件
- */
+/** 外观调试设置，供控制器组件添加或替换测试部件。 */
 UCLASS(Config=Game, MinimalAPI)
 class UCosmeticDeveloperSettings : public UDeveloperSettingsBackedByCVars
 {
@@ -22,14 +19,14 @@ class UCosmeticDeveloperSettings : public UDeveloperSettingsBackedByCVars
 public:
 	UCosmeticDeveloperSettings();
 
-	/** 返回设置类别名称（在 Project Settings 中的路径） */
+	/** 返回 Project Settings 中的设置分类。 */
 	virtual FName GetCategoryName() const override { return TEXT("ZHYS"); }
 
-	// 不需要 config 每次启动时自己设置 外观添加数组
+	/** 本次会话使用的测试外观部件，不写入配置。 */
 	UPROPERTY(Transient, EditAnywhere)
 	TArray<FCharacterPart> CheatCharacterParts;
 
-	// 不需要 config 启动时自己设置 外观添加模式
+	/** 本次会话使用的测试外观模式，不写入配置。 */
 	UPROPERTY(Transient, EditAnywhere)
 	ECosmeticCheatMode CheatMode;
 };

@@ -7,9 +7,7 @@
 
 #define UE_API CUSTOMTEAM_API
 
-/**
- * 在子类内拓展团队资产包含的数据
- */
+/** 队伍展示资产基类，项目可在子类中添加名称、图标或配色等数据。 */
 UCLASS(MinimalAPI)
 class UTeamDisplayAssetBase : public UDataAsset
 {
@@ -23,12 +21,7 @@ public:
 	//~End of UObject interface
 
 
-	/*
-	 * 在子类内拓展团队资产包含的数据
-	 * 1. 例如团队的名称
-	 * 2. 例如团队的图标
-	 * 3. 团队使用的公用资源,颜色,字体,材质等
-	 */
+	// 具体展示字段由项目子类定义。
 };
 
 #undef UE_API

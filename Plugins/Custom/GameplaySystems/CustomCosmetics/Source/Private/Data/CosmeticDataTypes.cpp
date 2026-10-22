@@ -15,9 +15,7 @@ FString FAppliedCharacterPartEntry::GetDebugString() const
 
 void FCharacterPartList::PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize)
 {
-	/*
-	 * 增量移除时, 移除对应的元素, 并且在客户端中 调用 广播
-	 */
+	// 复制移除条目前先销毁本机部件，实际发生销毁时再通知外观变化。
 	bool bDestroyedAnyActors = false;
 	for (int32 Index : RemovedIndices)
 	{
@@ -33,9 +31,7 @@ void FCharacterPartList::PreReplicatedRemove(const TArrayView<int32> RemovedIndi
 
 void FCharacterPartList::PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize)
 {
-	/*
-	 * 增量添加时, 添加对应的元素, 添加完成后 调用 广播
-	 */
+	// 为复制新增条目生成本机部件，实际生成成功时再通知外观变化。
 	bool bCreatedAnyActors = false;
 	for (int32 Index : AddedIndices)
 	{
@@ -53,12 +49,12 @@ void FCharacterPartList::PostReplicatedChange(const TArrayView<int32> ChangedInd
 {
 	bool bChangedAnyActors = false;
 
-	// 不处理更改, 直接 删除和添加, 并且 调用 广播
+	// 描述变化时重建对应部件，统一处理类型、挂载点和碰撞配置。
 	for (int32 Index : ChangedIndices)
 	{
 		FAppliedCharacterPartEntry& Entry = Entries[Index];
 
-		// 按位或 运算,只要有一个 为真, 则永远为真
+		// 累积本轮是否发生销毁或生成，循环后只广播一次。
 		bChangedAnyActors |= DestroyActorForEntry(Entry);
 		bChangedAnyActors |= SpawnActorForEntry(Entry);
 	}
@@ -150,7 +146,7 @@ bool FCharacterPartList::SpawnActorForEntry(FAppliedCharacterPartEntry& Entry)
 {
 	bool bCreatedAnyActors = false;
 
-	// 仅在有必要的地方创建外观件,服务器明显不用
+	// 专用服务器只复制描述；客户端、监听服务器和单机负责生成表现。
 	if (ensure(OwnerComponent) && !OwnerComponent->IsNetMode(NM_DedicatedServer))
 	{
 		if (Entry.Part.PartClass != nullptr)
@@ -172,7 +168,7 @@ bool FCharacterPartList::SpawnActorForEntry(FAppliedCharacterPartEntry& Entry)
 					switch (Entry.Part.CollisionMode)
 					{
 					case ECharacterPartCollisionMode::UseCollisionFromCharacterPart:
-						// 不做任何事情
+						// 保留部件类自身的碰撞设置。
 						break;
 
 					case ECharacterPartCollisionMode::NoCollision:
@@ -180,7 +176,7 @@ bool FCharacterPartList::SpawnActorForEntry(FAppliedCharacterPartEntry& Entry)
 						break;
 					}
 
-					// 直接设置Tick的依赖,避免子 Actor 没有 Tick
+					// 让部件根组件在挂载目标更新后 Tick，保持挂接更新顺序。
 					if (USceneComponent* SpawnedRootComponent = SpawnedActor->GetRootComponent())
 					{
 						SpawnedRootComponent->AddTickPrerequisiteComponent(ComponentToAttachTo);

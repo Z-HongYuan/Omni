@@ -9,9 +9,7 @@
 
 class UTeamDisplayAssetBase;
 
-/*
- * 用于队伍中公开信息
- */
+/** 队伍公开信息，保存仅初始化时复制的展示资产。 */
 UCLASS(MinimalAPI)
 class ATeamPublicInfo : public ATeamInfoBase
 {

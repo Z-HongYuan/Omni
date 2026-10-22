@@ -21,7 +21,7 @@ void UAbilityTask_WaitInteractableTargets_SingleLineTrace::OnDestroy(bool Abilit
 
 void UAbilityTask_WaitInteractableTargets_SingleLineTrace::Activate()
 {
-	// 保证角色存在
+	// 标记任务等待 Avatar，具体追踪时仍检查 Avatar 是否有效。
 	SetWaitingOnAvatar();
 
 	UWorld* World = GetWorld();

@@ -59,7 +59,7 @@ void UCustomGameplayAbility_Interact::UpdateInteractions(const TArray<FInteracti
 		}
 		else
 		{
-			//TODO 这应该是一个响亮的警告。为什么我们要在一台永远无法处理互动的电脑上更新交互？
+			// TODO: 控制器缺少指示器管理组件时，补充诊断以说明交互提示无法显示。
 		}
 	}
 
@@ -80,23 +80,23 @@ void UCustomGameplayAbility_Interact::TriggerInteraction()
 		AActor* Instigator = GetAvatarActorFromActorInfo();
 		AActor* InteractableTargetActor = UInteractionHelper::GetActorFromInteractableTarget(InteractionOption.InteractableTarget);
 
-		// 允许目标自定义我们即将传递的事件数据，以防能力需要只有演员知道的自定义数据。
+		// 先填入默认事件上下文，再交给交互目标补充或覆盖。
 		FGameplayEventData Payload;
 		Payload.EventTag = CustomInteractionTags::TAG_Ability_Interaction_Activate;
 		Payload.Instigator = Instigator;
 		Payload.Target = InteractableTargetActor;
 
-		// 如果需要，我们允许可交互的目标操作事件数据，比如墙上的某个按钮可能想指定一个门的演员来执行该能力，因此它可能会选择覆盖目标为门的演员。
+		// 交互入口可以改写实际作用目标，例如由按钮将目标改为门。
 		InteractionOption.InteractableTarget->CustomizeInteractionEventData(CustomInteractionTags::TAG_Ability_Interaction_Activate, Payload);
 
-		// 从负载上抓取目标演员，我们将用它作为交互的“化身”，而源 InteractableTarget 演员则作为拥有者角色。
+		// 原交互目标作为 Owner，事件中的最终目标作为能力 Avatar。
 		AActor* TargetActor = const_cast<AActor*>(ToRawPtr(Payload.Target));
 
-		// 互动所需的演员信息。
+		// 使用选项指定的能力系统构建本次触发上下文。
 		FGameplayAbilityActorInfo ActorInfo;
 		ActorInfo.InitFromActor(InteractableTargetActor, TargetActor, InteractionOption.TargetAbilitySystem);
 
-		// 用事件标签触发该能力。
+		// 将事件数据交给选项对应的能力。
 		const bool bSuccess = InteractionOption.TargetAbilitySystem->TriggerAbilityFromGameplayEvent(
 			InteractionOption.TargetInteractionAbilityHandle,
 			&ActorInfo,

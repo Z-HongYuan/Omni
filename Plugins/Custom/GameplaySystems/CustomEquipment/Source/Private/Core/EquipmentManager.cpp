@@ -84,7 +84,7 @@ void UEquipmentManager::UninitializeComponent()
 {
 	TArray<UEquipmentInstance*> AllEquipmentInstances;
 
-	// gathering all instances before removal to avoid side effects affecting the equipment list iterator	
+	// 先收集实例，再逐个卸装，避免移除条目使遍历失效。
 	for (const FAppliedEquipmentEntry& Entry : EquipmentList.Entries)
 	{
 		AllEquipmentInstances.Add(Entry.Instance);
@@ -102,7 +102,7 @@ void UEquipmentManager::ReadyForReplication()
 {
 	Super::ReadyForReplication();
 
-	// 注册已有的装备实例
+	// 复制就绪后，补注册此前创建的装备实例。
 	if (IsUsingRegisteredSubObjectList())
 	{
 		for (const FAppliedEquipmentEntry& Entry : EquipmentList.Entries)

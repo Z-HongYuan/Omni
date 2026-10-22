@@ -7,9 +7,7 @@
 
 class AActor;
 
-/*
- * 用于MessageRouter使用的互动消息结构体
- */
+/** 供消息路由传递交互发起方与持续时间。 */
 USTRUCT(BlueprintType)
 struct FInteractionDurationMessage
 {

@@ -10,9 +10,7 @@
 class UInventoryItemInstance;
 class UEquipmentInstance;
 
-/**
- * 由装备实例赋予并与之相关联的能力
- */
+/** 通过能力的 SourceObject 访问关联装备及其来源物品。 */
 UCLASS(MinimalAPI)
 class UCustomGameplayAbility_FromEquipment : public UExtGameplayAbility
 {

@@ -9,9 +9,7 @@
 
 class UInventoryItemInstance;
 
-/**
- * 表示每个项目拥有的模块化属性
- */
+/** 物品定义中的模块化属性片段，可在实例创建时初始化运行时数据。 */
 UCLASS(MinimalAPI, DefaultToInstanced, EditInlineNew, Abstract)
 class UInventoryItemFragmentBase : public UObject
 {

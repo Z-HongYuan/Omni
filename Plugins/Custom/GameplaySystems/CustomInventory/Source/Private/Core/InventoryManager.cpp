@@ -45,7 +45,7 @@ void UInventoryManager::ReadyForReplication()
 {
 	Super::ReadyForReplication();
 
-	// 注册现有的UInventoryItemInstance
+	// 复制就绪后，补注册此前创建的物品实例。
 	if (IsUsingRegisteredSubObjectList())
 	{
 		for (const FInventoryEntry& Entry : InventoryList.Entries)
@@ -62,10 +62,7 @@ void UInventoryManager::ReadyForReplication()
 
 bool UInventoryManager::CanAddItemDefinition(TSubclassOf<UInventoryItemDefinition> ItemDef, int32 StackCount)
 {
-	//@TODO: Add support for stack limit / uniqueness checks / etc...
-	// 1. 先查找同类型条目，有则累加 StackCount
-	// 2. 或者其他处理,比如检测到背包空间
-	// 3. 或者进行堆叠处理,任意检测或者堆叠
+	// TODO: 补充堆叠上限、唯一性及库存容量等检查。
 	return true;
 }
 
@@ -74,7 +71,7 @@ UInventoryItemInstance* UInventoryManager::AddItemDefinition(TSubclassOf<UInvent
 	UInventoryItemInstance* Result = nullptr;
 	if (ItemDef != nullptr)
 	{
-		// 转发到结构体内部处理
+		// 由库存列表创建实例并执行属性片段初始化。
 		Result = InventoryList.AddEntry(ItemDef, StackCount);
 
 		if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && Result)

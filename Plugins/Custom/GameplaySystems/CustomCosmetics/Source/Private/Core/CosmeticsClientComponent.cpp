@@ -30,7 +30,7 @@ void UCosmeticsClientComponent::BeginPlay()
 
 void UCosmeticsClientComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	// 不广播通知
+	// 结束生命周期时清理部件，避免再向外广播变化。
 	CharacterPartList.ClearAllEntries(false);
 
 	Super::EndPlay(EndPlayReason);
@@ -40,7 +40,7 @@ void UCosmeticsClientComponent::OnRegister()
 {
 	Super::OnRegister();
 
-	// 不是模版类的话, 就设置复制数组的 Owner
+	// 仅为运行时组件实例关联复制列表的 Owner。
 	if (!IsTemplate())
 	{
 		CharacterPartList.SetOwnerComponent(this);
@@ -49,7 +49,7 @@ void UCosmeticsClientComponent::OnRegister()
 
 FCharacterPartHandle UCosmeticsClientComponent::AddCharacterPart(const FCharacterPart& NewPart)
 {
-	// 在 快速复制数组中,已经有对于添加后的操作,例如添加一个Actor
+	// 列表负责生成部件并通知外观变化。
 	return CharacterPartList.AddEntry(NewPart);
 }
 
@@ -131,34 +131,34 @@ void UCosmeticsClientComponent::BroadcastChanged()
 {
 	MakeSomeChangeToMesh();
 
-	// 让观察者知道，例如是否需要进行团队着色或类似的处理
+	// 网格更新后再通知观察者，便于重新应用队伍颜色等外观。
 	OnCharacterPartsChanged.Broadcast(this);
 }
 
 void UCosmeticsClientComponent::MakeSomeChangeToMesh()
 {
-	// 不更改就不做任何事情
+	// 只有启用网格联动时才应用外观标签规则。
 	if (!bIsNeedUpdateMesh) return;
 
 	constexpr bool bReinitPose = true;
 
-	// // 检查一个外观是否变化,来使用外观部件对 Mesh 的修改
+	// 找到配置标签对应的网格后，再应用部件驱动的外观。
 	if (USkeletalMeshComponent* MeshComponent = GetTaggedMeshComponent())
 	{
-		// 根据外观部件标签确定要使用的网格
+		// 按部件标签分别选择网格和动画实例类。
 		const FGameplayTagContainer MergedTags = GetCombinedTags(FGameplayTag());
 		USkeletalMesh* DesiredMesh = BodyMeshes.SelectBestBodyStyle(MergedTags);
 		TSubclassOf<UAnimInstance> DesiredMeshAnimLayer = AnimLayers.SelectBestLayer(MergedTags);
 
-		// 应用所需的网格（如果网格没有变化，这个调用是不可操作的）
+		// 将规则选出的网格与动画实例类应用到目标组件。
 		MeshComponent->SetSkeletalMesh(DesiredMesh, bReinitPose);
 		MeshComponent->SetAnimInstanceClass(DesiredMeshAnimLayer);
 
-		// 如果有强制覆盖，就应用所需的物理资产，而不是网格上的覆盖
+		// 配置了强制物理资产时，覆盖网格自身的物理资产。
 		if (UPhysicsAsset* PhysicsAsset = BodyMeshes.ForcedPhysicsAsset)
 		{
 			MeshComponent->SetPhysicsAsset(PhysicsAsset, bReinitPose);
 		}
 	}
-	// 如果这个没有任何东西的话,那么应该Mesh就不会改变,只会添加或者移除附加的Actor
+	// 未找到目标网格时，部件增删仍有效，但不会更换网格。
 }

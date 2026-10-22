@@ -4,5 +4,5 @@
 
 #include "Logging/LogCategory.h"
 
-// 声明_日志_类别_外部
+/** 外观系统日志类别。 */
 DECLARE_LOG_CATEGORY_EXTERN(LogCustomCosmetics, Log, All)

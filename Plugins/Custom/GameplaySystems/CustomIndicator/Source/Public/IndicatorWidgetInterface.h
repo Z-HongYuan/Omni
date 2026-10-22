@@ -9,10 +9,7 @@
 
 class UIndicatorDescriptorDataObj;
 
-/**
- * 当指示器控件实现此接口时, 可以获取到指示器数据上下文
- * 在绑定和解绑时会通过函数传递控件对应的数据上下文
- */
+/** 指示器控件通过绑定与解绑回调接收或释放描述对象关联。 */
 UINTERFACE(MinimalAPI, BlueprintType)
 class UIndicatorWidgetInterface : public UInterface
 {

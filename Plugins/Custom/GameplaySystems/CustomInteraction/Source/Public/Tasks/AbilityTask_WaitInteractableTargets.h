@@ -12,21 +12,17 @@ class IInteractableTargetInterface;
 struct FInteractionOption;
 struct FInteractionQuery;
 
-// 交互对象改变委托
+/** 可用交互选项变化时触发的委托。 */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInteractableObjectsChangedEvent, const TArray<FInteractionOption>&, InteractableOptions);
 
-/**
- * 异步等待可交互对象列表
- * 异步获取可交互对象列表
- * 蓝图中无法使用,只是抽离通用函数用作父类
- */
+/** 抽象交互任务基类，提供瞄准、追踪和可用选项筛选逻辑。 */
 UCLASS(MinimalAPI, Abstract)
 class UAbilityTask_WaitInteractableTargets : public UAbilityTask
 {
 	GENERATED_BODY()
 
 public:
-	// 可交互对象变更
+	/** 可用交互选项列表变化时广播。 */
 	UPROPERTY(BlueprintAssignable)
 	FInteractableObjectsChangedEvent InteractableObjectsChanged;
 
@@ -41,7 +37,7 @@ protected:
 
 	FCollisionProfileName TraceProfile;
 
-	// 轨迹会影响瞄准的角度吗？
+	/** 是否允许碰撞命中结果改变瞄准俯仰角。 */
 	bool bTraceAffectsAimPitch = true;
 
 	TArray<FInteractionOption> CurrentOptions;

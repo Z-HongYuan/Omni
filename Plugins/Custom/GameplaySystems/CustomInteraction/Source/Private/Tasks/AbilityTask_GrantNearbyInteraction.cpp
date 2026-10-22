@@ -69,12 +69,12 @@ void UAbilityTask_GrantNearbyInteraction::QueryInteractables()
 				InteractiveTarget->GatherInteractionOptions(InteractionQuery, InteractionBuilder);
 			}
 
-			// 检查是否有任何选项需要先赋予用户该能力才能使用。
+			// 部分交互选项要求先向发起方授予能力。
 			for (FInteractionOption& Option : Options)
 			{
 				if (Option.InteractionAbilityToGrant)
 				{
-					// 把能力赋予GAS，否则它就无法进行那种互动。
+					// 按能力类型缓存，避免每次扫描重复授予相同能力。
 					FObjectKey ObjectKey(Option.InteractionAbilityToGrant);
 					if (!InteractionAbilityCache.Find(ObjectKey))
 					{

@@ -8,9 +8,7 @@
 
 #define UE_API CUSTOMINVENTORY_API
 
-/**
- * 复制于CDO的动态数量
- */
+/** 创建物品实例时，将配置的初始属性标签计数写入实例。 */
 UCLASS(MinimalAPI)
 class UInventoryFragment_SetStats : public UInventoryItemFragmentBase
 {

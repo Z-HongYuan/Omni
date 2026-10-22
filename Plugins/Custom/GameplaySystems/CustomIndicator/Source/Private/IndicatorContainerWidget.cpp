@@ -33,6 +33,6 @@ TSharedRef<SWidget> UIndicatorContainerWidget::RebuildWidget()
 		}
 	}
 
-	// 给它一个简单的框，NullWidget 在 UWidget 上使用并不安全
+	// 设计时或缺少本地玩家时返回有效的空容器，避免使用 NullWidget。
 	return SNew(SBox);
 }

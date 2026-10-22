@@ -7,9 +7,7 @@
 
 #define UE_API CUSTOMINTERACTION_API
 
-/*
- * 用于获取交互对象的目标定位Actor
- */
+/** 通过线追踪获取交互命中结果，并更新世界准星位置。 */
 UCLASS(MinimalAPI)
 class AGameplayAbilityTargetActor_Interact : public AGameplayAbilityTargetActor_Trace
 {

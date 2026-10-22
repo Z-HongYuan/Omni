@@ -7,24 +7,22 @@
 
 #define UE_API CUSTOMINVENTORY_API
 
-/**
- * 用于在世界中展示的Mesh外观
- */
+/** 提供物品在世界中展示时使用的网格、名称和颜色。 */
 UCLASS(MinimalAPI)
 class UInventoryFragment_WorldInfo : public UInventoryItemFragmentBase
 {
 	GENERATED_BODY()
 
 public:
-	// 库存物品代表的模型
+	/** 物品的骨骼网格。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
 	TObjectPtr<USkeletalMesh> SkeletalMesh;
 
-	// 库存物品的名称
+	/** 物品的显示名称。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
 	FText DisplayName;
 
-	// 库存物品的材质,颜色
+	/** 物品展示使用的颜色。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
 	FLinearColor PadColor = FLinearColor::Green;;
 };

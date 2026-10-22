@@ -111,7 +111,7 @@ void FEquipmentList::RemoveEntry(UEquipmentInstance* Instance)
 UExtAbilitySystemComponent* FEquipmentList::GetAbilitySystemComponent() const
 {
 	check(OwnerComponent);
-	// 获取组件的Owner,应该就是Character或者Pawn
+	// 从装备管理组件所属 Actor 查询能力系统。
 	AActor* OwningActor = OwnerComponent->GetOwner();
 	return Cast<UExtAbilitySystemComponent>(UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwningActor));
 }

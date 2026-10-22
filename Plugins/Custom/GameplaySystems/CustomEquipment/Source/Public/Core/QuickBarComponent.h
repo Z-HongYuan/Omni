@@ -10,9 +10,7 @@
 class UEquipmentInstance;
 class UEquipmentManager;
 class UInventoryItemInstance;
-/*
- * 
- */
+/** 管理控制器的快捷栏，并在服务端切换所属 Pawn 的当前装备。 */
 UCLASS(MinimalAPI, Blueprintable, ClassGroup=(Inventory), meta=(BlueprintSpawnableComponent))
 class UQuickBarComponent : public UControllerComponent
 {
@@ -29,6 +27,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="")
 	void CycleActiveSlotBackward();
 
+	/** 请求服务端切换槽位；先卸下当前装备，再装备新槽位的物品。 */
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category="")
 	void SetActiveSlotIndex(int32 NewIndex);
 

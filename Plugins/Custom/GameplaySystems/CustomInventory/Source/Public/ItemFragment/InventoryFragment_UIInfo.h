@@ -8,16 +8,14 @@
 
 #define UE_API CUSTOMINVENTORY_API
 
-/**
- * 提供给UI使用的物品属性
- */
+/** 提供物品在 UI 中显示的图标和名称。 */
 UCLASS(MinimalAPI)
 class UInventoryFragment_UIInfo : public UInventoryItemFragmentBase
 {
 	GENERATED_BODY()
 
 public:
-	// 图标
+	/** 物品显示图标。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
 	FSlateBrush Brush;
 
@@ -25,7 +23,7 @@ public:
 	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
 	// FSlateBrush AmmoBrush;
 
-	// 显示名称
+	/** 物品显示名称。 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
 	FText DisplayName;
 };

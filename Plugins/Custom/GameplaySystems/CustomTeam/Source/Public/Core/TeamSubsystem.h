@@ -16,9 +16,7 @@ class UTeamDamageRuleBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTeamDisplayAssetChangedDelegate, const UTeamDisplayAssetBase*, DisplayAsset);
 
-/*
- * 用于在 Subsystem 中保存并使用的团队信息
- */
+/** 子系统保存的队伍信息 Actor、展示资产及资产变化委托。 */
 USTRUCT()
 struct FTeamTrackingInfo
 {
@@ -34,7 +32,7 @@ public:
 	UPROPERTY()
 	TObjectPtr<UTeamDisplayAssetBase> DisplayAsset = nullptr;
 
-	// 团队资产改变的委托
+	/** 队伍展示资产变化时触发的委托。 */
 	UPROPERTY()
 	FOnTeamDisplayAssetChangedDelegate OnTeamDisplayAssetChanged;
 
@@ -43,23 +41,21 @@ public:
 	void RemoveTeamInfo(ATeamInfoBase* Info);
 };
 
-// 比较两位演员团队归属的结果
+/** 两个 Actor 的队伍归属比较结果。 */
 UENUM(BlueprintType)
 enum class ETeamComparison : uint8
 {
-	// 同队伍
+	/** 双方属于同一队伍。 */
 	OnSameTeam,
 
-	// 不同队伍
+	/** 双方属于不同队伍。 */
 	DifferentTeams,
 
-	// 其中一个团队无效或者Actor无效
+	/** 任一 Actor 无效或无法取得队伍归属。 */
 	InvalidArgument
 };
 
-/**
- * 一个子系统，便于基于团队的角色（例如，棋子或玩家状态）访问团队信息
- */
+/** 管理世界内的队伍信息、展示资产和伤害规则，并解析 Actor 的队伍归属。 */
 UCLASS(MinimalAPI)
 class UTeamSubsystem : public UWorldSubsystem
 {
@@ -71,83 +67,85 @@ public:
 	UE_API virtual void Deinitialize() override;
 	//~End of USubsystem interface
 
-	// 尝试注册新队伍
+	/** 注册队伍信息 Actor，并更新对应展示资产。 */
 	UE_API bool RegisterTeamInfo(ATeamInfoBase* TeamInfoBase);
-	// 尝试取消注册队伍，如果失败会返回false
+	/** 取消队伍信息 Actor 的注册；无有效队伍记录时返回 false。 */
 	UE_API bool UnregisterTeamInfo(ATeamInfoBase* TeamInfoBase);
 
-	// 用Actor的团队ID变更为新队伍ID
+	/** 通过 Actor 实现的队伍接口设置新 ID；未实现接口时返回 false。 */
 	UE_API bool ChangeTeamForActor(AActor* ActorToChange, int32 NewTeamId);
 
-	// 返回该对象所属的队伍，若不属于队伍则返回INDEX_NONE
-	// 依次按照 对象自身, Actor发起者, 团队信息Actor, 相关的PS 中查找团队ID
+	/**
+	 * 依次查询对象接口、Actor 的 Instigator 接口、队伍信息 Actor 和关联 PlayerState。
+	 * 没有匹配的归属来源时返回 INDEX_NONE。
+	 */
 	UE_API int32 FindTeamFromObject(const UObject* TestObject) const;
 
-	// 返回该对象所属的队伍，若不属于队伍则返回INDEX_NONE
+	/** 输出对象队伍 ID 及是否有队伍归属；未找到时 ID 为 INDEX_NONE。 */
 	UFUNCTION(BlueprintCallable, BlueprintPure=false, Category="Teams|Query", meta=(Keywords="Get"))
 	UE_API void FindTeamFromActor(const UObject* TestActor, bool& bIsPartOfTeam, int32& TeamId) const;
 
-	// 比较两个参与者的队伍，返回一个值，表示他们是在同一队伍、不同队伍，还是两队都无效
+	/** 比较两个 Actor 的队伍；任一对象或队伍无效时返回 InvalidArgument。 */
 	UFUNCTION(BlueprintCallable, BlueprintPure=false, Category="Teams|Query", meta=(ExpandEnumAsExecs=ReturnValue))
 	UE_API ETeamComparison CompareTeams(const UObject* A, const UObject* B, int32& TeamIdA, int32& TeamIdB) const;
 
-	// 比较两个参与者的队伍，返回一个值，表示他们是在同一队伍、不同队伍，还是两队都无效
+	/** 比较两个 Actor 的队伍；任一对象或队伍无效时返回 InvalidArgument。 */
 	UE_API ETeamComparison CompareTeams(const UObject* A, const UObject* B) const;
 
-	// 如果指定团队存在，则返回为真
+	/** 返回队伍映射中是否存在指定 ID 的记录。 */
 	UFUNCTION(BlueprintCallable, Category="Teams|Query")
 	UE_API bool DoesTeamExist(int32 TeamId) const;
 
-	// 获取队伍的所有ID
+	/** 返回队伍映射中的全部 ID，按升序排列。 */
 	UFUNCTION(BlueprintCallable, BlueprintPure=false, Category="Teams|Query")
 	UE_API TArray<int32> GetTeamIDs() const;
 
-	// 判定是否允许造成伤害(完全由规则数组驱动, 见 AddDamageRule)
+	/** 综合已启用的伤害规则与默认策略；任一 Block 都会否决伤害。 */
 	UE_API bool CanCauseDamage(const UObject* Instigator, const UObject* Target) const;
 
-	// 追加一条伤害规则(服务端权威调用; 规则对象由子系统持有, 防GC)
+	/** 添加并持有伤害规则，避免规则被 GC；蓝图仅允许权威端调用。 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Teams|Modify")
 	UE_API void AddDamageRule(UTeamDamageRuleBase* Rule);
 
-	// 按规则类添加一条伤害规则(内部自动实例化并持有; 蓝图传入规则类即可, 无需手动创建对象)
+	/** 为非抽象规则类创建实例，以子系统为 Outer 并持有该规则。 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Teams|Modify")
 	UE_API void AddDamageRuleFromClass(TSubclassOf<UTeamDamageRuleBase> RuleClass);
 
-	// 移除一条伤害规则
+	/** 移除指定伤害规则并释放子系统对它的引用。 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Teams|Modify")
 	UE_API void RemoveDamageRule(UTeamDamageRuleBase* Rule);
 
-	// 清空所有伤害规则(恢复"全部禁止"的裸状态, 项目自行重建规则集)
+	/** 清空伤害规则；后续伤害判定使用 bAllowDefaultDamage 配置。 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Teams|Modify")
 	UE_API void ClearDamageRules();
 
-	// 获取当前已注册的所有伤害规则(调试用)
+	/** 返回当前注册的伤害规则，供调试查询。 */
 	UFUNCTION(BlueprintCallable, Category="Teams|Modify")
 	UE_API TArray<UTeamDamageRuleBase*> GetDamageRules() const;
 
-	// 从指定球队的视角获取该队的展示资产（你还得指定一个查看器，以防游戏模式是“本地玩家总是蓝队”的情况）。
+	/** 返回队伍展示资产；当前未按观察者队伍切换展示。 */
 	UFUNCTION(BlueprintCallable, Category="Teams|TeamAsset")
 	UE_API UTeamDisplayAssetBase* GetTeamDisplayAsset(int32 TeamId, int32 ViewerTeamId);
 
-	// 从指定球队的视角获取该队的展示资产（你还得指定一个查看器，以防游戏模式是“本地玩家总是蓝队”的情况）。
+	/** 返回队伍展示资产；当前未按观察者队伍切换展示。 */
 	UFUNCTION(BlueprintCallable, Category="Teams|TeamAsset")
 	UE_API UTeamDisplayAssetBase* GetEffectiveTeamDisplayAsset(int32 TeamId, UObject* ViewerTeamAgent);
 
-	// 当团队显示资产被编辑时调用，会使所有团队颜色观察者更新
+	/** 展示资产编辑后，向所有队伍的展示资产观察者广播更新。 */
 	UE_API void NotifyTeamDisplayAssetModified(UTeamDisplayAssetBase* ModifiedAsset);
 
-	// 注册团队ID,并且获取其团队资产改变的委托
+	/** 获取指定队伍的资产变化委托；不存在时先创建跟踪记录。 */
 	UE_API FOnTeamDisplayAssetChangedDelegate& GetTeamDisplayAssetChangedDelegate(int32 TeamId);
 
 protected:
 	UE_API const APlayerState* FindPlayerStateFromActor(const AActor* PossibleTeamActor) const;
 
 private:
-	// 全部队伍的队伍信息映射表
+	/** 按队伍 ID 保存的跟踪记录。 */
 	UPROPERTY()
 	TMap<int32, FTeamTrackingInfo> TeamMap;
 
-	// 已注册的伤害规则数组(UPROPERTY 持有, 防止被GC; 综合规则: Block 优先于 Allow, 顺序无关)
+	/** 持有已注册伤害规则，防止 GC；判定时 Block 优先于 Allow。 */
 	UPROPERTY()
 	TArray<TObjectPtr<UTeamDamageRuleBase>> DamageRules;
 

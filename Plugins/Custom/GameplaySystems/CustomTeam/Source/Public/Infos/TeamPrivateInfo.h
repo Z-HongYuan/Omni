@@ -7,9 +7,7 @@
 
 #define UE_API CUSTOMTEAM_API
 
-/*
- * 用于队伍中的私有信息
- */
+/** 队伍私有信息的扩展类型；具体字段与可见性策略由项目补充。 */
 UCLASS(MinimalAPI)
 class ATeamPrivateInfo : public ATeamInfoBase
 {
@@ -18,10 +16,7 @@ class ATeamPrivateInfo : public ATeamInfoBase
 public:
 	ATeamPrivateInfo(const FObjectInitializer& ObjectInitializer);
 
-	/*
-	 * 在队伍系统中使用的私有信息
-	 * 保存当前队伍信息
-	 */
+	// 在项目子类中补充所需的队伍信息。
 };
 
 #undef UE_API

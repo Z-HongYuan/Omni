@@ -5,4 +5,4 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(InteractableTargetInterface)
 
-// Add default functionality here for any IInteractableTargetInterface functions that are not pure virtual.
+// IInteractableTargetInterface 当前未提供额外的默认实现。

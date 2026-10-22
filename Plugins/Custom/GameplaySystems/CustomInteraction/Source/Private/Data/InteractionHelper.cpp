@@ -22,7 +22,7 @@ AActor* UInteractionHelper::GetActorFromInteractableTarget(TScriptInterface<IInt
 		}
 		else
 		{
-			// 未知类型
+			// 当前仅支持 Actor 或 ActorComponent 作为交互目标。
 			unimplemented();
 		}
 	}
@@ -32,14 +32,14 @@ AActor* UInteractionHelper::GetActorFromInteractableTarget(TScriptInterface<IInt
 
 void UInteractionHelper::GetInteractableTargetsFromActor(AActor* Actor, TArray<TScriptInterface<IInteractableTargetInterface>>& OutInteractableTargets)
 {
-	// Actor有接口就直接返回
+	// 先收集 Actor 自身提供的交互接口。
 	TScriptInterface<IInteractableTargetInterface> InteractableActor(Actor);
 	if (InteractableActor)
 	{
 		OutInteractableTargets.Add(InteractableActor);
 	}
 
-	// 如果Actor未实现交互接口,那么查询其包含的组件中是否拥有交互接口
+	// 继续收集组件接口；Actor 已实现接口时也不会跳过组件。
 	TArray<UActorComponent*> InteractableComponents = TArray<UActorComponent*>();
 	if (Actor)
 	{

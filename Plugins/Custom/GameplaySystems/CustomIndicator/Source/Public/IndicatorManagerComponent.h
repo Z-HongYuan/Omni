@@ -7,10 +7,9 @@
 
 #define UE_API CUSTOMINDICATOR_API
 
-/*
- * 用于注册和保存指示器的组件
- * 最好是附加到Controller上, 如果附加到其他Actor上后,需要手动变更指示器渲染系统的Component指针获取到正确的指示器组件实例
- * 此组件只是为了管理指示器的数据,不会负责指示器的显示
+/**
+ * 保存指示器描述对象并广播增删事件，具体显示由指示器面板负责。
+ * 面板默认从本地 PlayerController 查找此组件；挂载到其他 Actor 时需另行接入。
  */
 UCLASS(MinimalAPI, ClassGroup=(Indicator), meta=(BlueprintSpawnableComponent))
 class UIndicatorManagerComponent : public UActorComponent
@@ -35,7 +34,7 @@ public:
 	FIndicatorEvent OnIndicatorAdded;
 	FIndicatorEvent OnIndicatorRemoved;
 
-	// 获取所有指示器
+	/** 返回当前注册的指示器描述对象。 */
 	const TArray<UIndicatorDescriptorDataObj*>& GetIndicators() const { return Indicators; }
 
 private:

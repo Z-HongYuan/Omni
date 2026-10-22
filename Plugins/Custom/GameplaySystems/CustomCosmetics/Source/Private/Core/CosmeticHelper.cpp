@@ -56,7 +56,7 @@ UClass* UCosmeticHelper::FindClassByShortName(const FString& SearchToken, UClass
 
 	FString TargetName = SearchToken;
 
-	// 在使用资产注册表之前，先检查本地类和已加载的资源
+	// 查询资产注册表前，先尝试解析已加载的类。
 	bool bIsValidClassName = true;
 	if (TargetName.IsEmpty() || TargetName.Contains(TEXT(" ")))
 	{
@@ -66,7 +66,7 @@ UClass* UCosmeticHelper::FindClassByShortName(const FString& SearchToken, UClass
 	{
 		if (TargetName.Contains(TEXT(".")))
 		{
-			// 将类型“path”转换为纯路径（如果字符串中没有'，则返回完整字符串）
+			// 去除导出文本中的类型包装，得到对象路径。
 			TargetName = FPackageName::ExportTextPathToObjectPath(TargetName);
 
 			FString PackageName;
@@ -92,13 +92,13 @@ UClass* UCosmeticHelper::FindClassByShortName(const FString& SearchToken, UClass
 		ResultClass = UClass::TryFindTypeSlow<UClass>(TargetName);
 	}
 
-	// 如果还没找到合适的，可以试试资产登记系统里的蓝图，找符合要求的蓝图
+	// 已加载类未命中时，再从资产注册表查找并加载蓝图。
 	if (ResultClass == nullptr)
 	{
 		ResultClass = FindBlueprintClass(TargetName, DesiredBaseClass);
 	}
 
-	// 现在验证该类（如果有的话）
+	// 解析成功仍需验证基类约束。
 	if (ResultClass != nullptr)
 	{
 		if (!ResultClass->IsChildOf(DesiredBaseClass))

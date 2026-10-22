@@ -8,9 +8,7 @@
 #include "Templates/SubclassOf.h"
 #include "CosmeticDataTypes.generated.h"
 
-/*
- * 声明换装/外观系统的所有使用的数据类型
- */
+// 外观部件、复制列表和标签选择规则。
 
 #define UE_API CUSTOMCOSMETICS_API
 
@@ -18,44 +16,43 @@ class UAnimInstance;
 class UCosmeticsClientComponent;
 struct FCharacterPartList;
 
-// 角色部件使用的 碰撞模式
+/** 外观部件的碰撞策略。 */
 UENUM(MinimalAPI)
 enum class ECharacterPartCollisionMode : uint8
 {
-	// 部件没有碰撞
+	/** 禁用生成部件的 Actor 碰撞。 */
 	NoCollision,
 
-	// 部件使用碰撞
+	/** 保留部件类自身的碰撞设置。 */
 	UseCollisionFromCharacterPart
 };
 
-// 单个角色部件
+/** 单个外观部件的类型、挂载点和碰撞配置。 */
 USTRUCT(BlueprintType, MinimalAPI)
 struct FCharacterPart
 {
 	GENERATED_BODY()
 
-	// 角色部件的表现类, 会在客户端上生成
+	/** 外观 Actor 类型，仅在非专用服务器上生成。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AActor> PartClass;
 
-	// 需要挂载到的插槽名称
+	/** 外观部件的挂载插槽名称。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName SocketName;
 
-	// 此角色部件的碰撞模式
+	/** 生成外观 Actor 时使用的碰撞策略。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	ECharacterPartCollisionMode CollisionMode = ECharacterPartCollisionMode::NoCollision;
 
-	// 比较两个角色部件是否相等
+	/** 比较部件类与插槽名称，不比较碰撞模式。 */
 	bool operator==(const FCharacterPart& Other) const
 	{
 		return (PartClass == Other.PartClass) && (SocketName == Other.SocketName);
 	}
 };
 
-// 当添加 角色部件后 返回的操作句柄,能够通过此句柄移除
-// 记录数组中的索引
+/** 添加部件时分配的递增标识，用于定位并移除条目；不表示数组下标。 */
 USTRUCT(BlueprintType, MinimalAPI)
 struct FCharacterPartHandle
 {
@@ -78,17 +75,17 @@ private:
 	friend FCharacterPartList;
 };
 
-// 使用的作弊模式
+/** 调试外观覆盖常规部件的方式。 */
 UENUM(MinimalAPI)
 enum class ECosmeticCheatMode
 {
-	// 更换角色部件
+	/** 隐藏常规部件并使用调试部件。 */
 	ReplaceParts,
-	// 添加角色部件
+	/** 保留常规部件并追加调试部件。 */
 	AddParts
 };
 
-// 应用角色部件时的单个 Item
+/** 快速复制数组中的外观部件条目。 */
 USTRUCT(MinimalAPI)
 struct FAppliedCharacterPartEntry : public FFastArraySerializerItem
 {
@@ -102,20 +99,20 @@ private:
 	friend FCharacterPartList;
 	friend UCosmeticsClientComponent;
 
-	// 这个数组项目中代表的角色部件
+	/** 该条目对应的外观部件描述。 */
 	UPROPERTY()
 	FCharacterPart Part;
 
-	// 仅服务器 中使用的控制句柄索引
+	/** 仅服务端使用的条目标识，不参与复制。 */
 	UPROPERTY(NotReplicated)
 	int32 PartHandle = INDEX_NONE;
 
-	// 仅客户端 生成的演员实例
+	/** 本机生成的 ChildActorComponent；专用服务器不创建该组件。 */
 	UPROPERTY(NotReplicated)
 	TObjectPtr<UChildActorComponent> SpawnedChildComponent = nullptr;
 };
 
-// 快速复制的 外观部件列表/数组
+/** 复制外观描述，并管理对应本机外观 Actor 的快速数组。 */
 USTRUCT(BlueprintType, MinimalAPI)
 struct FCharacterPartList : public FFastArraySerializer
 {
@@ -153,15 +150,15 @@ private:
 	bool DestroyActorForEntry(FAppliedCharacterPartEntry& Entry);
 
 private:
-	// 数组的快速复制列表
+	/** 通过快速数组复制的外观条目。 */
 	UPROPERTY()
 	TArray<FAppliedCharacterPartEntry> Entries;
 
-	// 包含此数组的 组件
+	/** 持有该列表的外观组件，不参与复制。 */
 	UPROPERTY(NotReplicated)
 	TObjectPtr<UCosmeticsClientComponent> OwnerComponent;
 
-	// 数组 Item 的句柄计数器
+	/** 为新增条目生成标识的递增计数器。 */
 	int32 PartHandleCounter = 0;
 };
 
@@ -171,23 +168,23 @@ struct TStructOpsTypeTraits<FCharacterPartList> : public TStructOpsTypeTraitsBas
 	enum { WithNetDeltaSerializer = true };
 };
 
-// 外观部件来源
+/** 外观部件的来源及常规部件的抑制状态。 */
 enum class ECharacterPartSource : uint8
 {
-	// 原生
+	/** 常规外观部件。 */
 	Natural,
 
-	// 原生, 但能被作弊覆盖
+	/** 因调试覆盖而暂时停用的常规部件。 */
 	NaturalSuppressedViaCheat,
 
-	// 使用开发者设置作弊 添加/替换外观
+	/** 通过开发者设置添加的调试部件。 */
 	AppliedViaDeveloperSettingsCheat,
 
-	// 使用作弊管理器 添加/替换外观
+	/** 通过 CheatManager 命令添加的调试部件。 */
 	AppliedViaCheatManager
 };
 
-// 控制器保存的 外观部件(应该与客户端保持一致)
+/** 控制器保存的外观描述及其在当前 Pawn 上的应用状态。 */
 USTRUCT(MinimalAPI, MinimalAPI)
 struct FCharacterPartControllerEntry
 {
@@ -196,84 +193,84 @@ struct FCharacterPartControllerEntry
 	FCharacterPartControllerEntry() { ; }
 
 public:
-	// 代表的 外观部件
+	/** 该记录对应的外观部件描述。 */
 	UPROPERTY(EditAnywhere, meta=(ShowOnlyInnerProperties))
 	FCharacterPart Part;
 
-	// 外观部件的句柄 (如果已经应用了)
+	/** 已应用到当前 Pawn 的部件句柄；未应用时无效。 */
 	FCharacterPartHandle Handle;
 
-	// 外观部件的来源
+	/** 部件来源及常规部件是否被调试覆盖。 */
 	ECharacterPartSource Source = ECharacterPartSource::Natural;
 };
 
-// 动画层选择
+/** 根据外观标签选择动画实例类的配置。 */
 USTRUCT(BlueprintType, MinimalAPI)
 struct FCosmeticAnimLayerSelectionEntry
 {
 	GENERATED_BODY()
 
-	//如果标签匹配，则应用动画层
+	/** 满足所需标签时选用的动画实例类。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UAnimInstance> Layer;
 
-	// 需要外观标签（所有这些标签都必须存在才能被视为匹配）
+	/** 必须全部满足的外观标签。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Cosmetic"))
 	FGameplayTagContainer RequiredTags;
 };
 
-// 动画层选择
+/** 根据外观标签选择动画实例类的配置。 */
 USTRUCT(BlueprintType, MinimalAPI)
 struct FCosmeticAnimLayerSelectionSet
 {
 	GENERATED_BODY()
 
-	// 要应用的动画规则列表，将使用第一个匹配的动画规则
+	/** 按顺序匹配，使用首个标签满足且 Layer 非空的规则。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(TitleProperty=Layer))
 	TArray<FCosmeticAnimLayerSelectionEntry> LayerRules;
 
-	// 如果所有 LayerRules 都不匹配，则使用的默认层
+	/** 没有匹配规则时使用的默认动画实例类。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<UAnimInstance> DefaultLayer;
 
-	// 根据规则选择最佳图层
+	/** 返回首个匹配规则的动画实例类，否则返回默认值。 */
 	TSubclassOf<UAnimInstance> SelectBestLayer(const FGameplayTagContainer& CosmeticTags) const;
 };
 
-// Mesh 样式
+/** 根据外观标签选择骨骼网格的配置。 */
 USTRUCT(BlueprintType, MinimalAPI)
 struct FCosmeticAnimBodyStyleSelectionEntry
 {
 	GENERATED_BODY()
 
-	// 如果标签匹配，则应用动画层
+	/** 满足所需标签时选用的骨骼网格。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<USkeletalMesh> Mesh = nullptr;
 
-	// 需要外观标签（所有这些标签都必须存在才能被视为匹配）
+	/** 必须全部满足的外观标签。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(Categories="Cosmetic"))
 	FGameplayTagContainer RequiredTags;
 };
 
-// Mesh 样式
+/** 根据外观标签选择骨骼网格的配置。 */
 USTRUCT(BlueprintType, MinimalAPI)
 struct FCosmeticAnimBodyStyleSelectionSet
 {
 	GENERATED_BODY()
 
-	// 要应用的 Mesh 规则列表，将使用第一个匹配的 Mesh
+	/** 按顺序匹配，使用首个标签满足且 Mesh 非空的规则。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(TitleProperty=Mesh))
 	TArray<FCosmeticAnimBodyStyleSelectionEntry> MeshRules;
 
-	// 如果所有 LayerRules 都不匹配，则使用的默认Mesh
+	/** 没有匹配 MeshRules 时使用的默认网格。 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<USkeletalMesh> DefaultMesh = nullptr;
 
-	// 成功设置后使用的物理资源
+	/** 更新外观网格时，优先使用的可选物理资产。 */
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UPhysicsAsset> ForcedPhysicsAsset = nullptr;
 
-	// 根据规则选择最佳的身体样式骨架网格
+	/** 返回首个匹配规则的骨骼网格，否则返回默认值。 */
 	USkeletalMesh* SelectBestBodyStyle(const FGameplayTagContainer& CosmeticTags) const;
 };
 

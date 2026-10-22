@@ -7,16 +7,14 @@
 
 #define UE_API CUSTOMCOSMETICS_API
 
-/**
- * 用于外观系统的静态函数
- */
+/** 为外观调试命令提供类名和蓝图资产查询。 */
 UCLASS(MinimalAPI)
 class UCosmeticHelper : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
 public:
-	// 尝试找一个短名称的类（通过作弊控制台时会有一些启发式以提高可用性）
+	/** 按短名称或对象路径查找指定基类的派生类；必要时查询并加载蓝图资产。 */
 	static UClass* FindClassByShortName(const FString& SearchToken, UClass* DesiredBaseClass, bool bLogFailures = true);
 
 	template <typename DesiredClass>

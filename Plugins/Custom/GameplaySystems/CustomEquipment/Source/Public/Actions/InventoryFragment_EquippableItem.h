@@ -10,9 +10,7 @@
 
 class UEquipmentDefinition;
 
-/**
- * 
- */
+/** 为库存物品提供装备定义，供快捷栏创建装备实例。 */
 UCLASS(MinimalAPI)
 class UInventoryFragment_EquippableItem : public UInventoryItemFragmentBase
 {

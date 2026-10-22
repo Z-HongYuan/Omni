@@ -8,9 +8,8 @@
 #define UE_API CUSTOMTEAM_API
 
 /**
- * 内置默认规则: 自我豁免
- * 发起者与目标属于同一玩家(或同一对象)时 → Allow(允许自伤)。
- * 由 UTeamSubsystem::Initialize 默认注册; 项目可通过 ClearDamageRules 移除或禁用。
+ * 自伤规则：上下文的 bSamePlayer 为 true 时允许伤害，其余情况弃权。
+ * 仅在 bUseDefaultRules 开启时由子系统初始化注册。
  */
 UCLASS(MinimalAPI)
 class UTeamDamageRule_SelfDamage : public UTeamDamageRuleBase
@@ -28,9 +27,8 @@ public:
 };
 
 /**
- * 内置默认规则: 队伍关系
- * 不同队伍 → Allow; 同队伍 → Block(友军误伤默认关闭); 无队伍归属 → 弃权。
- * 同一玩家场景不表态(交给自我豁免规则处理)。
+ * 队伍关系规则：不同队伍允许伤害，同队伍禁止伤害，归属无效时弃权。
+ * bSamePlayer 为 true 时弃权，交由自伤规则及其他规则处理。
  */
 UCLASS(MinimalAPI)
 class UTeamDamageRule_TeamRelationship : public UTeamDamageRuleBase

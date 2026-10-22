@@ -31,16 +31,16 @@ void UAsyncAction_ObserveTeam::Activate()
 	{
 		CurrentTeamIndex = GenericTeamIdToInteger(TeamInterface->GetGenericTeamId());
 
-		// 通过接口函数获取监听对象的队伍更改委托,并将自身的函数注册其中
+		// 先绑定后续变化，再广播当前状态。
 		TeamInterface->GetTeamChangedDelegateChecked().AddDynamic(this, &ThisClass::OnWatchedAgentChangedTeam);
 
 		bCouldSucceed = true;
 	}
 
-	// 广播一次，让用户获得当前状态
+	// 即使无法持续监听，也先广播当前可解析的队伍状态。
 	OnTeamChanged.Broadcast(CurrentTeamIndex != INDEX_NONE, CurrentTeamIndex);
 
-	// 我们无法绑定代表，因此永远不会有后续更新
+	// 目标接口不可取得时，不再保留这个异步任务。
 	if (!bCouldSucceed)
 	{
 		SetReadyToDestroy();
@@ -56,7 +56,7 @@ void UAsyncAction_ObserveTeam::SetReadyToDestroy()
 {
 	Super::SetReadyToDestroy();
 
-	// 取消监听时,解绑
+	// 取消或销毁时解除绑定；弱接口引用不延长目标生命周期。
 	if (ITeamAgentInterface* TeamInterface = TeamInterfacePtr.Get())
 	{
 		TeamInterface->GetTeamChangedDelegateChecked().RemoveAll(this);

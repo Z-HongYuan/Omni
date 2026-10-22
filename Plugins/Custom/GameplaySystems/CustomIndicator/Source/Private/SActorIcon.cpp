@@ -25,7 +25,7 @@ namespace EArrowDirection
 	};
 }
 
-// 箭头显示方向的角度
+/** 四个边缘方向对应的箭头旋转角度。 */
 const float ArrowRotations[EArrowDirection::MAX] =
 {
 	270.0f,
@@ -34,7 +34,7 @@ const float ArrowRotations[EArrowDirection::MAX] =
 	180.0f
 };
 
-// 箭头可指向的每个方向的偏移量
+/** 四个边缘方向对应的箭头偏移方向。 */
 const FVector2D ArrowOffsets[EArrowDirection::MAX] =
 {
 	FVector2D(-1.0f, 0.0f),
@@ -51,17 +51,17 @@ public:
 		{
 		}
 
-		/** always goes at the end */
+		// 结束 Slate 参数声明。
 	SLATE_END_ARGS()
 
-	/** Ctor */
+	/** 初始化箭头旋转和画刷引用。 */
 	SActorIconArrowWidget()
 		: Rotation(0.0f)
 		  , Arrow(nullptr)
 	{
 	}
 
-	/** Every widget needs one of these */
+	/** 绑定箭头画刷，并禁用控件自身的 Tick。 */
 	void Construct(const FArguments& InArgs, const FSlateBrush* ActorCanvasArrowBrush)
 	{
 		Arrow = ActorCanvasArrowBrush;
@@ -138,7 +138,7 @@ void SActorIcon::Construct(const FArguments& InArgs, const FLocalPlayerContext& 
 	SetCanTick(false);
 	SetVisibility(EVisibility::SelfHitTestInvisible);
 
-	// Create 10 arrows for starters
+	// 预先创建十个可复用的边缘箭头，默认隐藏。
 	for (int32 i = 0; i < 10; ++i)
 	{
 		TSharedRef<SActorIconArrowWidget> ArrowWidget = SNew(SActorIconArrowWidget, ActorCanvasArrowBrush);
@@ -164,7 +164,7 @@ EActiveTimerReturnType SActorIcon::UpdateCanvas(double InCurrentTime, float InDe
 		return EActiveTimerReturnType::Continue;
 	}
 
-	// Grab the local player
+	// 使用所属本地玩家的视角和指示器管理组件。
 	ULocalPlayer* LocalPlayer = LocalPlayerContext.GetLocalPlayer();
 	UIndicatorManagerComponent* IndicatorComponent = IndicatorComponentPtr.Get();
 	if (IndicatorComponent == nullptr)
@@ -172,7 +172,7 @@ EActiveTimerReturnType SActorIcon::UpdateCanvas(double InCurrentTime, float InDe
 		IndicatorComponent = UIndicatorManagerComponent::GetComponent(LocalPlayerContext.GetPlayerController());
 		if (IndicatorComponent)
 		{
-			// World may have changed
+			// 管理组件重新可用时同步 World，避免控件池沿用旧世界。
 			IndicatorPool.SetWorld(LocalPlayerContext.GetWorld());
 
 			IndicatorComponentPtr = IndicatorComponent;
@@ -190,7 +190,7 @@ EActiveTimerReturnType SActorIcon::UpdateCanvas(double InCurrentTime, float InDe
 		}
 	}
 
-	//Make sure we have a player. If we don't, we can't project anything
+	// 只有可用的本地玩家投影上下文才能显示指示器。
 	if (LocalPlayer)
 	{
 		const FGeometry PaintGeometry = OptionalPaintGeometry.GetValue();
@@ -207,21 +207,21 @@ EActiveTimerReturnType SActorIcon::UpdateCanvas(double InCurrentTime, float InDe
 				SActorIcon::FSlot& CurChild = CanvasChildren[ChildIndex];
 				UIndicatorDescriptorDataObj* Indicator = CurChild.Indicator;
 
-				// If the slot content is invalid and we have permission to remove it
+				// 关联组件失效且允许自动注销时，完整移除该指示器。
 				if (Indicator->CanAutomaticallyRemove())
 				{
 					IndicatorsChanged = true;
 
-					// 完整移除: 通知管理器注销, 走 OnIndicatorRemoved 清理 widget/槽/AllIndicators, 描述符解除引用后交由 GC 回收
+					// 经管理器事件清理控件、槽位及持有引用，描述对象随后可由 GC 回收。
 					Indicator->UnregisterIndicator();
-					// Decrement the current index to account for the removal 
+					// 当前槽位已移除，回退索引以免跳过后移的条目。
 					--ChildIndex;
 					continue;
 				}
 
 				CurChild.SetIsIndicatorVisible(Indicator->GetIsVisible());
 
-				// 距离剔除: 超过最大绘制距离则不投影不绘制(平方比较, 无需开根号)
+				// 使用距离平方剔除超距指示器，后续跳过投影与绘制。
 				const float MaxDrawDistance = Indicator->IndicatorDescriptorParameter.MaxDrawDistance;
 				if (MaxDrawDistance > 0.f && Indicator->IndicatorDescriptorParameter.SceneComponent)
 				{
@@ -236,7 +236,7 @@ EActiveTimerReturnType SActorIcon::UpdateCanvas(double InCurrentTime, float InDe
 					continue;
 				}
 
-				// If the indicator changed clamp status between updates, alert the indicator and mark the indicators as changed
+				// 边缘限制状态变化后请求重绘；通知回调当前仍被注释。
 				if (CurChild.WasIndicatorClampedStatusChanged())
 				{
 					//Indicator->OnIndicatorClampedStatusChanged(CurChild.WasIndicatorClamped());
@@ -263,9 +263,9 @@ EActiveTimerReturnType SActorIcon::UpdateCanvas(double InCurrentTime, float InDe
 
 				if (CurChild.HasValidScreenPosition())
 				{
-					// Only dirty the screen position if we can actually show this indicator.
+					// 仅在位置有效时更新投影缓存，避免无效位置触发重绘。
 					CurChild.SetScreenPosition(FVector2D(ScreenPositionWithDepth));
-					CurChild.SetDepth(ScreenPositionWithDepth.Z); // Z = 距相机距离, 用于深度排序(同优先级下近的盖远的)
+					CurChild.SetDepth(ScreenPositionWithDepth.Z); // Z 为相机距离，同优先级时近处指示器后绘制。
 				}
 
 				CurChild.SetPriority(Indicator->IndicatorDescriptorParameter.Priority);
@@ -322,14 +322,14 @@ void SActorIcon::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedC
 
 	NextArrowIndex = 0;
 
-	//Make sure we have a player. If we don't, we can't project anything
+	// 只有可用的本地玩家投影上下文才能显示指示器。
 	if (bShowAnyIndicators)
 	{
 		const FVector2D ArrowWidgetSize = ActorCanvasArrowBrush->GetImageSize();
 		const FIntPoint FixedPadding = FIntPoint(10.0f, 10.0f) + FIntPoint(ArrowWidgetSize.X, ArrowWidgetSize.Y);
 		const FVector Center = FVector(AllottedGeometry.Size * 0.5f, 0.0f);
 
-		// Sort the children
+		// 先按优先级排序，同优先级按距离由远到近绘制。
 		TArray<const SActorIcon::FSlot*> SortedSlots;
 		for (int32 ChildIndex = 0; ChildIndex < CanvasChildren.Num(); ++ChildIndex)
 		{
@@ -341,14 +341,14 @@ void SActorIcon::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedC
 			return A.GetPriority() == B.GetPriority() ? A.GetDepth() > B.GetDepth() : A.GetPriority() < B.GetPriority();
 		});
 
-		// Go through all the sorted children
+		// 按排序结果依次安排指示器。
 		for (int32 ChildIndex = 0; ChildIndex < SortedSlots.Num(); ++ChildIndex)
 		{
-			//grab a child
+			// 读取当前槽位及其描述对象。
 			const SActorIcon::FSlot& CurChild = *SortedSlots[ChildIndex];
 			const UIndicatorDescriptorDataObj* Indicator = CurChild.Indicator;
 
-			// Skip this indicator if it's invalid or has an invalid world position
+			// 跳过当前布局不接受的可见性状态。
 			if (!ArrangedChildren.Accepts(CurChild.GetWidget()->GetVisibility()))
 			{
 				CurChild.SetWasIndicatorClamped(false);
@@ -357,37 +357,37 @@ void SActorIcon::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedC
 
 			FVector2D ScreenPosition = CurChild.GetScreenPosition();
 			const bool bInFrontOfCamera = CurChild.GetInFrontOfCamera();
-			const FVector2D UnclampedScreenPosition = ScreenPosition; // 夹取前的原始屏幕位置(360°方向计算用)
+			const FVector2D UnclampedScreenPosition = ScreenPosition; // 保留限制前的位置，供连续方向箭头计算使用。
 
-			// Don't bother if we can't project the position and the indicator doesn't want to be clamped
+			// 是否将指示器限制到屏幕边缘由描述配置决定。
 			const bool bShouldClamp = Indicator->IndicatorDescriptorParameter.bClampToScreen;
 
-			//get the offset and final size of the slot
+			// 根据控件尺寸和对齐方式预留屏幕边界空间。
 			FVector2D SlotSize, SlotOffset, SlotPaddingMin, SlotPaddingMax;
 			GetOffsetAndSize(Indicator, SlotSize, SlotOffset, SlotPaddingMin, SlotPaddingMax);
 
 			bool bWasIndicatorClamped = false;
 
-			// If we don't have to clamp this thing, we can skip a lot of work
+			// 仅为启用边缘限制的指示器计算边界交点。
 			if (bShouldClamp)
 			{
-				//figure out if we clamped to any edge of the screen
+				// 记录指示器最终落在哪条屏幕边缘上。
 				EArrowDirection::Type ClampDir = EArrowDirection::MAX;
 
-				// Determine the size of inner screen rect to clamp within
+				// 扣除控件和箭头所需留白，得到可放置区域。
 				const FIntPoint RectMin = FIntPoint(SlotPaddingMin.X, SlotPaddingMin.Y) + FixedPadding;
 				const FIntPoint RectMax = FIntPoint(AllottedGeometry.Size.X - SlotPaddingMax.X, AllottedGeometry.Size.Y - SlotPaddingMax.Y) - FixedPadding;
 				const FIntRect ClampRect(RectMin, RectMax);
 
-				// Make sure the screen position is within the clamp rect
+				// 屏幕位置超出区域时，求中心到目标线段与边界的交点。
 				if (!ClampRect.Contains(FIntPoint(ScreenPosition.X, ScreenPosition.Y)))
 				{
 					const FPlane Planes[] =
 					{
-						FPlane(FVector(1.0f, 0.0f, 0.0f), ClampRect.Min.X), // Left
-						FPlane(FVector(0.0f, 1.0f, 0.0f), ClampRect.Min.Y), // Top
-						FPlane(FVector(-1.0f, 0.0f, 0.0f), -ClampRect.Max.X), // Right
-						FPlane(FVector(0.0f, -1.0f, 0.0f), -ClampRect.Max.Y) // Bottom
+						FPlane(FVector(1.0f, 0.0f, 0.0f), ClampRect.Min.X), // 左边界。
+						FPlane(FVector(0.0f, 1.0f, 0.0f), ClampRect.Min.Y), // 上边界。
+						FPlane(FVector(-1.0f, 0.0f, 0.0f), -ClampRect.Max.X), // 右边界。
+						FPlane(FVector(0.0f, -1.0f, 0.0f), -ClampRect.Max.Y) // 下边界。
 					};
 
 					for (int32 i = 0; i < EArrowDirection::MAX; ++i)
@@ -404,7 +404,7 @@ void SActorIcon::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedC
 				{
 					const float ScreenXNorm = ScreenPosition.X / (RectMax.X - RectMin.X);
 					const float ScreenYNorm = ScreenPosition.Y / (RectMax.Y - RectMin.Y);
-					//we need to pin this thing to the side of the screen
+					// 相机后方的目标也需要固定到屏幕边缘。
 					if (ScreenXNorm < ScreenYNorm)
 					{
 						if (ScreenXNorm < (-ScreenYNorm + 1.0f))
@@ -435,12 +435,12 @@ void SActorIcon::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedC
 
 				bWasIndicatorClamped = (ClampDir != EArrowDirection::MAX);
 
-				// should we show an arrow
+				// 仅在发生边缘限制且有可用箭头槽位时显示箭头。
 				if (Indicator->IndicatorDescriptorParameter.bShowClampToScreenArrow &&
 					bWasIndicatorClamped &&
 					ArrowChildren.IsValidIndex(NextArrowIndex))
 				{
-					// 默认固定四方向; 开启 bUse360ClampArrow 后按 夹取点→目标点 的真实方向旋转
+					// 默认使用四个固定方向；连续模式按边缘位置指向原始目标位置。
 					FVector2D ArrowOffsetDirection = ArrowOffsets[ClampDir];
 					float ArrowRotation = ArrowRotations[ClampDir];
 					if (Indicator->IndicatorDescriptorParameter.bUse360ClampArrow)
@@ -454,17 +454,17 @@ void SActorIcon::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedC
 						}
 					}
 
-					//grab an arrow widget
+					// 复用下一个预建的箭头控件。
 					TSharedRef<SActorIconArrowWidget> ArrowWidgetToUse = StaticCastSharedRef<SActorIconArrowWidget>(ArrowChildren.GetChildAt(NextArrowIndex));
 					NextArrowIndex++;
 
-					//set the rotation of the arrow
+					// 应用当前目标对应的箭头角度。
 					ArrowWidgetToUse->SetRotation(ArrowRotation);
 
-					//figure out the magnitude of the offset
+					// 按控件与箭头的尺寸计算相互间距。
 					const FVector2D OffsetMagnitude = (SlotSize + ArrowWidgetSize) * 0.5f;
 
-					//used to center the arrow on the position
+					// 将箭头中心对齐到计算位置。
 					const FVector2D ArrowCenteringOffset = -(ArrowWidgetSize * 0.5f);
 
 					FVector2D ArrowAlignmentOffset = FVector2D::ZeroVector;
@@ -478,29 +478,29 @@ void SActorIcon::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedC
 						break;
 					}
 
-					//figure out the offset for the arrow
+					// 沿箭头方向偏移，避免遮住指示器。
 					const FVector2D WidgetOffset = (OffsetMagnitude * ArrowOffsetDirection);
 
 					const FVector2D FinalOffset = (WidgetOffset + ArrowAlignmentOffset + ArrowCenteringOffset);
 
-					//get the final position
+					// 合并屏幕位置与布局偏移。
 					const FVector2D FinalPosition = (ScreenPosition + FinalOffset);
 
 					ArrowWidgetToUse->SetVisibility(EVisibility::HitTestInvisible);
 
-					// Inject the arrow on top of the indicator
+					// 将箭头加入本次布局结果。
 					ArrangedChildren.AddWidget(AllottedGeometry.MakeChild(
-						ArrowWidgetToUse, // The child widget being arranged
-						FinalPosition, // Child's local position (i.e. position within parent)
-						ArrowWidgetSize, // Child's size
-						1.f // Child's scale
+						ArrowWidgetToUse, // 箭头控件。
+						FinalPosition, // 相对父控件的位置。
+						ArrowWidgetSize, // 箭头尺寸。
+						1.f // 箭头缩放。
 					));
 				}
 			}
 
 			CurChild.SetWasIndicatorClamped(bWasIndicatorClamped);
 
-			// Add the information about this child to the output list (ArrangedChildren)
+			// 将指示器本体加入布局结果。
 			ArrangedChildren.AddWidget(AllottedGeometry.MakeChild(
 				CurChild.GetWidget(),
 				ScreenPosition + SlotOffset,
@@ -581,7 +581,7 @@ void SActorIcon::OnIndicatorRemoved(UIndicatorDescriptorDataObj* Indicator)
 
 void SActorIcon::AddIndicatorForEntry(UIndicatorDescriptorDataObj* Indicator)
 {
-	// Async load the indicator, and pool the results so that it's easy to use and reuse the widgets.
+	// 异步加载控件类，并通过控件池复用显示实例。
 	TSoftClassPtr<UUserWidget> IndicatorClass = Indicator->IndicatorDescriptorParameter.IndicatorWidgetClass;
 	if (!IndicatorClass.IsNull())
 	{
@@ -590,13 +590,13 @@ void SActorIcon::AddIndicatorForEntry(UIndicatorDescriptorDataObj* Indicator)
 		{
 			if (UIndicatorDescriptorDataObj* Indicator = IndicatorPtr.Get())
 			{
-				// While async loading this indicator widget we could have removed it.
+				// 加载期间可能已注销；弱引用有效也必须确认仍由面板持有。
 				if (!AllIndicators.Contains(Indicator))
 				{
 					return;
 				}
 
-				// Create the widget from the pool.
+				// 从控件池获取实例后，绑定描述对象并加入画布。
 				if (UUserWidget* IndicatorWidget = IndicatorPool.GetOrCreateInstance(TSubclassOf<UUserWidget>(IndicatorClass.Get())))
 				{
 					if (IndicatorWidget->GetClass()->ImplementsInterface(UIndicatorWidgetInterface::StaticClass()))
@@ -681,20 +681,20 @@ void SActorIcon::GetOffsetAndSize(const UIndicatorDescriptorDataObj* Indicator,
                                   FVector2D& OutPaddingMin,
                                   FVector2D& OutPaddingMax) const
 {
-	//This might get used one day
+	// 当前以零尺寸锚点计算对齐偏移。
 	FVector2D AllottedSize = FVector2D::ZeroVector;
 
-	//grab the desired size of the child widget
+	// 使用画布宿主的期望尺寸作为指示器尺寸。
 	TSharedPtr<SWidget> CanvasHost = Indicator->CanvasHost.Pin();
 	if (CanvasHost.IsValid())
 	{
 		OutSize = CanvasHost->GetDesiredSize();
 	}
 
-	//handle horizontal alignment
+	// 根据水平对齐方式分配左右留白。
 	switch (Indicator->IndicatorDescriptorParameter.HAlignment)
 	{
-	case HAlign_Left: // same as Align_Top
+	case HAlign_Left: // 与垂直顶部对齐使用相同的偏移规则。
 		OutOffset.X = 0.0f;
 		OutPaddingMin.X = 0.0f;
 		OutPaddingMax.X = OutSize.X;
@@ -706,14 +706,14 @@ void SActorIcon::GetOffsetAndSize(const UIndicatorDescriptorDataObj* Indicator,
 		OutPaddingMax.X = OutPaddingMin.X;
 		break;
 
-	case HAlign_Right: // same as Align_Bottom
+	case HAlign_Right: // 与垂直底部对齐使用相同的偏移规则。
 		OutOffset.X = AllottedSize.X - OutSize.X;
 		OutPaddingMin.X = OutSize.X;
 		OutPaddingMax.X = 0.0f;
 		break;
 	}
 
-	//Now, handle vertical alignment
+	// 根据垂直对齐方式分配上下留白。
 	switch (Indicator->IndicatorDescriptorParameter.VAlignment)
 	{
 	case VAlign_Top:

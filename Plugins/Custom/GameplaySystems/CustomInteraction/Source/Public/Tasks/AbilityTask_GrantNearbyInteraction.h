@@ -8,7 +8,8 @@
 #define UE_API CUSTOMINTERACTION_API
 
 /**
- * 
+ * 周期扫描 Avatar 附近的交互目标，并按能力类型缓存已授予的句柄。
+ * 由权威端调用；任务销毁时停止扫描，当前不撤销已经授予的能力。
  */
 UCLASS(MinimalAPI)
 class UAbilityTask_GrantNearbyInteraction : public UAbilityTask
@@ -18,8 +19,7 @@ class UAbilityTask_GrantNearbyInteraction : public UAbilityTask
 public:
 	virtual void OnDestroy(bool AbilityEnded) override;
 
-	/** 等到出现重叠时再说。这需要更详细地完善，以便我们能够明确游戏特定的碰撞要求
-	 * 可交互物体必须 Block 这个 Interaction 通道。*/
+	/** 创建周期球形重叠扫描任务；交互目标的碰撞响应需允许指定通道的查询。 */
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "OwningAbility", DefaultToSelf = "OwningAbility", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_GrantNearbyInteraction* GrantAbilitiesForNearbyInteractors(UGameplayAbility* OwningAbility, ECollisionChannel TraceChannel, float InteractionScanRange, float InteractionScanRate);
 

@@ -3,7 +3,7 @@
 
 #include "LogCustomCosmetics.h"
 
-// 定义_Log_类别
+// 外观系统日志类别。
 DEFINE_LOG_CATEGORY(LogCustomCosmetics);
 
 //  使用方法
