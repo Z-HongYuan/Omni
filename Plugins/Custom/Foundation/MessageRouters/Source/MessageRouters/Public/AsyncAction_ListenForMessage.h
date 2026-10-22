@@ -12,14 +12,12 @@
 
 
 /**
- * 代理对象引脚将在 UAsyncAction_ListenForMessage 中隐藏。用于获取触发委托的对象的引用，以便后续调用 'GetPayload'。
- * @param ActualChannel		我们接收 Payload 的实际消息通道（将始终以 Channel 开头，但如果启用了部分匹配，可能会更具体）
+ * 消息到达时传递代理对象和实际通道，专用蓝图节点使用代理读取当前负载。
+ * ActualChannel 是发送者的通道；部分匹配时可以是监听通道的子通道。
  */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAsyncGameplayMessageDelegate, UAsyncAction_ListenForMessage*, ProxyObject, FGameplayTag, ActualChannel);
 
-/**
- * 持续监听消息的异步任务；收到消息时同步转发事件，调用 Cancel 结束监听。
- */
+/** 持续监听消息的异步任务；消息到达时同步转发事件，调用 Cancel 结束监听。 */
 UCLASS(MinimalAPI, BlueprintType, meta=(HasDedicatedAsyncNode))
 class UAsyncAction_ListenForMessage : public UCancellableAsyncAction
 {
@@ -27,21 +25,15 @@ class UAsyncAction_ListenForMessage : public UCancellableAsyncAction
 
 public:
 	/**
-	 * 等待在指定通道上广播的消息。
-	 *
-	 * @param Channel			要监听的消息通道
-	 * @param PayloadType		要使用的消息结构类型（这必须与发送者广播的类型相同）
-	 * @param MatchType			用于将通道与广播消息匹配的规则
+	 * 创建指定通道的持续监听任务；指定 PayloadType 时仅转发相同结构类型的消息。
+	 * MatchType 决定是否接收子通道消息；调用 Cancel 撤销监听。
 	 */
 	UFUNCTION(BlueprintCallable, Category = Messaging, meta = (WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true"))
 	static UE_API UAsyncAction_ListenForMessage* ListenForMessage(UObject* WorldContextObject, FGameplayTag Channel, UScriptStruct* PayloadType, EMessageRouterMatchRule MatchType = EMessageRouterMatchRule::ExactMatch);
 
 	/**
-	 * 尝试将当前消息负载复制到指定的通配符中，只能在消息回调执行期间读取。
-	 * 通配符的类型必须与接收消息的类型匹配。
-	 *
-	 * @param OutPayload	接收消息负载的通配符引用
-	 * @return				如果复制成功则返回 true
+	 * 在消息回调期间将当前负载复制到 OutPayload，成功时返回 true。
+	 * OutPayload 的结构类型必须与任务声明的 PayloadType 完全一致；回调结束后不能读取负载。
 	 */
 	UFUNCTION(BlueprintCallable, CustomThunk, Category = Messaging, meta = (CustomStructureParam = "OutPayload"))
 	UE_API bool GetPayload(UPARAM(ref) int32& OutPayload);

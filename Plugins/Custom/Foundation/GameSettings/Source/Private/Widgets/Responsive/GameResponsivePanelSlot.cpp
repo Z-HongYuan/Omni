@@ -7,8 +7,6 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GameResponsivePanelSlot)
 
-/////////////////////////////////////////////////////
-// UGameResponsivePanelSlot
 
 UGameResponsivePanelSlot::UGameResponsivePanelSlot(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

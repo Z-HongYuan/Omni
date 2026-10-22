@@ -23,14 +23,12 @@
 #include UE_INLINE_GENERATED_CPP_BY_NAME(LoadingScreenDeveloperSettings)
 #include UE_INLINE_GENERATED_CPP_BY_NAME(LoadingScreenManager)
 
-DECLARE_LOG_CATEGORY_EXTERN(LogLoadingScreen, Log, All); // 注册日志分类
+DECLARE_LOG_CATEGORY_EXTERN(LogLoadingScreen, Log, All);
 DEFINE_LOG_CATEGORY(LogLoadingScreen);
 
-// 加载屏幕的分析类别
 CSV_DEFINE_CATEGORY(LoadingScreen, true);
 
-// 控制台变量
-//
+// 加载画面的控制台配置。
 namespace LoadingScreenCVars
 {
 	static float HoldLoadingScreenAdditionalSecs = 2.0f;
@@ -62,8 +60,7 @@ namespace LoadingScreenCVars
 		ECVF_Default);
 }
 
-// FLoadingScreenInputPreProcessor 输入处理器
-// 当显示加载屏幕时,插入输入处理器,用于捕获全部输入,以实现输入阻塞
+/** 在加载画面显示期间拦截 Slate 输入；编辑器中由调试开关决定是否拦截。 */
 class FLoadingScreenInputPreProcessor : public IInputProcessor
 {
 public:
@@ -91,7 +88,6 @@ public:
 
 
 // 子系统接口
-//
 void ULoadingScreenManager::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
@@ -125,14 +121,13 @@ void ULoadingScreenManager::Deinitialize()
 
 bool ULoadingScreenManager::ShouldCreateSubsystem(UObject* Outer) const
 {
-	// 只能在客户端上显示
+	// 专用服务器不创建加载画面子系统。
 	const UGameInstance* GameInstance = CastChecked<UGameInstance>(Outer);
 	const bool bIsServerWorld = GameInstance->IsDedicatedServerInstance();
 	return !bIsServerWorld;
 }
 
 // 逐帧更新接口
-//
 void ULoadingScreenManager::Tick(float DeltaTime)
 {
 	UpdateLoadingScreen();
@@ -151,14 +146,13 @@ ETickableTickType ULoadingScreenManager::GetTickableTickType() const
 
 bool ULoadingScreenManager::IsTickable() const
 {
-	// 游戏客户端视口存在,才能显示加载画面,如果有其他问题也能发现
+	// 只有游戏视口存在时才更新加载画面。
 	UGameInstance* GameInstance = GetGameInstance();
 	return (GameInstance && GameInstance->GetGameViewportClient());
 }
 
 TStatId ULoadingScreenManager::GetStatId() const
 {
-	// 性能统计
 	RETURN_QUICK_DECLARE_CYCLE_STAT(ULoadingScreenManager, STATGROUP_Tickables);
 }
 
@@ -168,7 +162,6 @@ UWorld* ULoadingScreenManager::GetTickableGameObjectWorld() const
 }
 
 // 外部加载请求
-//
 void ULoadingScreenManager::RegisterLoadingProcessor(const TScriptInterface<ILoadingScreenCheckInterface>& Interface)
 {
 	ExternalLoadingProcessors.Add(Interface.GetObject());
@@ -180,14 +173,13 @@ void ULoadingScreenManager::UnregisterLoadingProcessor(const TScriptInterface<IL
 }
 
 // 加载流程与界面控制
-//
 void ULoadingScreenManager::HandlePreLoadMap(const FWorldContext& WorldContext, const FString& MapName)
 {
 	if (WorldContext.OwningGameInstance == GetGameInstance())
 	{
 		bCurrentlyInLoadMap = true;
 
-		// 如果引擎被初始化，加载界面会立即更新
+		// 引擎已初始化时立即更新，避免地图加载前漏过首次显示。
 		if (GEngine->IsInitialized())
 		{
 			UpdateLoadingScreen();
@@ -237,7 +229,7 @@ void ULoadingScreenManager::UpdateLoadingScreen()
 
 bool ULoadingScreenManager::CheckForAnyNeedToShowLoadingScreen()
 {
-	// 先写“未知”原因，以防以后有人忘记写原因。
+	// 设置兜底原因，便于发现未填写诊断信息的返回分支。
 	DebugReasonForShowingOrHidingLoadingScreen = TEXT("Reason for Showing/Hiding LoadingScreen is unknown!");
 
 	const UGameInstance* LocalGameInstance = GetGameInstance();
@@ -265,7 +257,7 @@ bool ULoadingScreenManager::CheckForAnyNeedToShowLoadingScreen()
 		return true;
 	}
 
-	// 检查游戏状态是否准备好 (是否被复制)
+	// GameState 尚未创建或复制到本地时继续等待。
 	AGameStateBase* GameState = World->GetGameState<AGameStateBase>();
 	if (GameState == nullptr)
 	{
@@ -280,7 +272,7 @@ bool ULoadingScreenManager::CheckForAnyNeedToShowLoadingScreen()
 		return true;
 	}
 
-	// 检查是否正在转换网络地图
+	// 存在待处理的地图跳转时继续显示。
 	if (!Context->TravelURL.IsEmpty())
 	{
 		DebugReasonForShowingOrHidingLoadingScreen = FString(TEXT("We have pending travel (the TravelURL is not empty)"));
@@ -301,7 +293,7 @@ bool ULoadingScreenManager::CheckForAnyNeedToShowLoadingScreen()
 		return true;
 	}
 
-	// 检查是否正在进行 seamless travel (无缝转换地图)
+	// 无缝切图尚未结束时继续显示。
 	if (World->IsInSeamlessTravel())
 	{
 		DebugReasonForShowingOrHidingLoadingScreen = FString(TEXT("We are in seamless travel"));
@@ -323,7 +315,7 @@ bool ULoadingScreenManager::CheckForAnyNeedToShowLoadingScreen()
 		}
 	}
 
-	// 检查外部加载屏幕处理器是否需要
+	// 查询外部处理器是否仍有加载请求。
 	for (const TWeakInterfacePtr<ILoadingScreenCheckInterface>& Processor : ExternalLoadingProcessors)
 	{
 		if (ILoadingScreenCheckInterface::ShouldShowLoadingScreen(Processor.GetObject(), DebugReasonForShowingOrHidingLoadingScreen))
@@ -332,7 +324,7 @@ bool ULoadingScreenManager::CheckForAnyNeedToShowLoadingScreen()
 		}
 	}
 
-	// 检查每个本地玩家
+	// 本地玩家及其控制器也可提出加载请求。
 	bool bFoundAnyLocalPC = false;
 	bool bMissingAnyLocalPC = false;
 
@@ -344,13 +336,13 @@ bool ULoadingScreenManager::CheckForAnyNeedToShowLoadingScreen()
 			{
 				bFoundAnyLocalPC = true;
 
-				// 查询每个本地玩家的 PC 是否需要
+				// 查询玩家控制器的加载请求。
 				if (ILoadingScreenCheckInterface::ShouldShowLoadingScreen(PC, DebugReasonForShowingOrHidingLoadingScreen))
 				{
 					return true;
 				}
 
-				// 查询每个本地玩家的 PC的组件是否需要
+				// 查询玩家控制器组件的加载请求。
 				for (UActorComponent* TestComponent : PC->GetComponents())
 				{
 					if (ILoadingScreenCheckInterface::ShouldShowLoadingScreen(TestComponent, DebugReasonForShowingOrHidingLoadingScreen))
@@ -369,21 +361,20 @@ bool ULoadingScreenManager::CheckForAnyNeedToShowLoadingScreen()
 	UGameViewportClient* GameViewportClient = LocalGameInstance->GetGameViewportClient();
 	const bool bIsInSplitscreen = GameViewportClient->GetCurrentSplitscreenConfiguration() != ESplitScreenType::None;
 
-	// 查询是否全部本地玩家的 PC 都存在 (分屏模式下)
+	// 分屏模式要求每个本地玩家都有控制器。
 	if (bIsInSplitscreen && bMissingAnyLocalPC)
 	{
 		DebugReasonForShowingOrHidingLoadingScreen = FString(TEXT("At least one missing local player controller in splitscreen"));
 		return true;
 	}
 
-	// 在非分屏模式下，需要至少一个本地玩家控制器存在
+	// 非分屏模式至少需要一个本地玩家控制器。
 	if (!bIsInSplitscreen && !bFoundAnyLocalPC)
 	{
 		DebugReasonForShowingOrHidingLoadingScreen = FString(TEXT("Need at least one local player controller"));
 		return true;
 	}
 
-	// 到这就不需要显示加载屏幕了
 	DebugReasonForShowingOrHidingLoadingScreen = TEXT("(nothing wants to show it anymore)");
 	return false;
 }
@@ -392,7 +383,7 @@ bool ULoadingScreenManager::ShouldShowLoadingScreen()
 {
 	const ULoadingScreenDeveloperSettings* Settings = GetDefault<ULoadingScreenDeveloperSettings>();
 
-	// 检查那些强制状态的调试命令
+	// 非 Shipping 构建允许通过命令行关闭加载画面。
 #if !UE_BUILD_SHIPPING
 	static bool bCmdLineNoLoadingScreen = FParse::Param(FCommandLine::Get(), TEXT("NoLoadingScreen"));
 	if (bCmdLineNoLoadingScreen)
@@ -402,26 +393,23 @@ bool ULoadingScreenManager::ShouldShowLoadingScreen()
 	}
 #endif
 
-	// 检查游戏视口是否存在
 	UGameInstance* LocalGameInstance = GetGameInstance();
 	if (LocalGameInstance->GetGameViewportClient() == nullptr)
 	{
 		return false;
 	}
 
-	// 检查是否需要显示加载画面 (默认检测的时机)
 	const bool bNeedToShowLoadingScreen = CheckForAnyNeedToShowLoadingScreen();
 
-	// 如果需要，可以让加载画面稍微延长一点
+	// 真实加载结束后，可继续保留画面一段配置时长。
 	bool bWantToForceShowLoadingScreen = false;
 	if (bNeedToShowLoadingScreen)
 	{
-		// 还需要显示加载画面
 		TimeLoadingScreenLastDismissed = -1.0;
 	}
 	else
 	{
-		// 不需要再显示屏幕了，但可能还想展示一阵子
+		// 从加载条件首次解除时开始计算额外停留时间。
 		const double CurrentTime = FPlatformTime::Seconds();
 		const bool bCanHoldLoadingScreen = (!GIsEditor || Settings->HoldLoadingScreenAdditionalSecsEvenInEditor);
 		const double HoldLoadingScreenAdditionalSecs = bCanHoldLoadingScreen ? LoadingScreenCVars::HoldLoadingScreenAdditionalSecs : 0.0;
@@ -432,10 +420,10 @@ bool ULoadingScreenManager::ShouldShowLoadingScreen()
 		}
 		const double TimeSinceScreenDismissed = CurrentTime - TimeLoadingScreenLastDismissed;
 
-		// 多持续几秒,保证贴图流送或者其他的加载事件
+		// 额外停留只为纹理流送预留时间，不代表流送已完成。
 		if ((HoldLoadingScreenAdditionalSecs > 0.0) && (TimeSinceScreenDismissed < HoldLoadingScreenAdditionalSecs))
 		{
-			// 确保我们此时渲染世界，这样贴图才能真正流入
+			// 此时恢复世界渲染，让可见资源开始流送。
 			// 待完善：如果额外等待期间再次需要加载画面，目前不会重新关闭世界渲染。
 			UGameViewportClient* GameViewportClient = GetGameInstance()->GetGameViewportClient();
 			GameViewportClient->bDisableWorldRendering = false;
@@ -458,7 +446,7 @@ void ULoadingScreenManager::ShowLoadingScreen()
 {
 	if (bCurrentlyShowingLoadingScreen) return;
 
-	// 如果引擎还在加载界面，无法显示加载画面。
+	// 引擎启动画面仍在显示时，暂不接管加载画面。
 	if (FPreLoadScreenManager::Get() && FPreLoadScreenManager::Get()->HasActivePreLoadScreenType(EPreLoadScreenTypes::EngineLoadingScreen)) return;
 
 	TimeLoadingScreenShown = FPlatformTime::Seconds();
@@ -481,12 +469,10 @@ void ULoadingScreenManager::ShowLoadingScreen()
 
 		UGameInstance* LocalGameInstance = GetGameInstance();
 
-		// 阻挡玩家输入
 		StartBlockingInput();
 
 		LoadingScreenVisibilityChanged.Broadcast(true);
 
-		// 创建加载界面小部件
 		TSubclassOf<UUserWidget> LoadingScreenWidgetClass = Settings->LoadingScreenWidget.TryLoadClass<UUserWidget>();
 		UGameViewportClient* GameViewportClient = LocalGameInstance->GetGameViewportClient();
 
@@ -525,7 +511,7 @@ void ULoadingScreenManager::ShowLoadingScreen()
 				LoadingScreenWidget = SNew(SThrobber);
 			}
 
-			// 把视口设置在高ZOrder上，确保它能覆盖大多数物体
+			// 使用配置的高层级覆盖游戏视口内容。
 			GameViewportClient->AddViewportWidgetContent(LoadingScreenWidget.ToSharedRef(), Settings->LoadingScreenZOrder);
 		}
 
@@ -533,7 +519,7 @@ void ULoadingScreenManager::ShowLoadingScreen()
 
 		if (!GIsEditor || Settings->ForceTickLoadingScreenEvenInEditor)
 		{
-			// 启用 Tick Slate确保加载画面立即显示
+			// 立即更新 Slate，避免加载画面等到下一帧才出现。
 			FSlateApplication::Get().Tick();
 		}
 	}
@@ -562,7 +548,6 @@ void ULoadingScreenManager::HideLoadingScreen()
 
 		ChangePerformanceSettings(false);
 
-		// 让观察者知道加载画面已经结束,广播委托
 		LoadingScreenVisibilityChanged.Broadcast(false);
 	}
 
@@ -657,15 +642,15 @@ void ULoadingScreenManager::ChangePerformanceSettings(bool bEnableLoadingScreen)
 		}
 		FThreadHeartBeat::Get().SetDurationMultiplier(HangDurationMultiplier);
 
-		// 加载界面出现时不要报告卡顿
+		// 加载画面可见期间暂停游戏线程卡顿上报。
 		FGameThreadHitchHeartBeat::Get().SuspendHeartBeat();
 	}
 	else
 	{
-		// 当我们隐藏加载界面时，恢复卡顿检测超时
+		// 隐藏画面时恢复默认挂起检测超时。
 		FThreadHeartBeat::Get().SetDurationMultiplier(1.0);
 
-		// 加载画面关闭后，恢复报告卡顿了
+		// 恢复游戏线程卡顿上报。
 		FGameThreadHitchHeartBeat::Get().ResumeHeartBeat();
 	}
 }

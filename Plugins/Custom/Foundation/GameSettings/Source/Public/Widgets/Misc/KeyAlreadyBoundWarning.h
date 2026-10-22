@@ -9,10 +9,7 @@
 
 class UTextBlock;
 
-/**
- * UKeyAlreadyBoundWarning
- * 带有文本块的"按任意键"界面，用于在按键已被绑定时向用户发出警告
- */
+/** 按键已被绑定时显示警告文本，并继续等待用户确认按键。 */
 UCLASS(MinimalAPI, Abstract)
 class UKeyAlreadyBoundWarning : public UGameSettingPressAnyKey
 {

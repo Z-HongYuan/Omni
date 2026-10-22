@@ -12,10 +12,7 @@
 class UAsyncAction_ListenForMessage;
 class UMessageRouterManager;
 
-/**
- * 一个不透明的句柄，可用于移除之前注册的消息监听器
- * @see UMessageRouterManager::RegisterListener 和 UMessageRouterManager::UnregisterListener
- */
+/** 消息监听器的注销句柄；可调用 Unregister 或交给路由器注销。 */
 USTRUCT(BlueprintType)
 struct FMessageRouterListenerHandle
 {
@@ -45,21 +42,19 @@ private:
 	}
 };
 
-/** 
- * 单个已注册监听器的条目信息
- */
+/** 记录单个监听器的回调、匹配规则和消息结构类型。 */
 USTRUCT()
 struct FMessageRouterListenerData
 {
 	GENERATED_BODY()
 
-	// 收到消息时的回调
+	/** 同步接收消息的回调，负载指针仅在分发期间有效。 */
 	TFunction<void(FGameplayTag, const UScriptStruct*, const void*)> ReceivedCallback;
 
 	int32 HandleID;
 	EMessageRouterMatchRule MatchType;
 
-	// 记录注册时是否指定消息类型，用于区分未指定类型与类型失效。
+	/** 注册时指定的消息类型弱引用；结合 bHadValidType 区分未指定类型与类型失效。 */
 	TWeakObjectPtr<const UScriptStruct> ListenerStructType = nullptr;
 	bool bHadValidType = false;
 };
@@ -77,14 +72,10 @@ class UMessageRouterManager : public UGameInstanceSubsystem
 	friend UAsyncAction_ListenForMessage;
 
 public:
-	/**
-	 * @return 与指定对象的世界相关联的游戏实例的消息路由器
-	 */
+	/** 获取上下文所属 GameInstance 的消息路由器；要求世界和子系统有效。 */
 	static UE_API UMessageRouterManager& Get(const UObject* WorldContextObject);
 
-	/**
-	 * @return 如果提供的世界中存在有效的消息路由子系统则返回 true
-	 */
+	/** 返回上下文所属 GameInstance 是否存在消息路由子系统。 */
 	static UE_API bool HasInstance(const UObject* WorldContextObject);
 
 	//~USubsystem 接口
@@ -92,10 +83,8 @@ public:
 	//~USubsystem 接口结束
 
 	/**
-	 * 在指定通道上同步广播消息，所有回调结束后才返回。
-	 *
-	 * @param Channel			要广播的消息通道
-	 * @param Message			消息结构体；类型必须兼容监听器声明的类型，否则会记录错误。
+	 * 在 Channel 上同步广播 Message，全部回调返回后结束。
+	 * 消息类型必须兼容监听器声明的结构类型，否则记录错误。
 	 */
 	template <typename FMessageStructType>
 	void BroadcastMessage(FGameplayTag Channel, const FMessageStructType& Message)
@@ -105,12 +94,8 @@ public:
 	}
 
 	/**
-	 * 注册以接收指定通道上的消息
-	 *
-	 * @param Channel			要监听的消息通道
-	 * @param Callback			当有人广播消息时要调用的函数（必须是此通道广播者提供的相同 UScriptStruct 类型，否则会记录错误）
-	 *
-	 * @return 一个可用于注销此监听器的句柄（通过调用句柄上的 Unregister() 或调用路由器上的 UnregisterListener）
+	 * 注册指定通道的同步消息回调，并返回用于注销的句柄。
+	 * 消息类型必须兼容 FMessageStructType；MatchType 决定是否接收子通道消息。
 	 */
 	template <typename FMessageStructType>
 	FMessageRouterListenerHandle RegisterListener(FGameplayTag Channel, TFunction<void(FGameplayTag, const FMessageStructType&)>&& Callback, EMessageRouterMatchRule MatchType = EMessageRouterMatchRule::ExactMatch)
@@ -125,14 +110,8 @@ public:
 	}
 
 	/**
-	 * 注册以接收指定通道上的消息并使用指定的成员函数处理
-	 * 在执行回调之前执行弱对象有效性检查，以确保注册函数的对象仍然存在
-	 *
-	 * @param Channel			要监听的消息通道
-	 * @param Object			要在其上调用函数的对象实例
-	 * @param Function			当有人广播消息时要调用的成员函数（必须是此通道广播者提供的相同 UScriptStruct 类型，否则会记录错误）
-	 *
-	 * @return 一个可用于注销此监听器的句柄（通过调用句柄上的 Unregister() 或调用路由器上的 UnregisterListener）
+	 * 使用对象成员函数监听指定通道，回调前检查对象的弱引用是否有效。
+	 * 不延长对象生命周期；返回的句柄用于注销监听。
 	 */
 	template <typename FMessageStructType, typename TOwner = UObject>
 	FMessageRouterListenerHandle RegisterListener(FGameplayTag Channel, TOwner* Object, void (TOwner::*Function)(FGameplayTag, const FMessageStructType&))
@@ -148,21 +127,13 @@ public:
 		                                            });
 	}
 
-	/**
-	 * 使用额外参数注册以接收指定通道上的消息，以支持高级行为
-	 * 此逻辑的状态部分应该分离到单独的系统中
-	 *
-	 * @param Channel			要监听的消息通道
-	 * @param Params			包含高级行为详细信息的结构体
-	 *
-	 * @return 一个可用于注销此监听器的句柄（通过调用句柄上的 Unregister() 或调用路由器上的 UnregisterListener）
-	 */
+	/** 按 Params 中的回调和匹配规则注册监听，返回用于注销的句柄。 */
 	template <typename FMessageStructType>
 	FMessageRouterListenerHandle RegisterListener(FGameplayTag Channel, FMessageRouterListenerParams<FMessageStructType>& Params)
 	{
 		FMessageRouterListenerHandle Handle;
 
-		// 注册以接收此通道上的任何未来消息
+		// 仅在配置了回调时注册后续消息监听。
 		if (Params.OnMessageReceivedCallback)
 		{
 			auto ThunkCallback = [InnerCallback = Params.OnMessageReceivedCallback](FGameplayTag ActualTag, const UScriptStruct* SenderStructType, const void* SenderPayload)
@@ -177,30 +148,21 @@ public:
 		return Handle;
 	}
 
-	/**
-	 * 移除之前由 RegisterListener 注册的消息监听器
-	 *
-	 * @param Handle	RegisterListener 返回的句柄
-	 */
+	/** 注销 Handle 对应的监听；正在分发的监听列表副本仍可能调用它。 */
 	UE_API void UnregisterListener(const FMessageRouterListenerHandle& Handle);
 
 protected:
-	/**
-	 * 在指定通道上广播消息
-	 *
-	 * @param Channel			要广播的消息通道
-	 * @param Message			要发送的消息（必须是此通道监听器期望的相同 UScriptStruct 类型，否则会记录错误）
-	 */
+	/** 从蓝图在指定通道同步广播结构体消息；消息类型必须兼容监听器声明。 */
 	UFUNCTION(BlueprintCallable, CustomThunk, Category=Messaging, meta=(CustomStructureParam="Message", AllowAbstract="false", DisplayName="Broadcast Message"))
 	UE_API void K2_BroadcastMessage(FGameplayTag Channel, const int32& Message);
 
 	DECLARE_FUNCTION(execK2_BroadcastMessage);
 
 private:
-	// 广播消息的内部辅助函数
+	/** 按结构类型分发消息；MessageBytes 由调用方持有，使用期间不得失效。 */
 	UE_API void BroadcastMessageInternal(FGameplayTag Channel, const UScriptStruct* StructType, const void* MessageBytes);
 
-	// 注册消息监听器的内部辅助函数
+	/** 保存监听回调与类型信息，并分配不会复用的监听编号。 */
 	UE_API FMessageRouterListenerHandle RegisterListenerInternal(
 		FGameplayTag Channel,
 		TFunction<void(FGameplayTag, const UScriptStruct*, const void*)>&& Callback,
@@ -209,7 +171,7 @@ private:
 
 	UE_API void UnregisterListenerInternal(FGameplayTag Channel, int32 HandleID);
 
-	// 给定通道的所有条目列表
+	/** 保存同一通道上的全部监听器。 */
 	struct FChannelListenerList
 	{
 		TArray<FMessageRouterListenerData> Listeners;
@@ -217,7 +179,7 @@ private:
 
 	TMap<FGameplayTag, FChannelListenerList> ListenerMap;
 
-	// 通道清空或重新创建时也不重置，避免旧句柄误注销后来注册的监听。
+	/** 累计分配的监听编号；通道清空后仍不重置，避免旧句柄注销新监听。 */
 	int32 LastListenerID = 0;
 };
 

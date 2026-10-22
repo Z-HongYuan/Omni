@@ -19,9 +19,6 @@ struct FGeometry;
 
 #define LOCTEXT_NAMESPACE "GameSetting"
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingListEntryBase
-//////////////////////////////////////////////////////////////////////////
 
 void UGameSettingListEntryBase::SetSetting(UGameSetting* InSetting)
 {
@@ -65,7 +62,6 @@ void UGameSettingListEntryBase::HandleSettingChanged(UGameSetting* InSetting, EG
 
 void UGameSettingListEntryBase::OnSettingChanged()
 {
-	// 空操作
 }
 
 void UGameSettingListEntryBase::HandleEditConditionChanged(UGameSetting* InSetting)
@@ -76,7 +72,6 @@ void UGameSettingListEntryBase::HandleEditConditionChanged(UGameSetting* InSetti
 
 void UGameSettingListEntryBase::RefreshEditableState(const FGameSettingEditableState& InEditableState)
 {
-	// 空操作
 }
 
 FReply UGameSettingListEntryBase::NativeOnFocusReceived(const FGeometry& InGeometry, const FFocusEvent& InFocusEvent)
@@ -97,9 +92,6 @@ FReply UGameSettingListEntryBase::NativeOnFocusReceived(const FGeometry& InGeome
 	return FReply::Unhandled();
 }
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingListEntry_Setting
-//////////////////////////////////////////////////////////////////////////
 
 void UGameSettingListEntry_Setting::SetSetting(UGameSetting* InSetting)
 {
@@ -109,9 +101,6 @@ void UGameSettingListEntry_Setting::SetSetting(UGameSetting* InSetting)
 	Text_SettingName->SetVisibility(InSetting->GetDisplayNameVisibility());
 }
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingListEntrySetting_Discrete
-//////////////////////////////////////////////////////////////////////////
 
 void UGameSettingListEntrySetting_Discrete::SetSetting(UGameSetting* InSetting)
 {
@@ -197,9 +186,6 @@ void UGameSettingListEntrySetting_Discrete::HandleEditConditionChanged(UGameSett
 }
 
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingListEntrySetting_Scalar
-//////////////////////////////////////////////////////////////////////////
 
 void UGameSettingListEntrySetting_Scalar::SetSetting(UGameSetting* InSetting)
 {
@@ -269,7 +255,7 @@ void UGameSettingListEntrySetting_Scalar::HandleSliderCaptureEnded()
 {
 	TGuardValue<bool> Suspend(bSuspendChangeUpdates, true);
 
-	//提交？
+	// 待确认：滑块捕获结束时是否需要单独提交设置。
 }
 
 void UGameSettingListEntrySetting_Scalar::RefreshEditableState(const FGameSettingEditableState& InEditableState)
@@ -281,9 +267,6 @@ void UGameSettingListEntrySetting_Scalar::RefreshEditableState(const FGameSettin
 	Panel_Value->SetIsEnabled(bLocalIsEnabled);
 }
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingListEntrySetting_Action
-//////////////////////////////////////////////////////////////////////////
 
 void UGameSettingListEntrySetting_Action::SetSetting(UGameSetting* InSetting)
 {
@@ -323,9 +306,6 @@ void UGameSettingListEntrySetting_Action::HandleActionButtonClicked()
 	ActionSetting->ExecuteAction();
 }
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingListEntrySetting_Navigation
-//////////////////////////////////////////////////////////////////////////
 
 void UGameSettingListEntrySetting_Navigation::SetSetting(UGameSetting* InSetting)
 {

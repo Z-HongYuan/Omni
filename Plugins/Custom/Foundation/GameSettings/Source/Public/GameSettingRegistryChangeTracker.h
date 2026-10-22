@@ -13,9 +13,7 @@ class UGameSetting;
 class UGameSettingRegistry;
 struct FObjectKey;
 
-/**
- * 
- */
+/** 跟踪注册表中的待保存更改，支持应用更改或恢复初始值；停止监听时解绑事件。 */
 class FGameSettingRegistryChangeTracker : public FNoncopyable
 {
 public:

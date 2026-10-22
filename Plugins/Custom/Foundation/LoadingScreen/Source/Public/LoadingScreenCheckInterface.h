@@ -7,9 +7,7 @@
 
 #define UE_API LOADINGSCREEN_API
 
-/*
- * 检查和评估是否显示加载界面
- */
+/** 供对象报告是否仍需显示加载画面的查询接口。 */
 UINTERFACE(MinimalAPI, BlueprintType)
 class ULoadingScreenCheckInterface : public UInterface
 {
@@ -21,7 +19,7 @@ class ILoadingScreenCheckInterface
 	GENERATED_BODY()
 
 public:
-	//检查对象是否实现了接口，如果实现了则检查是否应该显示加载画面
+	/** 对象实现此接口时查询其加载请求；无对象或未实现接口时返回 false。 */
 	static UE_API bool ShouldShowLoadingScreen(UObject* TestObject, FString& OutReason)
 	{
 		if (TestObject == nullptr) return false;
@@ -41,7 +39,7 @@ public:
 		return false;
 	}
 
-	// 是否应该显示加载界面
+	/** 返回是否仍需显示加载画面，并在需要显示时填写 OutReason。 */
 	UE_API virtual bool ShouldShowLoadingScreen(FString& OutReason) const { return false; }
 };
 

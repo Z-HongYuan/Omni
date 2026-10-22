@@ -8,9 +8,6 @@
 
 #define LOCTEXT_NAMESPACE "GameSettingValueDiscreteDynamic"
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingValueDiscreteDynamic
-//////////////////////////////////////////////////////////////////////////
 
 UGameSettingValueDiscreteDynamic::UGameSettingValueDiscreteDynamic()
 {
@@ -100,7 +97,7 @@ void UGameSettingValueDiscreteDynamic::OnInitialized()
 
 void UGameSettingValueDiscreteDynamic::Startup()
 {
-	// 我是否也应该对 Setter 做些什么？
+	// 待确认：Setter 是否也需要独立的异步初始化流程。
 	check(Getter);
 	Getter->Startup(LocalPlayer, FSimpleDelegate::CreateUObject(this, &ThisClass::OnDataSourcesReady));
 }
@@ -199,9 +196,6 @@ TArray<int32> UGameSettingValueDiscreteDynamic::GetAllowedOptionIndices() const
 	return AllowedOptionIndices;
 }
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingValueDiscreteDynamic_Bool
-//////////////////////////////////////////////////////////////////////////
 
 UGameSettingValueDiscreteDynamic_Bool::UGameSettingValueDiscreteDynamic_Bool()
 {
@@ -211,14 +205,14 @@ UGameSettingValueDiscreteDynamic_Bool::UGameSettingValueDiscreteDynamic_Bool()
 
 void UGameSettingValueDiscreteDynamic_Bool::SetTrueText(const FText& InText)
 {
-	// 我们先移除再重新添加，这样通过修改 true/false 文本也能控制它们的显示顺序。
+	// 通过移除后追加选项，让调用顺序同时决定 true/false 的显示顺序。
 	RemoveDynamicOption(TEXT("true"));
 	AddDynamicOption(TEXT("true"), InText);
 }
 
 void UGameSettingValueDiscreteDynamic_Bool::SetFalseText(const FText& InText)
 {
-	// 我们先移除再重新添加，这样通过修改 true/false 文本也能控制它们的显示顺序。
+	// 通过移除后追加选项，让调用顺序同时决定 true/false 的显示顺序。
 	RemoveDynamicOption(TEXT("false"));
 	AddDynamicOption(TEXT("false"), InText);
 }
@@ -228,9 +222,6 @@ void UGameSettingValueDiscreteDynamic_Bool::SetDefaultValue(bool Value)
 	DefaultValue = LexToString(Value);
 }
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingValueDiscreteDynamic_Number
-//////////////////////////////////////////////////////////////////////////
 
 UGameSettingValueDiscreteDynamic_Number::UGameSettingValueDiscreteDynamic_Number()
 {
@@ -243,9 +234,6 @@ void UGameSettingValueDiscreteDynamic_Number::OnInitialized()
 	ensure(OptionValues.Num() > 0);
 }
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingValueDiscreteDynamic_Enum
-//////////////////////////////////////////////////////////////////////////
 
 UGameSettingValueDiscreteDynamic_Enum::UGameSettingValueDiscreteDynamic_Enum()
 {
@@ -258,9 +246,6 @@ void UGameSettingValueDiscreteDynamic_Enum::OnInitialized()
 	ensure(OptionValues.Num() > 0);
 }
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingValueDiscreteDynamic_Color
-//////////////////////////////////////////////////////////////////////////
 
 UGameSettingValueDiscreteDynamic_Color::UGameSettingValueDiscreteDynamic_Color()
 {

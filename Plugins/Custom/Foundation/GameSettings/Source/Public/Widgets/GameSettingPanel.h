@@ -33,10 +33,10 @@ public:
 	UE_API virtual void NativeConstruct() override;
 	UE_API virtual void NativeDestruct() override;
 
-	// 为手柄将焦点过渡到子控件
+	/** 使用手柄时将焦点交给设置列表的首个条目。 */
 	UE_API virtual FReply NativeOnFocusReceived(const FGeometry& InGeometry, const FFocusEvent& InFocusEvent) override;
 
-	/**  */
+	/** 切换注册表，重新绑定事件并请求刷新列表。 */
 	UE_API void SetRegistry(UGameSettingRegistry* InRegistry);
 
 	/** 为此面板设置筛选条件，限制当前可用的设置。 */
@@ -45,17 +45,13 @@ public:
 	/** 基于筛选状态获取当前可见且可用的设置。 */
 	TArray<UGameSetting*> GetVisibleSettings() const { return VisibleSettings; }
 
-	/** 我们能否弹出当前的导航栈 */
+	/** 返回是否可以退回上一层设置页面。 */
 	UE_API bool CanPopNavigationStack() const;
 
-	/** 弹出导航栈 */
+	/** 恢复上一层筛选条件，并刷新设置列表。 */
 	UE_API void PopNavigationStack();
 
-	/**
-	 * 获取可能在此界面上可用的设置集合。
-	 * 可能包含不可见的设置。
-	 * 不包含嵌套页面。
-	 */
+	/** 获取当前页面可重置的设置；包含隐藏和禁用项，不包含嵌套页面。 */
 	UE_API TArray<UGameSetting*> GetSettingsWeCanResetToDefault() const;
 
 	UE_API void SelectSetting(const FName& SettingDevName);

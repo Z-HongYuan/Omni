@@ -56,10 +56,10 @@ public:
 	virtual TStatId GetStatId() const override { RETURN_QUICK_DECLARE_CYCLE_STAT(UMediaSubtitlesPlayer, STATGROUP_Tickables); }
 
 private:
-	/** 对媒体播放器的引用 */
+	/** 媒体播放器的弱引用，不延长播放器生命周期。 */
 	TWeakObjectPtr<class UMediaPlayer> MediaPlayer;
 
-	/** 字幕当前是否正在显示 */
+	/** 是否持续根据媒体时间更新字幕。 */
 	bool bEnabled;
 };
 

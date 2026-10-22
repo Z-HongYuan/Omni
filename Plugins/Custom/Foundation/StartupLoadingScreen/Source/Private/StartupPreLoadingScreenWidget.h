@@ -5,9 +5,9 @@
 #include "UObject/GCObject.h"
 #include "Widgets/SCompoundWidget.h"
 
-/*
- * 提供可扩展的启动界面，目前显示纯黑背景。
- * 保留 FGCObject，用于后续持有纹理等 UObject 资源。
+/**
+ * 显示纯黑背景的启动界面。
+ * 保留 FGCObject 接口，便于持有 UObject 资源时登记垃圾回收引用。
  */
 class SStartupPreLoadingScreenWidget : public SCompoundWidget, public FGCObject
 {

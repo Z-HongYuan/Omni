@@ -8,7 +8,7 @@
 class FGameSubtitlesModule : public IModuleInterface
 {
 public:
-	/** IModuleInterface 接口实现 */
+	// 模块生命周期。
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 };

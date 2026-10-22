@@ -10,9 +10,6 @@
 
 #define LOCTEXT_NAMESPACE "GameSetting"
 
-//--------------------------------------
-// UGameSettingRegistry
-//--------------------------------------
 
 UGameSettingRegistry::UGameSettingRegistry()
 {
@@ -114,12 +111,12 @@ void UGameSettingRegistry::RegisterInnerSettings(UGameSetting* InSetting)
 	InSetting->OnSettingAppliedEvent.AddUObject(this, &ThisClass::HandleSettingApplied);
 	InSetting->OnSettingEditConditionChangedEvent.AddUObject(this, &ThisClass::HandleSettingEditConditionsChanged);
 
-	// 不太喜欢这种做法，但为了简单起见，聚合操作事件是合理的。
+	// 在注册表集中转发操作事件，供设置界面统一订阅。
 	if (UGameSettingAction* ActionSetting = Cast<UGameSettingAction>(InSetting))
 	{
 		ActionSetting->OnExecuteNamedActionEvent.AddUObject(this, &ThisClass::HandleSettingNamedAction);
 	}
-	// 不太喜欢这种做法，但为了简单起见，聚合导航事件是合理的。
+	// 在注册表集中转发页面导航事件。
 	else if (UGameSettingCollectionPage* NewPageCollection = Cast<UGameSettingCollectionPage>(InSetting))
 	{
 		NewPageCollection->OnExecuteNavigationEvent.AddUObject(this, &ThisClass::HandleSettingNavigation);

@@ -6,10 +6,7 @@
 
 class ULocalPlayer;
 
-//--------------------------------------
-// FGameSettingDataSource
-//--------------------------------------
-
+/** 提供设置值的初始化、读取和写入接口。 */
 class FGameSettingDataSource : public TSharedFromThis<FGameSettingDataSource>
 {
 public:
@@ -17,10 +14,7 @@ public:
 	{
 	}
 
-	/**
-	 * 某些设置可能需要异步时间才能完成初始化。设置系统会等待
-	 * 所有设置都就绪后再显示该设置。
-	 */
+	/** 初始化数据源；异步实现必须在就绪后调用 StartupCompleteCallback。 */
 	virtual void Startup(ULocalPlayer* InLocalPlayer, FSimpleDelegate StartupCompleteCallback) { StartupCompleteCallback.ExecuteIfBound(); }
 
 	virtual bool Resolve(ULocalPlayer* InContext) = 0;

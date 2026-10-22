@@ -19,9 +19,7 @@ class UObject;
 class UVerticalBox;
 struct FStreamableHandle;
 
-/**
- * 
- */
+/** 显示当前设置的说明和警告，并异步加载、复用详情扩展控件。 */
 UCLASS(MinimalAPI, Abstract)
 class UGameSettingDetailView : public UUserWidget
 {
@@ -57,7 +55,7 @@ protected:
 private:
 	void HandleCurrentSettingChanged(UGameSetting* InSetting, EGameSettingChangeReason Reason);
 
-private: // Bound Widgets
+private: // 绑定的详情显示控件。
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional, BlueprintProtected = true, AllowPrivateAccess = true))
 	TObjectPtr<UCommonTextBlock> Text_SettingName;
 

@@ -31,9 +31,6 @@ namespace GameSettingsConsoleVars
 }
 
 
-//--------------------------------------
-// UGameSetting
-//--------------------------------------
 
 void UGameSetting::Initialize(ULocalPlayer* InLocalPlayer)
 {
@@ -87,7 +84,7 @@ void UGameSetting::Apply()
 {
 	OnApply();
 
-	// 遍历所有编辑条件，并通知它们设置已变更。
+	// 通知编辑条件：设置已应用。
 	for (const TSharedRef<FGameSettingEditCondition>& EditCondition : EditConditions)
 	{
 		EditCondition->SettingApplied(LocalPlayer, this);
@@ -104,7 +101,6 @@ void UGameSetting::OnInitialized()
 
 void UGameSetting::OnApply()
 {
-	// 默认无操作。
 }
 
 UWorld* UGameSetting::GetWorld() const
@@ -121,10 +117,9 @@ FGameSettingEditableState UGameSetting::ComputeEditableState() const
 {
 	FGameSettingEditableState EditState;
 
-	// 该设置自身是否有特殊规则？
+	// 先收集设置自身的规则，再合并各编辑条件的限制。
 	OnGatherEditState(EditState);
 
-	// 遍历所有编辑条件
 	for (const TSharedRef<FGameSettingEditCondition>& EditCondition : EditConditions)
 	{
 		EditCondition->GatherEditState(LocalPlayer, EditState);
@@ -193,7 +188,6 @@ void UGameSetting::NotifySettingChanged(EGameSettingChangeReason Reason)
 
 void UGameSetting::OnSettingChanged(EGameSettingChangeReason Reason)
 {
-	// 无操作
 }
 
 void UGameSetting::AddEditCondition(const TSharedRef<FGameSettingEditCondition>& InEditCondition)
@@ -214,8 +208,7 @@ void UGameSetting::AddEditDependency(UGameSetting* DependencySetting)
 
 void UGameSetting::RefreshEditableState(bool bNotifyEditConditionsChanged)
 {
-	// LocalPlayer 可能在我们使用时被销毁，如果发生这种情况，
-	// 我们需要忽略刷新可编辑状态的尝试。
+	// 本地玩家不可用时停止刷新，避免访问失效的玩家上下文。
 	if (!LocalPlayer)
 	{
 		return;

@@ -58,7 +58,7 @@ EGameUserAvailability UGameUserInfo::GetPrivilegeAvailability(EGameUserPrivilege
 
 	if (bIsGuest)
 	{
-		// 游客只能游玩,不能使用在线功能
+		// 访客只允许 CanPlay，其他在线权限保持不可用。
 		if (Privilege == EGameUserPrivilege::CanPlay)
 		{
 			return EGameUserAvailability::NowAvailable;
@@ -181,7 +181,7 @@ UGameUserInfo::FCachedData* UGameUserInfo::GetCachedData(EGameUserOnlineContext 
 		return FoundData;
 	}
 
-	// 现在尝试系统解析
+	// 未命中原始上下文时，再按子系统规则解析回退上下文。
 	UGameUserSubsystem* Subsystem = GetSubsystem();
 
 	EGameUserOnlineContext ResolvedContext = Subsystem->ResolveOnlineContext(Context);
@@ -195,13 +195,13 @@ const UGameUserInfo::FCachedData* UGameUserInfo::GetCachedData(EGameUserOnlineCo
 
 void UGameUserInfo::UpdateCachedPrivilegeResult(EGameUserPrivilege Privilege, EGameUserPrivilegeResult Result, EGameUserOnlineContext Context)
 {
-	// 此函数只应在上下文已解析且类型有效时调用
+	// 更新时必须同时存在 Game 缓存和目标上下文缓存。
 	FCachedData* GameCache = GetCachedData(EGameUserOnlineContext::Game);
 	FCachedData* ContextCache = GetCachedData(Context);
 
 	if (!ensure(GameCache && ContextCache))
 	{
-		// 应该始终有效
+		// 缺少缓存时无法安全合并权限结果。
 		return;
 	}
 
@@ -268,7 +268,7 @@ void UGameUserInfo::UpdateCachedNetId(const FUniqueNetIdRepl& NewId, EGameUserOn
 		}
 	}
 
-	// 由于游客的工作方式,我们不合并 ID
+	// 访客可使用独立的 Game 网络 ID，因此不跨上下文合并身份。
 }
 
 UGameUserSubsystem* UGameUserInfo::GetSubsystem() const

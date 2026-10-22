@@ -13,10 +13,7 @@ enum class EGameSettingChangeReason : uint8;
 
 struct FContentControlsRules;
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingValueDiscreteDynamic
-//////////////////////////////////////////////////////////////////////////
-
+/** 通过动态数据源读写离散值，并维护可见选项与原始选项的索引映射。 */
 UCLASS(MinimalAPI)
 class UGameSettingValueDiscreteDynamic : public UGameSettingValueDiscrete
 {
@@ -25,19 +22,16 @@ class UGameSettingValueDiscreteDynamic : public UGameSettingValueDiscrete
 public:
 	UE_API UGameSettingValueDiscreteDynamic();
 
-	/** UGameSettingValue */
 	UE_API virtual void Startup() override;
 	UE_API virtual void StoreInitial() override;
 	UE_API virtual void ResetToDefault() override;
 	UE_API virtual void RestoreToInitial() override;
 
-	/** UGameSettingValueDiscrete */
 	UE_API virtual void SetDiscreteOptionByIndex(int32 Index) override;
 	UE_API virtual int32 GetDiscreteOptionIndex() const override;
 	UE_API virtual int32 GetDiscreteOptionDefaultIndex() const override;
 	UE_API virtual TArray<FText> GetDiscreteOptions() const override;
 
-	/** UGameSettingValueDiscreteDynamic */
 	UE_API void SetDynamicGetter(const TSharedRef<FGameSettingDataSource>& InGetter);
 	UE_API void SetDynamicSetter(const TSharedRef<FGameSettingDataSource>& InSetter);
 	UE_API void SetDefaultValueFromString(FString InOptionValue);
@@ -53,7 +47,6 @@ public:
 protected:
 	UE_API void SetValueFromString(FString InStringValue, EGameSettingChangeReason Reason);
 
-	/** UGameSettingValue */
 	UE_API virtual void OnInitialized() override;
 
 	UE_API void OnDataSourcesReady();
@@ -61,7 +54,7 @@ protected:
 	UE_API bool AreOptionsEqual(const FString& InOptionA, const FString& InOptionB) const;
 
 private:
-	// 显示、读取和写入统一使用这份可见选项到原始选项的索引映射。
+	/** 返回可见选项到原始选项的索引映射，供显示、读取和写入共同使用。 */
 	TArray<int32> GetAllowedOptionIndices() const;
 
 protected:
@@ -75,10 +68,7 @@ protected:
 	TArray<FText> OptionDisplayTexts;
 };
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingValueDiscreteDynamic_Bool
-//////////////////////////////////////////////////////////////////////////
-
+/** 将布尔值映射为可配置文本的离散选项。 */
 UCLASS(MinimalAPI)
 class UGameSettingValueDiscreteDynamic_Bool : public UGameSettingValueDiscreteDynamic
 {
@@ -99,10 +89,7 @@ public:
 #endif
 };
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingValueDiscreteDynamic_Number
-//////////////////////////////////////////////////////////////////////////
-
+/** 将数值转换为字符串形式的离散选项。 */
 UCLASS(MinimalAPI)
 class UGameSettingValueDiscreteDynamic_Number : public UGameSettingValueDiscreteDynamic
 {
@@ -142,14 +129,10 @@ public:
 	}
 
 protected:
-	/** UGameSettingValue */
 	UE_API virtual void OnInitialized() override;
 };
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingValueDiscreteDynamic_Enum
-//////////////////////////////////////////////////////////////////////////
-
+/** 按枚举名称序列化值的离散设置，显示文本由调用方提供。 */
 UCLASS(MinimalAPI)
 class UGameSettingValueDiscreteDynamic_Enum : public UGameSettingValueDiscreteDynamic
 {
@@ -188,14 +171,10 @@ public:
 	}
 
 protected:
-	/** UGameSettingValue */
 	UE_API virtual void OnInitialized() override;
 };
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingValueDiscreteDynamic_Color
-//////////////////////////////////////////////////////////////////////////
-
+/** 将颜色值转换为字符串形式的离散选项。 */
 UCLASS(MinimalAPI)
 class UGameSettingValueDiscreteDynamic_Color : public UGameSettingValueDiscreteDynamic
 {
@@ -233,10 +212,7 @@ public:
 	}
 };
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingValueDiscreteDynamic_Vector2D
-//////////////////////////////////////////////////////////////////////////
-
+/** 将二维向量转换为字符串形式的离散选项。 */
 UCLASS(MinimalAPI)
 class UGameSettingValueDiscreteDynamic_Vector2D : public UGameSettingValueDiscreteDynamic
 {

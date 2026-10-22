@@ -10,9 +10,7 @@
 
 class UObject;
 
-/**
- * 
- */
+/** 设置项使用的选项轮换控件，将默认选项通知转发给蓝图。 */
 UCLASS(MinimalAPI, Abstract, meta = (Category = "Settings", DisableNativeTick))
 class UGameSettingRotator : public UCommonRotator
 {

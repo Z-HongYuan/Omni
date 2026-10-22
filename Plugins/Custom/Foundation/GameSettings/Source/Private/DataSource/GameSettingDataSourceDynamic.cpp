@@ -4,9 +4,6 @@
 
 #include "Engine/LocalPlayer.h"
 
-//--------------------------------------
-// FGameSettingDataSourceDynamic
-//--------------------------------------
 
 FGameSettingDataSourceDynamic::FGameSettingDataSourceDynamic(const TArray<FString>& InDynamicPath)
 	: DynamicPath(InDynamicPath)

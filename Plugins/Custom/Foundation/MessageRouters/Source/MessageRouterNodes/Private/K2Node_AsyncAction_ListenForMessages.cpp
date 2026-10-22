@@ -143,7 +143,7 @@ bool UK2Node_AsyncAction_ListenForMessage::HandlePayloadImplementation(FMulticas
 	{
 		if (PayloadPin->LinkedTo.Num() == 0)
 		{
-			// 如果没有指定有效载荷类型，且我们不打算将输出连接到任何东西，忽略此步骤的剩余部分
+			// 未指定负载类型且没有连接输出时，无需生成负载读取流程。
 			return true;
 		}
 		else
@@ -185,7 +185,7 @@ bool UK2Node_AsyncAction_ListenForMessage::HandlePayloadImplementation(FMulticas
 		bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*InOutLastActivatedThenPin, *AssignNode->GetThenPin()).CanSafeConnect();
 		bIsErrorFree &= Schema->TryCreateConnection(InOutLastActivatedThenPin, GetPayloadExecPin);
 
-		// 连接实际的通道连接
+		// 将实际消息通道连接到节点输出。
 		UEdGraphPin* OutActualChannelPin = GetOutputChannelPin();
 		bIsErrorFree &= CompilerContext.MovePinLinksToIntermediate(*OutActualChannelPin, *ActualChannelVar.TempVar->GetVariablePin()).CanSafeConnect();
 	}

@@ -12,9 +12,7 @@ struct FKey;
 
 class UObject;
 
-/**
- * 
- */
+/** 捕获一次按键选择，并在取消或完成后关闭交互。 */
 UCLASS(MinimalAPI, Abstract)
 class UGameSettingPressAnyKey : public UCommonActivatableWidget
 {

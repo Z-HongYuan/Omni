@@ -96,10 +96,7 @@ void UPocketLevelInstance::HandlePocketLevelLoaded()
 {
 	if (StreamingPocketLevel)
 	{
-		// 让关卡里的一切都按“客户端本地生成”的方式建立，
-		// 而不是走 bExchangedRoles = true 那条路径 —— 后者虽然同样是在客户端生成，
-		// 但含义是“服务器要求这么做的”，并且服务器稍后还会
-		// 把这些 Actor 的信息同步过来。
+		// 将流送关卡标记为仅客户端可见，供本地预览使用。
 		if (ULevel* LoadedLevel = StreamingPocketLevel->GetLoadedLevel())
 		{
 			LoadedLevel->bClientOnlyVisible = true;
@@ -108,7 +105,7 @@ void UPocketLevelInstance::HandlePocketLevelLoaded()
 			{
 				if (Actor)
 				{
-					Actor->bExchangedRoles = true; // 临时黑科技：等 bClientOnlyVisible 足以满足全部需求后即可移除。
+					Actor->bExchangedRoles = true; // 兼容现有角色交换行为；能否仅依赖 bClientOnlyVisible 待确认。
 				}
 			}
 

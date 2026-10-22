@@ -4,9 +4,7 @@
 
 #include "PreLoadScreenBase.h"
 
-/**
- * 引擎加载阶段的界面处理对象，负责控件及显示状态的生命周期。
- */
+/** 管理引擎加载阶段控件的显示状态及生命周期。 */
 class FStartupPreLoadScreen : public FPreLoadScreenBase
 {
 public:
@@ -19,7 +17,7 @@ public:
 	virtual TSharedPtr<SWidget> GetWidget() override { return EngineLoadingWidget; }
 	//~IPreLoadScreen 接口结束
 
-	// 仅在游戏线程查询，用于模块提前关闭时判断是否需要等待当前界面结束。
+	/** 仅在游戏线程查询，用于模块提前关闭时判断是否需要等待当前界面结束。 */
 	bool IsPlaying() const { return bIsPlaying; }
 
 private:

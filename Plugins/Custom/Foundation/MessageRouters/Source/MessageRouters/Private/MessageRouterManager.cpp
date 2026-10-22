@@ -10,7 +10,7 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(MessageRouterManager)
 
-DECLARE_LOG_CATEGORY_EXTERN(LogMessageRouterManager, Log, All); // 定义日志分类
+DECLARE_LOG_CATEGORY_EXTERN(LogMessageRouterManager, Log, All);
 DEFINE_LOG_CATEGORY(LogMessageRouterManager);
 
 namespace UE
@@ -24,8 +24,6 @@ namespace UE
 	}
 }
 
-// FMessageRouterListenerHandle
-//
 void FMessageRouterListenerHandle::Unregister()
 {
 	if (UMessageRouterManager* StrongSubsystem = Subsystem.Get())
@@ -37,8 +35,6 @@ void FMessageRouterListenerHandle::Unregister()
 	ID = 0;
 }
 
-// UMessageRouterManager
-//
 UMessageRouterManager& UMessageRouterManager::Get(const UObject* WorldContextObject)
 {
 	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::Assert);
@@ -99,7 +95,7 @@ DEFINE_FUNCTION(UMessageRouterManager::execK2_BroadcastMessage)
 
 void UMessageRouterManager::BroadcastMessageInternal(FGameplayTag Channel, const UScriptStruct* StructType, const void* MessageBytes)
 {
-	// 如果启用了，请记录该消息
+	// 根据调试开关记录消息内容。
 	if (UE::UMessageRouterManager::ShouldLogMessages != 0)
 	{
 		FString* pContextString = nullptr;
@@ -116,13 +112,13 @@ void UMessageRouterManager::BroadcastMessageInternal(FGameplayTag Channel, const
 		UE_LOG(LogMessageRouterManager, Log, TEXT("BroadcastMessage(%s, %s, %s)"), pContextString ? **pContextString : *GetPathNameSafe(this), *Channel.ToString(), *HumanReadableMessage);
 	}
 
-	// 广播消息
+	// 从具体通道向父通道遍历，只向允许部分匹配的父通道监听器分发。
 	bool bOnInitialTag = true;
 	for (FGameplayTag Tag = Channel; Tag.IsValid(); Tag = Tag.RequestDirectParent())
 	{
 		if (const FChannelListenerList* pList = ListenerMap.Find(Tag))
 		{
-			// 复制以防在处理回调时出现删除
+			// 复制监听列表，允许回调注册或注销监听而不使当前遍历失效。
 			TArray<FMessageRouterListenerData> ListenerArray(pList->Listeners);
 
 			for (const FMessageRouterListenerData& Listener : ListenerArray)
@@ -136,7 +132,7 @@ void UMessageRouterManager::BroadcastMessageInternal(FGameplayTag Channel, const
 						continue;
 					}
 
-					// 接收类型必须是发送端类型的父类型，或者完全模糊的（用于内部用途）
+					// 发送类型必须兼容监听器类型；内部未限定类型的监听器接收任意结构。
 					if (!Listener.bHadValidType || StructType->IsChildOf(Listener.ListenerStructType.Get()))
 					{
 						Listener.ReceivedCallback(Channel, StructType, MessageBytes);

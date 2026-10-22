@@ -169,47 +169,38 @@ protected:
 		AsyncPreloadPrimaryAssetsAndBundles(PrimaryAssetIds, LoadBundles, Callback);
 	}
 
-	/** 给定主资产 ID 数组，加载这些资产的属性所引用的所有捆绑包（由 LoadBundles 数组指定）。 */
+	/** 预加载指定主资产及 LoadBundles 指定的资源包；取消加载前保留加载句柄。 */
 	void AsyncPreloadPrimaryAssetsAndBundles(const TArray<FPrimaryAssetId>& AssetIds, const TArray<FName>& LoadBundles, TFunction<void()>&& Callback)
 	{
 		AsyncPreloadPrimaryAssetsAndBundles(AssetIds, LoadBundles, FSimpleDelegate::CreateLambda(MoveTemp(Callback)));
 	}
 
-	/** 给定主资产 ID 数组，加载这些资产的属性所引用的所有捆绑包（由 LoadBundles 数组指定）。 */
+	/** 预加载指定主资产及 LoadBundles 指定的资源包；取消加载前保留加载句柄。 */
 	UE_API void AsyncPreloadPrimaryAssetsAndBundles(const TArray<FPrimaryAssetId>& AssetIds, const TArray<FName>& LoadBundles, const FSimpleDelegate& Callback = FSimpleDelegate());
 
-	/** 添加一个必须为真的未来条件，然后才能继续前进。 */
+	/** 等待自定义条件满足，再继续执行后续回调。 */
 	UE_API void AsyncCondition(TSharedRef<FAsyncCondition> Condition, const FSimpleDelegate& Callback = FSimpleDelegate());
 
-	/**
-	 * 不加载任何内容，而是将此回调插入到回调序列中，以便当异步加载完成时，
-	 * 此事件将在序列中的相同点被调用。如果你不希望某个步骤绑定到特定资产（以防某些资产是可选的），这非常有用。
-	 */
+	/** 在加载序列中插入不依赖资产的回调，并保持回调的排队顺序。 */
 	void AsyncEvent(TFunction<void()>&& Callback)
 	{
 		AsyncEvent(FSimpleDelegate::CreateLambda(MoveTemp(Callback)));
 	}
 
-	/**
-	 * 不加载任何内容，而是将此回调插入到回调序列中，以便当异步加载完成时，
-	 * 此事件将在序列中的相同点被调用。如果你不希望某个步骤绑定到特定资产（以防某些资产是可选的），这非常有用。
-	 */
+	/** 在加载序列中插入不依赖资产的回调，并保持回调的排队顺序。 */
 	UE_API void AsyncEvent(const FSimpleDelegate& Callback);
 
-	/** 刷新所有异步加载请求。 */
+	/** 立即启动已排队的任务；未显式调用时会在下一帧自动启动。 */
 	UE_API void StartAsyncLoading();
 
-	/** 取消任何待处理的异步加载。 */
+	/** 取消待处理任务与回调，并请求释放加载状态。 */
 	UE_API void CancelAsyncLoading();
 
-	/** 异步加载当前是否正在进行？ */
+	/** 返回当前是否有尚未完成的加载步骤。 */
 	UE_API bool IsAsyncLoadingInProgress() const;
 
 private:
-	/**
-	 * FLoadingState 是静态映射中为 FAsyncLoadMixin 分配的加载状态，混入类本身不保存加载状态成员，
-	 * 我们只在需要时动态创建 FLoadingState，并在不需要时销毁它。
-	 */
+	/** 按需存放在静态映射中的加载状态，由宿主取消、析构或任务完成流程负责清理。 */
 	class FLoadingState : public TSharedFromThis<FLoadingState>
 	{
 	public:
@@ -247,10 +238,7 @@ private:
 		/** 加载状态的宿主，用于调用混入对象的加载通知。 */
 		FAsyncLoadMixin& OwnerRef;
 
-		/**
-		 * 我们是否需要预加载捆绑包？如果我们没有预加载捆绑包（这需要你保持流式句柄存在，否则它们会被销毁），
-		 * 那么当所有加载完成后，我们可以安全地销毁 FLoadingState。
-		 */
+		/** 是否持有预加载资源包；为维持资源驻留，此时完成后仍保留加载状态。 */
 		bool bPreloadedBundles = false;
 
 		class FAsyncStep
@@ -279,7 +267,7 @@ private:
 			FSimpleDelegate UserCallback;
 			bool bIsCompletionDelegateBound = false;
 
-			// 可能的异步'事物'
+			// 步骤可等待流式加载或自定义条件。
 			TSharedPtr<FStreamableHandle> StreamingHandle;
 			TSharedPtr<FAsyncCondition> Condition;
 		};
@@ -306,13 +294,7 @@ private:
 	static UE_API TMap<FAsyncLoadMixin*, TSharedRef<FLoadingState>> Loading;
 };
 
-/**
- * 有时混入模式并不合适。对象可能需要管理多个任务，每个任务都有独立的异步依赖链和作用域。
- * 对于这些情况，可以使用 FAsyncLoadScope。
- * 
- * 这个类是一个独立的异步依赖处理器，让你可以启动多个加载任务并始终以正确的顺序处理它们，
- * 就像将 FAsyncLoadMixin 与你的类结合使用一样。
- */
+/** 独立管理一条异步依赖链，便于同一对象同时持有多个加载作用域。 */
 class FAsyncLoadScope : public FAsyncLoadMixin
 {
 public:
@@ -331,8 +313,6 @@ public:
 	using FAsyncLoadMixin::IsAsyncLoadingInProgress;
 };
 
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
 
 enum class EAsyncConditionResult : uint8
 {
@@ -342,9 +322,7 @@ enum class EAsyncConditionResult : uint8
 
 DECLARE_DELEGATE_RetVal(EAsyncConditionResult, FAsyncConditionDelegate);
 
-/**
- * 异步条件允许你设置自定义原因来暂停异步加载，直到满足某些条件为止。
- */
+/** 通过自定义条件暂停后续异步步骤，直到条件返回 Complete。 */
 class FAsyncCondition : public TSharedFromThis<FAsyncCondition>
 {
 public:

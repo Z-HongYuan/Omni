@@ -10,14 +10,8 @@
 
 class UObject;
 
-//--------------------------------------
-// UGameSettingValue
-//--------------------------------------
 
-/**
- * 所有概念上属于"值"的设置的基类，这些值可以被更改，
- * 因此也可以被重置或恢复到其初始值。
- */
+/** 可修改的设置值基类，支持保存初始值、恢复初始值和重置默认值。 */
 UCLASS(MinimalAPI, Abstract)
 class UGameSettingValue : public UGameSetting
 {

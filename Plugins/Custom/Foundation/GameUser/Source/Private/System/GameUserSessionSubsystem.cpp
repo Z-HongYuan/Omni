@@ -40,7 +40,7 @@ void UGameUserSessionSubsystem::Deinitialize()
 
 	if (OnlineSub)
 	{
-		// 在关闭期间,这可能无效
+		// 关闭阶段在线接口可能已释放，清理前再次检查。
 		const IOnlineSessionPtr SessionInterface = OnlineSub->GetSessionInterface();
 		if (SessionInterface)
 		{
@@ -70,14 +70,14 @@ bool UGameUserSessionSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 
 UGameUserSession_HostSessionRequest* UGameUserSessionSubsystem::CreateOnlineHostSessionRequest()
 {
-	/** 游戏专属子系统可以覆盖此方法,或者你可以在创建后自行修改 */
+	// 填充默认选项，调用方可在提交前修改请求。
 
 	UGameUserSession_HostSessionRequest* NewRequest = NewObject<UGameUserSession_HostSessionRequest>(this);
 	NewRequest->OnlineMode = EGameUserSessionOnlineMode::Online;
 	NewRequest->bUseLobbies = bUseLobbiesDefault;
 	NewRequest->bUseLobbiesVoiceChat = bUseLobbiesVoiceChatDefault;
 
-	// 默认在用于匹配的主会话中启用在线状态。对于关心在线状态的在线系统,只有主会话应启用在线状态
+	// 非专用服务器为主会话启用在线状态。
 	NewRequest->bUsePresence = !IsRunningDedicatedServer();
 
 	return NewRequest;
@@ -85,7 +85,7 @@ UGameUserSession_HostSessionRequest* UGameUserSessionSubsystem::CreateOnlineHost
 
 UGameUserSession_SearchSessionRequest* UGameUserSessionSubsystem::CreateOnlineSearchSessionRequest()
 {
-	/** 游戏专属子系统可以覆盖此方法,或者你可以在创建后自行修改 */
+	// 填充默认选项，调用方可在提交前修改请求。
 
 	UGameUserSession_SearchSessionRequest* NewRequest = NewObject<UGameUserSession_SearchSessionRequest>(this);
 	NewRequest->OnlineMode = EGameUserSessionOnlineMode::Online;
@@ -130,7 +130,7 @@ void UGameUserSessionSubsystem::HostSession(APlayerController* HostingPlayer, UG
 		}
 		else
 		{
-			// 离线模式,因此立即跳转到指定的比赛 URL
+			// 离线模式直接切换地图，无需等待在线会话创建。
 			GetWorld()->ServerTravel(Request->ConstructTravelURL());
 		}
 	}
@@ -152,13 +152,14 @@ void UGameUserSessionSubsystem::QuickPlaySession(APlayerController* JoiningOrHos
 		return;
 	}
 
+	// 搜索回调持有托管请求；玩家控制器使用弱引用，允许其在等待期间销毁。
 	TStrongObjectPtr<UGameUserSession_HostSessionRequest> HostRequestPtr = TStrongObjectPtr<UGameUserSession_HostSessionRequest>(HostRequest);
 	TWeakObjectPtr<APlayerController> JoiningOrHostingPlayerPtr = TWeakObjectPtr<APlayerController>(JoiningOrHostingPlayer);
 
 	UGameUserSession_SearchSessionRequest* QuickPlayRequest = CreateOnlineSearchSessionRequest();
 	QuickPlayRequest->OnSearchFinished.AddUObject(this, &UGameUserSessionSubsystem::HandleQuickPlaySearchFinished, JoiningOrHostingPlayerPtr, HostRequestPtr);
 
-	// 默认在用于匹配的主会话上启用在线状态。对于关心在线状态的在线系统,只有主会话应启用在线状态
+	// 快速匹配使用主会话的在线状态及默认 Lobby 选项。
 
 	HostRequestPtr->bUseLobbies = bUseLobbiesDefault;
 	HostRequestPtr->bUseLobbiesVoiceChat = bUseLobbiesVoiceChatDefault;
@@ -184,7 +185,7 @@ void UGameUserSessionSubsystem::JoinSession(APlayerController* JoiningPlayer, UG
 		return;
 	}
 
-	// 在这里更新在线状态,因为客户端跳转后我们将不再拥有原始的 game mode 和 map name 键。如果加入/跳转失败,它会被重置回主菜单 
+	// 跳转前保存搜索结果中的模式和地图信息；失败处理会将展示状态恢复为主菜单。
 	FString SessionGameMode, SessionMapName;
 	bool bEmpty;
 	Request->GetStringSetting(SETTING_GAMEMODE, SessionGameMode, bEmpty);
@@ -232,7 +233,7 @@ void UGameUserSessionSubsystem::HandleQuickPlaySearchFinished(bool bSucceeded, c
 	//@TODO: 我们必须检查错误消息是否为空,因为某些 OSS 层仅仅因为没有会话就报告失败。请在 OSS 2.0 中修复。
 	if (bSucceeded || ErrorMessage.IsEmpty())
 	{
-		// 加入最优的搜索结果。
+		// 当前使用搜索结果中的首个会话，尚未额外评分排序。
 		if (ResultCount > 0)
 		{
 			//@TODO: 我们或许应该查看 ping?也许还有其他因素来找出最优结果。不确定它们是否已经预先排序。
@@ -256,8 +257,7 @@ void UGameUserSessionSubsystem::HandleQuickPlaySearchFinished(bool bSucceeded, c
 
 void UGameUserSessionSubsystem::TravelLocalSessionFailure(UWorld* World, ETravelFailure::Type FailureType, const FString& ReasonString)
 {
-	// 此委托是全局的,但 PIE 可能有多个游戏实例,所以需要确保
-	// 它针对的是此游戏实例子系统所关联的同一个世界(World)触发
+	// 全局委托可能来自其他 PIE 实例，只处理当前游戏实例的 World。
 	if (World != GetWorld())
 	{
 		return;
@@ -295,7 +295,7 @@ void UGameUserSessionSubsystem::OnCreateSessionComplete(FName SessionName, bool 
 	else
 #endif
 	{
-		// 我们要么失败了,要么只有一个本地用户
+		// 分屏注册分支当前禁用，直接完成本次创建处理。
 		FinishSessionCreation(bWasSuccessful);
 	}
 }
@@ -315,7 +315,7 @@ void UGameUserSessionSubsystem::FinishSessionCreation(bool bWasSuccessful)
 
 		NotifyCreateSessionComplete(CreateSessionResult);
 
-		// 跳转到指定的比赛 URL
+		// 创建结果通知后，再按保存的 URL 切换地图。
 		GetWorld()->ServerTravel(PendingTravelURL);
 	}
 	else
@@ -351,7 +351,7 @@ void UGameUserSessionSubsystem::HandlePostLoadMap(UWorld* World)
 		return;
 	}
 
-	// 除非 World 类型是 game/pie,否则我们不关心更新会话。
+	// 仅为 Game 和 PIE 世界更新会话信息。
 	if (!(World->WorldType == EWorldType::Game || World->WorldType == EWorldType::PIE))
 	{
 		return;
@@ -369,7 +369,7 @@ void UGameUserSessionSubsystem::HandlePostLoadMap(UWorld* World)
 	// 如果我们正在托管会话,则更新对外公布的地图名称。
 	if (CurrentSession != nullptr && CurrentSession->bHosting)
 	{
-		// 这需要是完整的包路径,以匹配主机的 GetMapName 函数,World->GetMapName 目前是短名称 - 更新主机设置
+		// 使用去掉 PIE 前缀的完整包名，与托管请求的 GetMapName 保持一致。
 		CurrentSession->SessionSettings.Set(SETTING_MAPNAME, UWorld::RemovePIEPrefix(World->GetOutermost()->GetName()), EOnlineDataAdvertisementType::ViaOnlineService);
 
 		SessionInterface->UpdateSession(SessionName, CurrentSession->SessionSettings, true);
@@ -434,7 +434,7 @@ void UGameUserSessionSubsystem::InternalTravelToSession(const FName SessionName)
 	}
 
 	FString URL;
-	// 跳转到会话
+	// 从在线会话解析实际连接地址。
 	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(GetWorld());
 	check(OnlineSub);
 
@@ -448,7 +448,7 @@ void UGameUserSessionSubsystem::InternalTravelToSession(const FName SessionName)
 		return;
 	}
 
-	// 允许在跳转之前修改 URL
+	// 在最终 ClientTravel 前允许调用方补充 URL 参数。
 	OnPreClientTravelEvent.Broadcast(URL);
 
 	PlayerController->ClientTravel(URL, TRAVEL_Absolute);
@@ -587,7 +587,7 @@ void UGameUserSessionSubsystem::FindSessionsInternalOSSv1(ULocalPlayer* LocalPla
 
 	if (!Sessions->FindSessions(*LocalPlayer->GetPreferredUniqueNetId().GetUniqueNetId(), StaticCastSharedRef<FGameOnlineSearchSettingsOSSv1>(SearchSettings.ToSharedRef())))
 	{
-		// 某些会话搜索失败会在函数内部调用此委托,另一些则不会
+		// 底层可能已同步通知失败；完成处理需能忽略重复回调。
 		OnFindSessionsComplete(false);
 	}
 }
@@ -599,7 +599,7 @@ void UGameUserSessionSubsystem::JoinSessionInternalOSSv1(ULocalPlayer* LocalPlay
 	IOnlineSessionPtr Sessions = OnlineSub->GetSessionInterface();
 	check(Sessions);
 
-	// 我们需要手动设置,表明我们希望这是我们的在线状态会话
+	// 将待加入的会话标记为本地用户的在线状态会话。
 	Request->Result.Session.SessionSettings.bUsesPresence = true;
 	Request->Result.Session.SessionSettings.bUseLobbiesIfAvailable = bUseLobbiesDefault;
 
@@ -729,7 +729,7 @@ void UGameUserSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 
 	if (!SearchSettings.IsValid())
 	{
-		// 对于失败的会话搜索,或者由其他系统发起的搜索,此函数可能会被调用两次
+		// 搜索可能重复回调，或由其他系统发起；没有当前请求时直接忽略。
 		return;
 	}
 
@@ -802,6 +802,7 @@ void UGameUserSessionSubsystem::OnFindSessionsComplete(bool bWasSuccessful)
 		}
 	}
 
+	// 回调可能读取 SearchSettings，须在通知完成后再释放。
 	SearchSettingsV1.SearchRequest->NotifySearchFinished(bWasSuccessful, bWasSuccessful ? FText() : LOCTEXT("Error_FindSessionV1Failed", "Find session failed"));
 	SearchSettings.Reset();
 }
@@ -836,7 +837,7 @@ void UGameUserSessionSubsystem::FinishJoinSession(EOnJoinSessionCompleteResult::
 	{
 		if (bUseBeacons)
 		{
-			// 在成功预留后,信标将调用 InternalTravelToSession 和通知。信标将在跳转过程中被销毁。
+			// 等待信标预留成功后再广播加入结果并开始客户端跳转。
 			ConnectToHostReservationBeacon();
 		}
 		else
@@ -876,7 +877,7 @@ void UGameUserSessionSubsystem::FinishJoinSession(EOnJoinSessionCompleteResult::
 		NotifyJoinSessionComplete(JoinSessionResult);
 		NotifySessionInformationUpdated(EGameUserSessionInformationState::OutOfGame);
 
-		// 如果加入会话失败,我们将清理会话
+		// 加入失败后推进会话清理，避免保留失败的连接状态。
 		CleanUpSessions();
 	}
 }
@@ -939,7 +940,7 @@ void UGameUserSessionSubsystem::ConnectToHostReservationBeacon()
 
 	ReservationBeaconClient->OnHostConnectionFailure().BindWeakLambda(this, [this]()
 	{
-		// 我们只希望在连接处于活动状态时对失败调用做出反应,而不是在连接关闭时
+		// 仅在 NetDriver 仍存在时处理失败，避免关闭连接时重复触发清理。
 		if (ReservationBeaconClient->GetNetDriver())
 		{
 			FOnlineResultInformation JoinSessionResult;

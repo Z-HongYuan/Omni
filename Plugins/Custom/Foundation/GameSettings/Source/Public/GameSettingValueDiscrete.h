@@ -19,13 +19,13 @@ class UGameSettingValueDiscrete : public UGameSettingValue
 public:
 	UE_API UGameSettingValueDiscrete();
 
-	/** UGameSettingValueDiscrete */
+	/** 按当前可见选项的索引设置值。 */
 	virtual void SetDiscreteOptionByIndex(int32 Index) PURE_VIRTUAL(,);
 
 	UFUNCTION(BlueprintCallable)
 	virtual int32 GetDiscreteOptionIndex() const PURE_VIRTUAL(, return INDEX_NONE;);
 
-	/** 可选 */
+	/** 返回默认选项索引；没有默认值时返回 INDEX_NONE。 */
 	UFUNCTION(BlueprintCallable)
 	virtual int32 GetDiscreteOptionDefaultIndex() const { return INDEX_NONE; }
 

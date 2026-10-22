@@ -9,11 +9,8 @@
 
 class ULocalPlayer;
 
-//////////////////////////////////////////////////////////////////////
-// FWhenPlatformHasTrait
 
-// 用于游戏设置的编辑条件，通过检查 CommonUI 的平台特性
-// 来决定是否显示某个设置
+/** 根据 CommonUI 平台特性决定是否隐藏设置。 */
 class FWhenPlatformHasTrait : public FGameSettingEditCondition
 {
 public:

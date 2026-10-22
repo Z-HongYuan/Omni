@@ -19,9 +19,7 @@ struct FFrame;
 
 enum class EGameSettingChangeReason : uint8;
 
-/**
- * 
- */
+/** 管理设置面板及更改跟踪，提供应用、撤销和页面导航入口。 */
 UCLASS(MinimalAPI, Abstract, meta = (Category = "Settings", DisableNativeTick))
 class UGameSettingScreen : public UCommonActivatableWidget
 {

@@ -8,8 +8,6 @@
 
 #define LOCTEXT_NAMESPACE "GameSetting"
 
-/////////////////////////////////////////////////////
-// UGameResponsivePanel
 
 UGameResponsivePanel::UGameResponsivePanel(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -32,7 +30,7 @@ UClass* UGameResponsivePanel::GetSlotClass() const
 
 void UGameResponsivePanel::OnSlotAdded(UPanelSlot* InSlot)
 {
-	// 如果实时画布已存在，则将子控件添加到其中
+	// 底层 Slate 面板已创建时，同步添加子控件。
 	if (MyGameResponsivePanel.IsValid())
 	{
 		CastChecked<UGameResponsivePanelSlot>(InSlot)->BuildSlot(MyGameResponsivePanel.ToSharedRef());
@@ -41,7 +39,7 @@ void UGameResponsivePanel::OnSlotAdded(UPanelSlot* InSlot)
 
 void UGameResponsivePanel::OnSlotRemoved(UPanelSlot* InSlot)
 {
-	// 如果实时槽已存在，则从中移除该控件。
+	// 底层 Slate 面板仍有效时，同步移除子控件。
 	if (MyGameResponsivePanel.IsValid() && InSlot->Content)
 	{
 		TSharedPtr<SWidget> Widget = InSlot->Content->GetCachedWidget();
@@ -84,6 +82,5 @@ const FText UGameResponsivePanel::GetPaletteCategory()
 
 #endif
 
-/////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

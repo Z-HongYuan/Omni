@@ -37,9 +37,7 @@ public:
 	TArray<TSoftClassPtr<UGameSettingDetailExtension>> Extensions;
 };
 
-/**
- * 
- */
+/** 配置设置列表条目和详情扩展，支持按设置类型或开发名称匹配。 */
 UCLASS(MinimalAPI, BlueprintType)
 class UGameSettingVisualData : public UDataAsset
 {

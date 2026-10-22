@@ -13,9 +13,7 @@ enum class EGameSettingChangeReason : uint8;
 class UGameSetting;
 class UObject;
 
-/**
- * 
- */
+/** 为设置详情区域提供可复用的扩展控件。 */
 UCLASS(MinimalAPI, Abstract, meta = (Category = "Settings", DisableNativeTick))
 class UGameSettingDetailExtension : public UUserWidget
 {

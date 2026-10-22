@@ -11,18 +11,13 @@
 
 struct FGameplayTag;
 
-//--------------------------------------
-// UGameSettingRegistry
-//--------------------------------------
 
 class ULocalPlayer;
 struct FGameSettingFilterState;
 
 enum class EGameSettingChangeReason : uint8;
 
-/**
- * 
- */
+/** 注册本地玩家的设置树，并汇总设置变更、操作和页面导航事件。 */
 UCLASS(MinimalAPI, Abstract, BlueprintType)
 class UGameSettingRegistry : public UObject
 {

@@ -7,9 +7,7 @@
 
 #define UE_API MESSAGEROUTERNODES_API
 
-/**
- * 消息监听的专用蓝图节点，负责根据消息类型生成负载输出和事件处理流程。
- */
+/** 消息监听专用蓝图节点，按负载类型生成输出引脚和事件处理流程。 */
 UCLASS(MinimalAPI)
 class UK2Node_AsyncAction_ListenForMessage : public UK2Node_AsyncAction
 {
@@ -36,7 +34,7 @@ protected:
 		FKismetCompilerContext& CompilerContext) override;
 
 private:
-	// 将 GetPayload 流程添加到代理处理器逻辑链的末端
+	/** 在代理事件执行链末端接入 GetPayload 和负载赋值流程。 */
 	bool HandlePayloadImplementation(
 		FMulticastDelegateProperty* CurrentProperty,
 		const FBaseAsyncTaskHelper::FOutputPinAndLocalVariable& ProxyObjectVar,
@@ -44,7 +42,7 @@ private:
 		const FBaseAsyncTaskHelper::FOutputPinAndLocalVariable& ActualChannelVar,
 		UEdGraphPin*& InOutLastActivatedThenPin, UEdGraph* SourceGraph, FKismetCompilerContext& CompilerContext);
 
-	// 确保输出的有效载荷通配符和输入有效载类型匹配
+	/** 使负载输出通配符与输入的消息结构类型一致。 */
 	void RefreshOutputPayloadType();
 
 	UEdGraphPin* GetPayloadPin() const;

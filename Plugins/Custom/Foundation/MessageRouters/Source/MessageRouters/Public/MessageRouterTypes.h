@@ -5,22 +5,18 @@
 #include "GameplayTagContainer.h"
 #include "MessageRouterTypes.generated.h"
 
-// 消息监听器的匹配规则
+/** 消息通道的匹配规则。 */
 UENUM(BlueprintType)
 enum class EMessageRouterMatchRule : uint8
 {
-	// 精确匹配只会接收完全相同通道的消息
-	//（例如，注册 "A.B" 将匹配 A.B 的广播，但不匹配 A.B.C）
+	/** 仅接收完全相同的通道，例如 A.B 不接收 A.B.C。 */
 	ExactMatch,
 
-	// 部分匹配将接收以同一通道为根的任何消息
-	//（例如，注册 "A.B" 将匹配 A.B 和 A.B.C 的广播）
+	/** 接收当前通道及子通道，例如 A.B 同时接收 A.B.C。 */
 	PartialMatch
 };
 
-/**
- * 用于在注册消息监听器时指定高级行为的结构体
- */
+/** 注册消息监听时使用的回调和通道匹配参数。 */
 template <typename FMessageStructType>
 struct FMessageRouterListenerParams
 {
@@ -30,7 +26,7 @@ struct FMessageRouterListenerParams
 	/** 如果绑定，此回调将在指定通道上广播消息时触发。 */
 	TFunction<void(FGameplayTag, const FMessageStructType&)> OnMessageReceivedCallback;
 
-	/** 用于将弱成员函数绑定到 OnMessageReceivedCallback 的辅助函数 */
+	/** 绑定对象成员函数，并在调用前检查弱引用，不延长对象生命周期。 */
 	template <typename TOwner = UObject>
 	void SetMessageReceivedCallback(TOwner* Object, void (TOwner::*Function)(FGameplayTag, const FMessageStructType&))
 	{

@@ -18,8 +18,7 @@ FAsyncLoadMixin::~FAsyncLoadMixin()
 {
 	check(IsInGameThread());
 
-	// 移除加载状态将取消它正在监控的任何待处理加载，
-	// 并且不应再接收任何未来的完成回调。
+	// 移除加载状态会取消尚未完成的加载，并阻止后续完成回调。
 	Loading.Remove(this);
 }
 
@@ -105,8 +104,7 @@ void FAsyncLoadMixin::AsyncEvent(const FSimpleDelegate& Callback)
 
 void FAsyncLoadMixin::StartAsyncLoading()
 {
-	// 如果我们实际上没有任何加载状态（因为他们没有排队任何要加载的内容），
-	// 就立即通过调用回调来开始和完成操作，没有必要分配内存然后再释放它。
+	// 没有排队任务时直接触发开始和完成通知，避免创建临时加载状态。
 	if (IsLoadingInProgressOrPending())
 	{
 		GetLoadingState().Start();
@@ -118,8 +116,6 @@ void FAsyncLoadMixin::StartAsyncLoading()
 	}
 }
 
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
 
 FAsyncLoadMixin::FLoadingState::FLoadingState(FAsyncLoadMixin& InOwner)
 	: OwnerRef(InOwner)
@@ -131,10 +127,9 @@ FAsyncLoadMixin::FLoadingState::~FLoadingState()
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FAsyncMixin_FLoadingState_DestroyThisMemoryDelegate);
 	UE_LOG(LogAsyncMixin, Verbose, TEXT("[0x%p] Destroy LoadingState (Done)"), this);
 
-	// 如果我们被销毁，需要取消我们正在做的任何事情，并取消任何
-	// 待处理的销毁 - 因为我们已经在退出的路上了。
-	CancelOnly(/*正在析构*/true);
-	CancelDestroyThisMemory(/*正在析构*/true);
+	// 析构时取消任务及延迟销毁回调，避免回调再次访问已释放的状态。
+	CancelOnly(true);
+	CancelDestroyThisMemory(true);
 }
 
 void FAsyncLoadMixin::FLoadingState::CancelOnly(bool bDestroying)
@@ -151,8 +146,7 @@ void FAsyncLoadMixin::FLoadingState::CancelOnly(bool bDestroying)
 		Step->Cancel();
 	}
 
-	// 将内存移动到另一个数组，这样我们就不会崩溃。
-	// 之前有一个问题，Step 会因为我们在数组上调用 Reset() 而损坏。
+	// 将步骤移入待销毁数组，保证当前回调仍在使用的 Step 不会因清空数组而失效。
 	AsyncStepsPendingDestruction = MoveTemp(AsyncSteps);
 
 	bPreloadedBundles = false;
@@ -162,7 +156,7 @@ void FAsyncLoadMixin::FLoadingState::CancelOnly(bool bDestroying)
 
 void FAsyncLoadMixin::FLoadingState::CancelAndDestroy()
 {
-	CancelOnly(/*正在析构*/false);
+	CancelOnly(false);
 	RequestDestroyThisMemory();
 }
 
@@ -190,7 +184,7 @@ void FAsyncLoadMixin::FLoadingState::RequestDestroyThisMemory()
 
 		DestroyMemoryDelegate = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([this](float DeltaTime)
 		{
-			// 移除我们使用的所有内存。
+			// 从静态映射移除宿主的加载状态，释放其持有的任务。
 			FAsyncLoadMixin::Loading.Remove(&OwnerRef);
 			return false;
 		}));
@@ -213,7 +207,6 @@ void FAsyncLoadMixin::FLoadingState::Start()
 	// 取消任何待处理的启动加载请求。
 	CancelStartTimer();
 
-	// 预留：记录是否找到起始步骤，目前未使用。
 
 	if (!bHasStarted)
 	{
@@ -298,7 +291,7 @@ void FAsyncLoadMixin::FLoadingState::AsyncEvent(const FSimpleDelegate& DelegateT
 
 void FAsyncLoadMixin::FLoadingState::TryScheduleStart()
 {
-	CancelDestroyThisMemory(/*正在析构*/false);
+	CancelDestroyThisMemory(false);
 
 	// 如果用户忘记启动异步加载，我们将在下一帧开始执行。
 	if (!StartTimerDelegate.IsValid())
@@ -323,8 +316,7 @@ bool FAsyncLoadMixin::FLoadingState::IsLoadingInProgress() const
 				return AsyncSteps[CurrentAsyncStep]->IsLoadingInProgress();
 			}
 
-			// 如果我们知道这是一个有效的索引，但不是最后一个，那么我们知道我们仍在加载，
-			// 如果它不是有效索引，我们知道没有加载，或者我们已经超出了所有加载。
+			// 当前步骤仍有效，说明还有任务尚未完成。
 			return true;
 		}
 	}
@@ -344,9 +336,7 @@ bool FAsyncLoadMixin::FLoadingState::IsPendingDestroy() const
 
 void FAsyncLoadMixin::FLoadingState::TryCompleteAsyncLoading()
 {
-	// 如果我们在收到此回调时尚未开始，这意味着我们已经完成，
-	// 这是在同一帧/栈上完成的其他回调，我们需要避免做任何事情，
-	// 直到内存完成删除。
+	// 完成或取消后，同一调用栈中仍可能返回旧回调；状态销毁前忽略这些回调。
 	if (!bHasStarted)
 	{
 		return;
@@ -376,19 +366,14 @@ void FAsyncLoadMixin::FLoadingState::TryCompleteAsyncLoading()
 		{
 			UE_LOG(LogAsyncMixin, Verbose, TEXT("[0x%p] Step %d - Completed (Calling User)"), this, CurrentAsyncStep + 1);
 
-			// 总是在调用用户回调之前推进 CurrentAsyncStep，他们可能会添加新工作并尝试再次启动，
-			// 所以我们需要为下一步做好准备。
+			// 先推进步骤索引，再调用用户回调，允许回调追加任务或重入 Start。
 			CurrentAsyncStep++;
 
 			Step->ExecuteUserCallback();
 		}
 	}
 
-	// 如果我们已完成加载，并且 bHasStarted 仍为 true（意味着这是我们第一次遇到完成请求）
-	// 尝试完成。用户回调可能会追加新工作，他们立即启动，立即尝试完成，
-	// 这可能会造成我们现在在 TryCompleteAsyncLoading 内部的情况，然后调用 Start，
-	// 然后调用 TryCompleteAsyncLoading，所以当我们从栈中返回时，我们需要避免尝试完成
-	// 异步加载 N+1 次。
+	// 用户回调可能重入 Start 和完成流程；仅在本轮仍处于启动状态时发送一次完成通知。
 	if (IsLoadingComplete() && bHasStarted)
 	{
 		CompleteAsyncLoading();
@@ -406,28 +391,19 @@ void FAsyncLoadMixin::FLoadingState::CompleteAsyncLoading()
 		OwnerRef.OnFinishedLoading();
 	}
 
-	// 不太可能，但有可能他们在 OnFinishedLoading 回调中开始加载更多东西，
-	// 所以再次检查我们是否真的完成了。
-	//
-	// 注意：我们不会从使用中的内存中删除自己。做预加载捆绑包之类的事情
-	// 需要保持流式句柄存活。所以我们让事情保持存活。
-	// 
-	// 我们不会销毁内存，但我们需要清理任何可能悬挂的东西，
-	// 比如捕获的作用域，如完成处理程序。
+	// OnFinishedLoading 可能追加任务，因此通知后需要再次检查完成状态。
+	// 预加载资源包依赖流式句柄维持驻留；持有预加载任务时保留加载状态。
 	if (IsLoadingComplete())
 	{
 		if (!bPreloadedBundles && !IsLoadingInProgressOrPending())
 		{
-			// 如果我们已完成所有加载或待处理加载，我们应该清理我们使用的内存。
-			// 移除为混入对象分配的加载状态。
+			// 没有预加载资源包，也没有待处理任务时，延迟释放宿主的加载状态。
 			RequestDestroyThisMemory();
 			return;
 		}
 	}
 }
 
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
 
 FAsyncLoadMixin::FLoadingState::FAsyncStep::FAsyncStep(const FSimpleDelegate& InUserCallback)
 	: UserCallback(InUserCallback)
@@ -489,7 +465,7 @@ bool FAsyncLoadMixin::FLoadingState::FAsyncStep::BindCompleteDelegate(const FSim
 {
 	if (IsComplete())
 	{
-		// 太晚了！
+		// 任务已经完成，不能再绑定完成回调。
 		return false;
 	}
 
@@ -512,8 +488,6 @@ bool FAsyncLoadMixin::FLoadingState::FAsyncStep::IsCompleteDelegateBound() const
 	return bIsCompletionDelegateBound;
 }
 
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
 
 FAsyncCondition::FAsyncCondition(const FAsyncConditionDelegate& Condition)
 	: UserCondition(Condition)
@@ -545,7 +519,7 @@ bool FAsyncCondition::BindCompleteDelegate(const FSimpleDelegate& NewDelegate)
 {
 	if (IsComplete())
 	{
-		// 已经完成
+		// 条件已经完成，不能再绑定完成回调。
 		return false;
 	}
 

@@ -14,7 +14,7 @@ ULoadingScreenTask* ULoadingScreenTask::CreateLoadingScreenTask(UObject* WorldCo
 	const UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 	ULoadingScreenManager* LoadingScreenManager = GameInstance ? GameInstance->GetSubsystem<ULoadingScreenManager>() : nullptr;
 
-	//创建并注册加载处理器(查询器)到加载管理器中
+	// 任务注册到管理器后参与显示条件查询；调用方仍需持有任务。
 	if (LoadingScreenManager)
 	{
 		ULoadingScreenTask* NewLoadingTask = NewObject<ULoadingScreenTask>(LoadingScreenManager);
@@ -28,7 +28,7 @@ ULoadingScreenTask* ULoadingScreenTask::CreateLoadingScreenTask(UObject* WorldCo
 
 void ULoadingScreenTask::Unregister()
 {
-	//移除加载处理器(查询器), Outer 就是 LoadingScreenManager
+	// 通过创建时的 Outer 找回管理器，撤销本任务的加载请求。
 	ULoadingScreenManager* LoadingScreenManager = Cast<ULoadingScreenManager>(GetOuter());
 	LoadingScreenManager->UnregisterLoadingProcessor(this);
 }

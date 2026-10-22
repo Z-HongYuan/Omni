@@ -25,30 +25,16 @@ public:
 public:
 	SGameResponsivePanel();
 
-	/**
-	 * 构造此控件
-	 *
-	 * @param	InArgs	此控件的声明数据
-	 */
+	/** 根据声明参数构造控件。 */
 	void Construct(const FArguments& InArgs);
 
-	/**
-	 * 添加一个内容槽。
-	 *
-	 * @return 添加的槽。
-	 */
+	/** 添加内容槽，并返回新槽。 */
 	FSlot& AddSlot();
 
-	/**
-	 * 移除特定的内容槽。
-	 *
-	 * @param SlotWidget 要移除的槽中的控件。
-	 */
+	/** 移除 SlotWidget 所在的内容槽。 */
 	int32 RemoveSlot(const TSharedRef<SWidget>& SlotWidget);
 
-	/**
-	 * 从面板中移除所有槽。
-	 */
+	/** 从面板移除全部内容槽。 */
 	void ClearChildren();
 
 	void EnableVerticalStacking(const bool bCanVerticallyWrap);

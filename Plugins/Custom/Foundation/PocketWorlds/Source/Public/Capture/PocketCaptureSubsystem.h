@@ -19,10 +19,8 @@ class UPrimitiveComponent;
 struct FFrame;
 
 /**
- * 口袋世界拍摄器的管理子系统（WorldSubsystem）。
- *
- * 负责创建与销毁 UPocketCapture，并通过每帧 Ticker 维护贴图流送：
- * 只有这一帧真正要被拍摄的组件才强制流送，避免预览用的高分辨率贴图长期占用内存。
+ * 创建和注销口袋世界拍摄器，并临时接管参与拍摄组件的纹理流送标记。
+ * 组件停止参与拍摄后通过 Ticker 恢复原标记；子系统只弱引用跟踪拍摄器。
  */
 UCLASS(MinimalAPI, BlueprintType)
 class UPocketCaptureSubsystem : public UWorldSubsystem
@@ -35,34 +33,37 @@ public:
 	UE_API virtual void Deinitialize() override;
 	//~USubsystem 接口结束
 
-	// 创建一个指定类型的拍摄器，返回类型由 PocketCaptureClass 决定。无效类型返回 nullptr。调用方需持有强引用，不再使用时调用 DestroyThumbnailRenderer。
+	/**
+	 * 创建指定类型的拍摄器；类型无效时返回 nullptr。
+	 * 调用方需持有强引用，并在不再使用时调用 DestroyThumbnailRenderer。
+	 */
 	UFUNCTION(BlueprintCallable, Category=Pocket, meta = (DeterminesOutputType = "PocketCaptureClass"))
 	UE_API UPocketCapture* CreateThumbnailRenderer(TSubclassOf<UPocketCapture> PocketCaptureClass);
 
-	// 销毁拍摄器，并把它在数组中的槽位置空以供后续复用。
+	/** 注销拍摄器组件并释放其跟踪槽位；不直接销毁 UObject。 */
 	UFUNCTION(BlueprintCallable, Category=Pocket)
 	UE_API void DestroyThumbnailRenderer(UPocketCapture* ThumbnailRenderer);
 
-	// 通知子系统：这些组件在本帧要参与拍摄，请立刻把它们的贴图强制流送进来。
+	/** 标记组件参与本帧拍摄，并临时启用其强制纹理流送标记。 */
 	UE_API void StreamThisFrame(TArray<UPrimitiveComponent*>& PrimitiveComponents);
 
 protected:
-	// 每帧回调：为不再需要拍摄的组件恢复接管前的强制流送标记。
+	/** 每帧回调：为不再需要拍摄的组件恢复接管前的强制流送标记。 */
 	UE_API bool Tick(float DeltaTime);
 
-	// 下一帧需要强制流送的组件。
+	/** 下一帧需要强制流送的组件。 */
 	TArray<TWeakObjectPtr<UPrimitiveComponent>> StreamNextFrame;
-	// 上一帧流送过、但下一帧不再需要的组件，下一次 Tick 会解除它们的强制流送。
+	/** 等待后续 Tick 恢复流送标记的组件；再次参与拍摄时会从此列表移除。 */
 	TArray<TWeakObjectPtr<UPrimitiveComponent>> StreamedLastFrameButNotNext;
 
 private:
-	// 仅弱引用跟踪拍摄器，不负责保活；已销毁的槽位供后续创建复用。
+	/** 仅弱引用跟踪拍摄器，不负责保活；已销毁的槽位供后续创建复用。 */
 	TArray<TWeakObjectPtr<UPocketCapture>> ThumbnailRenderers;
 
-	// 首次接管组件时的标记原值，停止拍摄或反初始化时恢复。
+	/** 首次接管组件时的标记原值，停止拍摄或反初始化时恢复。 */
 	TMap<TWeakObjectPtr<UPrimitiveComponent>, bool> OriginalMipStreamingStates;
 
-	// 核心 Ticker 句柄，用于 Deinitialize 时反注册。
+	/** 核心 Ticker 句柄，用于 Deinitialize 时反注册。 */
 	FTSTicker::FDelegateHandle TickHandle;
 };
 

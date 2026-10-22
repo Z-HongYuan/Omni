@@ -49,9 +49,7 @@ enum class ESubtitleDisplayBackgroundOpacity : uint8
 	ESubtitleDisplayBackgroundOpacity_MAX
 };
 
-/**
- * 
- */
+/** 配置字幕字号、颜色、边框和背景等显示选项。 */
 UCLASS(MinimalAPI, BlueprintType)
 class USubtitleDisplayOptions : public UDataAsset
 {

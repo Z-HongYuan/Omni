@@ -10,7 +10,7 @@
 
 /**
  * 模块化 HUD，负责组件接收器的注册、就绪通知与退出清理。
- * 扩展机制对应 LyraHUD；具体界面布局与调试绘制由上层实现。
+ * 具体界面布局与调试绘制由上层实现。
  */
 UCLASS(MinimalAPI, Blueprintable)
 class AModularHUD : public AHUD

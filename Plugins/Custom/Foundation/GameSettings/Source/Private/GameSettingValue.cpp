@@ -6,13 +6,10 @@
 
 #define LOCTEXT_NAMESPACE "GameSetting"
 
-//--------------------------------------
-// UGameSettingValue
-//--------------------------------------
 
 UGameSettingValue::UGameSettingValue()
 {
-	// 值将上报给分析系统。
+	// 值类型设置默认参与分析上报。
 	bReportAnalytics = true;
 }
 

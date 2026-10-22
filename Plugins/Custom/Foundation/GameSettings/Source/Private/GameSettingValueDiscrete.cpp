@@ -7,9 +7,6 @@
 
 #define LOCTEXT_NAMESPACE "GameSetting"
 
-//--------------------------------------
-// UGameSettingValueDiscrete
-//--------------------------------------
 
 UGameSettingValueDiscrete::UGameSettingValueDiscrete()
 {

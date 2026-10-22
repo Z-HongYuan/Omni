@@ -26,18 +26,18 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Display Info")
 	TObjectPtr<USubtitleDisplayOptions> Options;
 
-	// 当文本长度超过此宽度时是否换行显示；如果该值为零或负数，则不换行。
+	/** 文本超过此宽度时换行；零或负数表示不换行。 */
 	UPROPERTY(EditAnywhere, Category="Display Info")
 	float WrapTextAt;
 
 	UFUNCTION(BlueprintCallable, Category = Subtitles, Meta = (Tooltip = "True if there are subtitles currently.  False if the subtitle text is empty."))
 	UE_API bool HasSubtitles() const;
 
-	/** 设计该控件时显示的预览文本 */
+	/** 是否在设计器中显示预览字幕。 */
 	UPROPERTY(EditAnywhere, Category="Preview")
 	bool bPreviewMode;
 
-	/** 设计该控件时显示的预览文本 */
+	/** 设计器使用的预览字幕文本。 */
 	UPROPERTY(EditAnywhere, Category="Preview")
 	FText PreviewText;
 
@@ -67,7 +67,7 @@ private:
 	UPROPERTY(Transient)
 	FSlateBrush GeneratedBackgroundBorder;
 
-	/** 实际用于显示字幕数据的控件 */
+	/** 实际显示字幕的底层 Slate 控件。 */
 	TSharedPtr<class SSubtitleDisplay> SubtitleWidget;
 };
 

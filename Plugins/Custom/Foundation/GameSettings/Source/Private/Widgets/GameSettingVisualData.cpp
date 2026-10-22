@@ -14,14 +14,14 @@ TSubclassOf<UGameSettingListEntryBase> UGameSettingVisualData::GetEntryForSettin
 		return TSubclassOf<UGameSettingListEntryBase>();
 	}
 
-	// 检查是否有自定义逻辑来查找该设置的视觉元素
+	// 优先使用自定义条目选择逻辑。
 	TSubclassOf<UGameSettingListEntryBase> CustomEntry = GetCustomEntryForSetting(InSetting);
 	if (CustomEntry)
 	{
 		return CustomEntry;
 	}
 
-	// 检查是否存在按名称匹配设置的特定条目控件。希望这种情况极其少见。
+	// 其次按设置的开发名称查找专用条目控件。
 	{
 		TSubclassOf<UGameSettingListEntryBase> EntryWidgetClassPtr = EntryWidgetForName.FindRef(InSetting->GetDevName());
 		if (EntryWidgetClassPtr)
@@ -30,9 +30,7 @@ TSubclassOf<UGameSettingListEntryBase> UGameSettingVisualData::GetEntryForSettin
 		}
 	}
 
-	// 最后，按照我们已有条目对应的类，检查是否存在适用于该设置的条目。
-	// 我们使用设置类的父类链，来查找最适合该设置类
-	// 的条目控件。
+	// 最后沿设置类的继承链查找，优先选择最具体的条目控件。
 	for (UClass* Class = InSetting->GetClass(); Class; Class = Class->GetSuperClass())
 	{
 		if (TSubclassOf<UGameSetting> SettingClass = TSubclassOf<UGameSetting>(Class))
@@ -52,7 +50,7 @@ TArray<TSoftClassPtr<UGameSettingDetailExtension>> UGameSettingVisualData::Gathe
 {
 	TArray<TSoftClassPtr<UGameSettingDetailExtension>> Extensions;
 
-	// 按设置名称查找扩展
+	// 先收集按设置开发名称配置的扩展。
 	FGameSettingNameExtensions* ExtensionsWithName = ExtensionsForName.Find(InSetting->GetDevName());
 	if (ExtensionsWithName)
 	{
@@ -63,8 +61,7 @@ TArray<TSoftClassPtr<UGameSettingDetailExtension>> UGameSettingVisualData::Gathe
 		}
 	}
 
-	// 使用设置的父类链为其查找扩展，以便获取该设置的
-	// 所有基于类的扩展。
+	// 沿继承链累加各设置类配置的详情扩展。
 	for (UClass* Class = InSetting->GetClass(); Class; Class = Class->GetSuperClass())
 	{
 		if (TSubclassOf<UGameSetting> SettingClass = TSubclassOf<UGameSetting>(Class))

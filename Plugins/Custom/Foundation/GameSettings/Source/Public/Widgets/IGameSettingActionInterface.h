@@ -24,7 +24,7 @@ class IGameSettingActionInterface
 	GENERATED_BODY()
 
 public:
-	/** */
+	/** 为指定设置执行 ActionTag 对应的操作，返回是否已处理。 */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	UE_API bool ExecuteActionForSetting(FGameplayTag ActionTag, UGameSetting* InSetting);
 };

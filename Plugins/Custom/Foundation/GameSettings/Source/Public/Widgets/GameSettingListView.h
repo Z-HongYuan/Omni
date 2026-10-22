@@ -14,9 +14,7 @@ class UGameSettingCollection;
 class ULocalPlayer;
 class UGameSettingVisualData;
 
-/**
- * 游戏设置列表。每个条目控件都需要继承自 GameSettingListEntryBase。
- */
+/** 显示设置条目；条目控件必须继承 UGameSettingListEntryBase。 */
 UCLASS(MinimalAPI, meta = (EntryClass = GameSettingListEntryBase))
 class UGameSettingListView : public UListView
 {

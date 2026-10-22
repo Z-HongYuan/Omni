@@ -32,7 +32,7 @@ void UMediaSubtitlesPlayer::Stop()
 {
 	bEnabled = false;
 
-	// 清除此对象的影片字幕
+	// 清除此对象提交的影片字幕。
 	FSubtitleManager::GetSubtitleManager()->SetMovieSubtitle(this, TArray<FString>());
 }
 

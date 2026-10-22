@@ -10,10 +10,7 @@
 
 struct FGameSettingFilterState;
 
-//--------------------------------------
-// UGameSettingCollection
-//--------------------------------------
-
+/** 拥有一组子设置，并按筛选条件枚举可用条目。 */
 UCLASS(MinimalAPI)
 class UGameSettingCollection : public UGameSetting
 {
@@ -36,10 +33,7 @@ protected:
 	TArray<TObjectPtr<UGameSetting>> Settings;
 };
 
-//--------------------------------------
-// UGameSettingCollectionPage
-//--------------------------------------
-
+/** 在独立页面展示子设置，并提供导航事件。 */
 UCLASS(MinimalAPI)
 class UGameSettingCollectionPage : public UGameSettingCollection
 {
@@ -63,7 +57,7 @@ public:
 	UE_API virtual void GetSettingsForFilter(const FGameSettingFilterState& FilterState, TArray<UGameSetting*>& InOutSettings) const override;
 	virtual bool IsSelectable() const override { return true; }
 
-	/**  */
+	/** 触发导航到此集合页面的事件。 */
 	UE_API void ExecuteNavigation();
 
 private:

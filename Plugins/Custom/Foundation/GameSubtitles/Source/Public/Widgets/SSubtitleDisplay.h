@@ -14,9 +14,7 @@
 class FText;
 struct FSlateBrush;
 
-/**
- * 用于在视口的某个位置显示字幕的控件
- */
+/** 在指定的 Slate 布局位置显示字幕。 */
 class SSubtitleDisplay : public SCompoundWidget
 {
 public:
@@ -48,7 +46,7 @@ public:
 
 	UE_API bool HasSubtitles() const;
 
-	/** 参见 WrapTextAt 属性 */
+	/** 设置自动换行宽度；零或负数表示不换行。 */
 	UE_API void SetWrapTextAt(const TAttribute<float>& InWrapTextAt);
 
 private:
@@ -57,7 +55,7 @@ private:
 private:
 	TSharedPtr<class SBorder> Background;
 
-	/** 实际用于显示字幕文本的控件 */
+	/** 实际显示字幕文本的富文本控件。 */
 	TSharedPtr<class SRichTextBlock> TextDisplay;
 };
 

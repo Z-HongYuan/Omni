@@ -70,7 +70,7 @@ private:
 		// 如果是 Esc、触摸或手柄按键，则取消此流程。
 		if (Key == EKeys::LeftCommand || Key == EKeys::RightCommand)
 		{
-			// 忽略
+			// Command 键不作为新的按键绑定。
 		}
 		else if (Key == EKeys::Escape || Key.IsTouch() || Key.IsGamepadKey())
 		{

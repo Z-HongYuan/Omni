@@ -9,10 +9,7 @@
 
 #define LOCTEXT_NAMESPACE "GameSetting"
 
-//TODO Nick Darnell
-// 你好。看来你发现了这个控件。
-// 这个控件目前还没有被普遍使用。我正在为设置功能做一些
-// 原型设计。欢迎来和我聊聊。
+// TODO Nick Darnell：此控件仍保留原型阶段说明，后续使用范围需确认。
 
 SGameResponsivePanel::SGameResponsivePanel()
 	: InnerGrid(SNew(SGridPanel))
@@ -159,6 +156,5 @@ void SGameResponsivePanel::RefreshLayout()
 	}
 }
 
-/////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

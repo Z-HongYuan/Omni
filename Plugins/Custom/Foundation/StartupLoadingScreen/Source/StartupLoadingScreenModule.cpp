@@ -5,9 +5,11 @@
 #include "Modules/ModuleManager.h"
 #include "PreLoadScreenManager.h"
 
-// 在引擎加载阶段显示可扩展的 Slate 界面，目前提供纯黑背景。
-// 编辑器/PIE、专用服务器和无渲染环境中不创建界面；模块不在命令行工具中加载。
-// 本插件与项目设置“影片”中的默认启动影片二选一；使用默认启动影片时应禁用本插件。
+/**
+ * 在引擎加载阶段显示 Slate 启动界面，当前使用纯黑背景。
+ * 编辑器、PIE、专用服务器和无渲染环境不创建界面；模块不在命令行工具中加载。
+ * 与项目设置中的默认启动影片二选一；使用启动影片时应禁用此插件。
+ */
 class FStartupLoadingScreenModule : public IModuleInterface
 {
 public:

@@ -7,9 +7,6 @@
 
 #define LOCTEXT_NAMESPACE "GameSetting"
 
-//--------------------------------------
-// UGameSettingCollection
-//--------------------------------------
 
 UGameSettingCollection::UGameSettingCollection()
 {
@@ -50,7 +47,7 @@ void UGameSettingCollection::GetSettingsForFilter(const FGameSettingFilterState&
 {
 	for (UGameSetting* ChildSetting : Settings)
 	{
-		// 如果子设置是一个集合，仅当它有可见子项时才将其添加到结果集中。
+		// 页面项按自身条件显示；普通集合仅在存在可见子项时加入结果。
 		if (Cast<UGameSettingCollectionPage>(ChildSetting))
 		{
 			if (FilterState.DoesSettingPassFilter(*ChildSetting))
@@ -65,8 +62,7 @@ void UGameSettingCollection::GetSettingsForFilter(const FGameSettingFilterState&
 
 			if (ChildSettings.Num() > 0)
 			{
-				// 不要把根设置添加到返回项中，它只是我们当前实际展示的 N 个 
-				// 其他设置和容器的容器。
+				// 根设置仅作为当前页面的容器，不加入返回的条目列表。
 				if (!FilterState.IsSettingInRootList(ChildSetting))
 				{
 					InOutSettings.Add(ChildSetting);
@@ -85,9 +81,6 @@ void UGameSettingCollection::GetSettingsForFilter(const FGameSettingFilterState&
 	}
 }
 
-//--------------------------------------
-// UGameSettingCollectionPage
-//--------------------------------------
 
 UGameSettingCollectionPage::UGameSettingCollectionPage()
 {
@@ -105,8 +98,7 @@ void UGameSettingCollectionPage::OnInitialized()
 
 void UGameSettingCollectionPage::GetSettingsForFilter(const FGameSettingFilterState& FilterState, TArray<UGameSetting*>& InOutSettings) const
 {
-	// 如果要包含嵌套页面，就调用父类把它们全部列出来；否则在过滤时我们假装没有任何设置，
-	// 因为我们的设置显示在另一个页面上。
+	// 仅在允许嵌套页面或当前集合就是根页面时枚举子项。
 	if (FilterState.bIncludeNestedPages || FilterState.IsSettingInRootList(this))
 	{
 		Super::GetSettingsForFilter(FilterState, InOutSettings);

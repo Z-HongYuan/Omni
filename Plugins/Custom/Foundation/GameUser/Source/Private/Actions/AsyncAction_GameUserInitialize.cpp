@@ -11,7 +11,7 @@ UAsyncAction_GameUserInitialize* UAsyncAction_GameUserInitialize::InitializeForL
 {
 	if (!PrimaryInputDevice.IsValid())
 	{
-		// 设置为默认设备
+		// 未指定设备时使用平台默认输入设备。
 		PrimaryInputDevice = IPlatformInputDeviceMapper::Get().GetDefaultInputDevice();
 	}
 
@@ -68,7 +68,7 @@ void UAsyncAction_GameUserInitialize::Activate()
 
 		if (!bSuccess)
 		{
-			// 在下一帧调用失败处理
+			// 延迟到下一帧通知启动失败，让调用方有机会完成委托绑定。
 			FTimerManager* TimerManager = GetTimerManager();
 
 			if (TimerManager)

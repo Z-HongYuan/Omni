@@ -29,9 +29,6 @@ private:
 	const UGameSetting& Setting;
 };
 
-//--------------------------------------
-// FGameSettingFilterState
-//--------------------------------------
 
 FGameSettingFilterState::FGameSettingFilterState()
 	: SearchTextEvaluator(ETextFilterExpressionEvaluatorMode::BasicString)
@@ -73,7 +70,7 @@ bool FGameSettingFilterState::DoesSettingPassFilter(const UGameSetting& InSettin
 		return false;
 	}
 
-	// 是否正在按设置进行过滤？
+	// 允许列表非空时，仅保留列表中的设置及其后代。
 	if (SettingAllowList.Num() > 0)
 	{
 		if (!SettingAllowList.Contains(&InSetting))
@@ -109,9 +106,6 @@ bool FGameSettingFilterState::DoesSettingPassFilter(const UGameSetting& InSettin
 	return true;
 }
 
-//--------------------------------------
-// FGameSettingsEditableState
-//--------------------------------------
 
 void FGameSettingEditableState::Hide(const FString& DevReason)
 {

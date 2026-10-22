@@ -29,7 +29,7 @@ void UGameUserBasicPresence::OnNotifySessionInformationChanged(EGameUserSessionI
 {
 	if (bEnableSessionsBasedPresence && !GetGameInstance()->IsDedicatedServerInstance())
 	{
-		// 由于地图名是一个 URL,将其修剪
+		// 取路径最后一段作为展示用地图名称。
 		FString MapNameTruncated = MapName;
 		if (!MapNameTruncated.IsEmpty())
 		{
@@ -44,7 +44,7 @@ void UGameUserBasicPresence::OnNotifySessionInformationChanged(EGameUserSessionI
 			if (Presence)
 			{
 				FOnlineUserPresenceStatus UpdatedPresence;
-				UpdatedPresence.State = EOnlinePresenceState::Online; // 仅当用户拥有有效的 UniqueNetId 时我们才会发送在线状态更新,因此可以假定他们处于在线状态
+				UpdatedPresence.State = EOnlinePresenceState::Online; // 只为具有网络 ID 的本地玩家提交该在线状态。
 				UpdatedPresence.StatusStr = *SessionStateToBackendKey(SessionStatus);
 				UpdatedPresence.Properties.Emplace(PresenceKeyGameMode, GameMode);
 				UpdatedPresence.Properties.Emplace(PresenceKeyMapName, MapNameTruncated);

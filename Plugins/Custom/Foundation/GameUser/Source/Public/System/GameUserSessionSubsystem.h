@@ -21,41 +21,22 @@
 
 class FGameOnlineSearchSettingsOSSv1;
 
-/**
- * 当会话加入完成时触发的事件,发生在加入底层会话之后、如果成功则跳转到服务器之前。
- * 事件参数指示是否成功,或是否存在将阻止其跳转的错误。
- * @param Result 会话加入的结果
- */
+/** 底层会话加入完成、客户端跳转前广播结果；成功不代表地图跳转已完成。 */
 DECLARE_MULTICAST_DELEGATE_OneParam(FGameUserSessionOnJoinSessionComplete, const FOnlineResultInformation& /*Result*/);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGameUserSessionOnJoinSessionComplete_Dynamic, const FOnlineResultInformation&, Result);
 
-/**
- * 当用于托管的会话创建完成时触发的事件,正好在其跳转到地图之前。
- * 事件参数指示是否成功,或是否存在将阻止其跳转的错误。
- * @param Result 会话加入的结果
- */
+/** 托管会话创建完成、服务器跳转前广播创建结果；成功不代表地图加载已完成。 */
 DECLARE_MULTICAST_DELEGATE_OneParam(FGameUserSessionOnCreateSessionComplete, const FOnlineResultInformation& /*Result*/);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGameUserSessionOnCreateSessionComplete_Dynamic, const FOnlineResultInformation&, Result);
 
-/**
- * 当本地用户从外部来源(例如平台覆盖层)请求销毁会话时触发的事件。
- * 游戏应将玩家从该会话中移出。
- * @param LocalPlatformUserId 发出销毁请求的本地用户 ID。由于用户可能尚未登录,因此这是平台用户 ID。
- * @param SessionName 会话的名称标识符。
- */
+/** 外部系统请求销毁会话时，向游戏传递发起请求的平台用户 ID 和会话名。 */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FGameUserSessionOnDestroySessionRequested, const FPlatformUserId& /*LocalPlatformUserId*/, const FName& /*SessionName*/);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGameUserSessionOnDestroySessionRequested_Dynamic, const FPlatformUserId&, LocalPlatformUserId, const FName&, SessionName);
 
-/**
- * 会话加入完成后触发的事件,发生在解析连接字符串之后、客户端跳转之前。
- * @param URL 已解析的会话连接字符串,包含任何附加参数
- */
+/** 连接地址解析后、客户端跳转前触发，允许修改最终 URL。 */
 DECLARE_MULTICAST_DELEGATE_OneParam(FGameUserSessionOnPreClientTravel, FString& /*URL*/);
 
-/**
- * 在会话生态系统的不同时间点触发的事件,用于表示会话的可展示给用户的状态。
- * 不应将其用于在线功能(这些功能请使用 OnCreateSessionComplete 或 OnJoinSessionComplete),而应用于丰富在线状态等功能
- */
+/** 供界面和在线状态展示使用的会话状态；操作结果应通过创建或加入完成事件判断。 */
 UENUM(BlueprintType)
 enum class EGameUserSessionInformationState : uint8
 {
@@ -68,10 +49,9 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FGameUserSessionOnSessionInformationChang
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FGameUserSessionOnSessionInformationChanged_Dynamic, EGameUserSessionInformationState, SessionStatus, const FString&, GameMode, const FString&, MapName);
 
 
-/** 
- * 处理在线游戏托管和加入请求的游戏子系统。
- * 每个游戏实例会创建一个子系统,可从蓝图或 C++ 代码访问。
- * 如果存在游戏特定的子类,则不会创建此基础子系统。
+/**
+ * 管理托管、搜索和加入会话，以及跳转前的信标预留流程。
+ * 生命周期属于 GameInstance；存在已发现的派生子系统时不创建此基础实现。
  */
 UCLASS(MinimalAPI, BlueprintType, Config=Engine)
 class UGameUserSessionSubsystem : public UGameInstanceSubsystem
@@ -83,107 +63,106 @@ public:
 	UE_API virtual void Deinitialize() override;
 	UE_API virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 
-	/** 使用在线游戏的默认选项创建托管会话请求,创建后可修改 */
+	/** 使用在线游戏的默认选项创建托管会话请求，创建后可修改。 */
 	UFUNCTION(BlueprintCallable, Category = Session)
 	UE_API virtual UGameUserSession_HostSessionRequest* CreateOnlineHostSessionRequest();
 
-	/** 使用默认选项创建会话搜索对象以查找默认在线游戏,创建后可修改 */
+	/** 使用默认选项创建会话搜索对象以查找默认在线游戏，创建后可修改。 */
 	UFUNCTION(BlueprintCallable, Category = Session)
 	UE_API virtual UGameUserSession_SearchSessionRequest* CreateOnlineSearchSessionRequest();
 
-	/** 使用会话请求信息创建新的在线游戏,如果成功将开始硬地图切换 */
+	/** 使用会话请求信息创建新的在线游戏，如果成功将开始硬地图切换。 */
 	UFUNCTION(BlueprintCallable, Category=Session)
 	UE_API virtual void HostSession(APlayerController* HostingPlayer, UGameUserSession_HostSessionRequest* Request);
 
-	/** 启动查找现有会话的过程,如果没有找到可行会话则创建新会话 */
+	/** 启动查找现有会话的过程，如果没有找到可行会话则创建新会话。 */
 	UFUNCTION(BlueprintCallable, Category=Session)
 	UE_API virtual void QuickPlaySession(APlayerController* JoiningOrHostingPlayer, UGameUserSession_HostSessionRequest* Request);
 
-	/** 启动加入现有会话的过程,如果成功将连接到指定的服务器 */
+	/** 启动加入现有会话的过程，如果成功将连接到指定的服务器。 */
 	UFUNCTION(BlueprintCallable, Category=Session)
 	UE_API virtual void JoinSession(APlayerController* JoiningPlayer, UGameUserSession_SearchResult* Request);
 
-	/** 向在线系统查询与搜索请求匹配的可加入会话列表 */
+	/** 向在线系统查询与搜索请求匹配的可加入会话列表。 */
 	UFUNCTION(BlueprintCallable, Category=Session)
 	UE_API virtual void FindSessions(APlayerController* SearchingPlayer, UGameUserSession_SearchSessionRequest* Request);
 
-	/** 清理所有活动会话,在返回主菜单等情况下调用 */
+	/** 清理所有活动会话，在返回主菜单等情况下调用。 */
 	UFUNCTION(BlueprintCallable, Category=Session)
 	UE_API virtual void CleanUpSessions();
 
-	//////////////////////////////////////////////////////////////////////
-	// 事件
+	// 会话事件。
 
-	/** 本地用户接受邀请时的原生委托 */
+	/** 本地用户接受邀请时的原生委托。 */
 	FGameUserSessionOnUserRequestedSession OnUserRequestedSessionEvent;
-	/** 本地用户接受邀请时广播的事件 */
+	/** 本地用户接受邀请时广播的事件。 */
 	UPROPERTY(BlueprintAssignable, Category = "Events", meta = (DisplayName = "On User Requested Session"))
 	FGameUserSessionOnUserRequestedSession_Dynamic K2_OnUserRequestedSessionEvent;
 
-	/** JoinSession 调用完成时的原生委托 */
+	/** JoinSession 调用完成时的原生委托。 */
 	FGameUserSessionOnJoinSessionComplete OnJoinSessionCompleteEvent;
-	/** JoinSession 调用完成时广播的事件 */
+	/** JoinSession 调用完成时广播的事件。 */
 	UPROPERTY(BlueprintAssignable, Category = "Events", meta = (DisplayName = "On Join Session Complete"))
 	FGameUserSessionOnJoinSessionComplete_Dynamic K2_OnJoinSessionCompleteEvent;
 
-	/** CreateSession 调用完成时的原生委托 */
+	/** CreateSession 调用完成时的原生委托。 */
 	FGameUserSessionOnCreateSessionComplete OnCreateSessionCompleteEvent;
-	/** CreateSession 调用完成时广播的事件 */
+	/** CreateSession 调用完成时广播的事件。 */
 	UPROPERTY(BlueprintAssignable, Category = "Events", meta = (DisplayName = "On Create Session Complete"))
 	FGameUserSessionOnCreateSessionComplete_Dynamic K2_OnCreateSessionCompleteEvent;
 
-	/** 可展示的会话信息发生变化时的原生委托 */
+	/** 可展示的会话信息发生变化时的原生委托。 */
 	FGameUserSessionOnSessionInformationChanged OnSessionInformationChangedEvent;
-	/** 可展示的会话信息发生变化时广播的事件 */
+	/** 可展示的会话信息发生变化时广播的事件。 */
 	UPROPERTY(BlueprintAssignable, Category = "Events", meta = (DisplayName = "On Session Information Changed"))
 	FGameUserSessionOnSessionInformationChanged_Dynamic K2_OnSessionInformationChangedEvent;
 
-	/** 已请求销毁平台会话时的原生委托 */
+	/** 已请求销毁平台会话时的原生委托。 */
 	FGameUserSessionOnDestroySessionRequested OnDestroySessionRequestedEvent;
-	/** 已请求销毁平台会话时广播的事件 */
+	/** 已请求销毁平台会话时广播的事件。 */
 	UPROPERTY(BlueprintAssignable, Category = "Events", meta = (DisplayName = "On Leave Session Requested"))
 	FGameUserSessionOnDestroySessionRequested_Dynamic K2_OnDestroySessionRequestedEvent;
 
-	/** 在客户端跳转前修改连接 URL 的原生委托 */
+	/** 在客户端跳转前修改连接 URL 的原生委托。 */
 	FGameUserSessionOnPreClientTravel OnPreClientTravelEvent;
 
-	// 配置设置,可在子类或配置文件中覆盖
+	// 会话默认配置。
 
-	/** 为会话搜索和托管请求设置 bUseLobbies 的默认值 */
+	/** 为会话搜索和托管请求设置 bUseLobbies 的默认值。 */
 	UPROPERTY(Config)
 	bool bUseLobbiesDefault = true;
 
-	/** 为会话托管请求设置 bUseLobbiesVoiceChat 的默认值 */
+	/** 为会话托管请求设置 bUseLobbiesVoiceChat 的默认值。 */
 	UPROPERTY(Config)
 	bool bUseLobbiesVoiceChatDefault = false;
 
-	/** 在创建或加入游戏会话时,于服务器跳转前启用预留信标流程 */
+	/** 在创建或加入游戏会话时，于服务器跳转前启用预留信标流程。 */
 	UPROPERTY(Config)
 	bool bUseBeacons = true;
 
 protected:
-	// 在创建或加入会话过程中调用的函数,可针对游戏特定行为进行覆盖
+	// 允许项目定制的创建、搜索和跳转流程。
 
-	/** 用于根据快速开始托管设置填充会话请求,可针对游戏特定行为进行覆盖 */
+	/** 用于根据快速开始托管设置填充会话请求，可针对游戏特定行为进行覆盖。 */
 	UE_API virtual TSharedRef<FGameOnlineSearchSettingsOSSv1> CreateQuickPlaySearchSettings(UGameUserSession_HostSessionRequest* Request, UGameUserSession_SearchSessionRequest* QuickPlayRequest);
 
-	/** 快速开始搜索完成时调用,可针对游戏特定行为进行覆盖 */
+	/** 快速开始搜索完成时调用，可针对游戏特定行为进行覆盖。 */
 	UE_API virtual void HandleQuickPlaySearchFinished(bool bSucceeded, const FText& ErrorMessage, TWeakObjectPtr<APlayerController> JoiningOrHostingPlayer, TStrongObjectPtr<UGameUserSession_HostSessionRequest> HostRequest);
 
-	/** 跳转到会话失败时调用 */
+	/** 跳转到会话失败时调用。 */
 	UE_API virtual void TravelLocalSessionFailure(UWorld* World, ETravelFailure::Type FailureType, const FString& ReasonString);
 
-	/** 新会话创建成功或创建失败时调用 */
+	/** 新会话创建成功或创建失败时调用。 */
 	UE_API virtual void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
 
-	/** 用于完成会话创建 */
+	/** 用于完成会话创建。 */
 	UE_API virtual void FinishSessionCreation(bool bWasSuccessful);
 
-	/** 跳转到新的托管会话地图后调用 */
+	/** 跳转到新的托管会话地图后调用。 */
 	UE_API virtual void HandlePostLoadMap(UWorld* World);
 
 protected:
-	// 用于初始化和处理来自在线系统的结果的内部函数
+	// 底层在线系统调用及结果转发。
 
 	UE_API void BindOnlineDelegates();
 	UE_API void CreateOnlineSessionInternal(ULocalPlayer* LocalPlayer, UGameUserSession_HostSessionRequest* Request);
@@ -223,41 +202,41 @@ protected:
 	UE_API void DestroyHostReservationBeacon();
 
 protected:
-	/** 会话操作完成后将使用的跳转 URL */
+	/** 会话操作完成后将使用的跳转 URL。 */
 	FString PendingTravelURL;
 
-	/** 最近一次会话创建尝试的结果信息,存储在此处以便后续保留错误代码 */
+	/** 最近一次会话创建尝试的结果信息，存储在此处以便后续保留错误代码。 */
 	FOnlineResultInformation CreateSessionResult;
 
-	/** 如果我们希望在会话创建后取消该会话,则为 true */
+	/** 请求在会话状态允许时继续清理；开始和结束回调会再次推进清理流程。 */
 	bool bWantToDestroyPendingSession = false;
 
-	/** 如果这是专用服务器,则为 true,专用服务器无需 LocalPlayer 即可创建会话 */
+	/** 如果这是专用服务器，则为 true，专用服务器无需 LocalPlayer 即可创建会话。 */
 	bool bIsDedicatedServer = false;
 
-	/** 当前搜索的设置 */
+	/** 当前异步搜索的设置；通过 FGCObject 保持搜索请求存活，完成通知后释放。 */
 	TSharedPtr<FGameOnlineSearchSettingsOSSv1> SearchSettings;
 
-	/** 用于注册信标的通用信标侦听器 */
+	/** 用于注册信标的通用信标侦听器。 */
 	UPROPERTY(Transient)
 	TWeakObjectPtr<AOnlineBeaconHost> BeaconHostListener;
-	/** 信标主机的状态 */
+	/** 信标主机的状态。 */
 	UPROPERTY(Transient)
 	TObjectPtr<UPartyBeaconState> ReservationBeaconHostState;
 	/** 控制本游戏访问权限的信标。 */
 	UPROPERTY(Transient)
 	TWeakObjectPtr<APartyBeaconHost> ReservationBeaconHost;
-	/** 用于信标通信的通用类对象 */
+	/** 用于信标通信的通用类对象。 */
 	UPROPERTY(Transient)
 	TWeakObjectPtr<APartyBeaconClient> ReservationBeaconClient;
 
-	/** 信标预留的团队数量 */
+	/** 信标预留的团队数量。 */
 	UPROPERTY(Config)
 	int32 BeaconTeamCount = 2;
-	/** 信标预留的团队大小 */
+	/** 信标预留的团队大小。 */
 	UPROPERTY(Config)
 	int32 BeaconTeamSize = 8;
-	/** 信标预留的最大数量 */
+	/** 信标预留的最大数量。 */
 	UPROPERTY(Config)
 	int32 BeaconMaxReservations = 16;
 };

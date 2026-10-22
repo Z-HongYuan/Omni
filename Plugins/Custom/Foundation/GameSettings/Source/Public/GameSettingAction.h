@@ -8,17 +8,12 @@
 
 #define UE_API GAMESETTINGS_API
 
-//--------------------------------------
-// UGameSettingAction
-//--------------------------------------
 
 class ULocalPlayer;
 
 DECLARE_DELEGATE_TwoParams(UGameSettingCustomAction, UGameSetting* /*Setting*/, ULocalPlayer* /*LocalPlayer*/)
 
-/**
- * 
- */
+/** 将按钮操作表示为设置项，并转发自定义或命名操作。 */
 UCLASS(MinimalAPI)
 class UGameSettingAction : public UGameSetting
 {
@@ -46,17 +41,12 @@ public:
 	void SetCustomAction(UGameSettingCustomAction InAction) { CustomAction = InAction; }
 	UE_API void SetCustomAction(TFunction<void(ULocalPlayer*)> InAction);
 
-	/**
-	 * 默认情况下，操作不会使设置变脏，因为大多数操作要么做的事情无法回退，
-	 * 要么是像显示制作人员名单或 EULA 这样的内容。但如果情况并非如此，
-	 * 请将此标志设为 true，以便在触发该操作时触发更改事件。
-	 */
+	/** 控制操作是否触发设置变更通知；默认不将操作标记为待保存更改。 */
 	void SetDoesActionDirtySettings(bool Value) { bDirtyAction = Value; }
 
 	UE_API virtual void ExecuteAction();
 
 protected:
-	/** UGameSettingValue */
 	UE_API virtual void OnInitialized() override;
 
 protected:

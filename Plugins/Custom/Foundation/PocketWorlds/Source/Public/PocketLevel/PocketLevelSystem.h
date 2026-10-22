@@ -13,20 +13,21 @@ class UObject;
 class UPocketLevel;
 class UPocketLevelInstance;
 
-/**
- * 口袋世界的管理子系统，按本地玩家创建并复用流送实例。
- */
+/** 按本地玩家和口袋关卡资产创建、持有并复用动态流送实例。 */
 UCLASS(MinimalAPI)
 class UPocketLevelSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
 
 public:
-	// 获取（或首次创建）同一世界内本地玩家的流送实例；参数无效或流送请求创建失败时返回 nullptr。
+	/**
+	 * 获取同一世界内玩家与口袋关卡资产对应的实例，首次请求时创建。
+	 * 参数无效或流送请求创建失败时返回 nullptr；已存在时保留原生成位置。
+	 */
 	UE_API UPocketLevelInstance* GetOrCreatePocketLevelFor(ULocalPlayer* LocalPlayer, UPocketLevel* PocketLevel, FVector DesiredSpawnPoint);
 
 private:
-	// 当前已创建的全部口袋世界实例。
+	/** 当前已创建的全部口袋世界实例。 */
 	UPROPERTY()
 	TArray<TObjectPtr<UPocketLevelInstance>> PocketInstances;
 };

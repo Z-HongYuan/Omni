@@ -7,17 +7,12 @@
 
 class UGameResponsivePanelSlot;
 
-/**
- * 允许控件按水平流程进行布局。
- *
- * * 多个子控件
- * * 水平流程
- */
+/** 按屏幕物理宽度切换横向排列或纵向堆叠的自适应面板。 */
 UCLASS()
 class UGameResponsivePanel : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
-	/**  */
+	/** 添加子控件，并返回其自适应布局槽。 */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	UGameResponsivePanelSlot* AddChildToGameResponsivePanel(UWidget* Content);
 

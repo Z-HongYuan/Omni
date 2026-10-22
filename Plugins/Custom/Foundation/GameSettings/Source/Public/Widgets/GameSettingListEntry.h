@@ -29,10 +29,7 @@ struct FFocusEvent;
 struct FFrame;
 struct FGeometry;
 
-//////////////////////////////////////////////////////////////////////////
-// UAthenaChallengeListEntry
-//////////////////////////////////////////////////////////////////////////
-
+/** 设置列表条目基类，负责编辑状态订阅和手柄焦点转交。 */
 UCLASS(MinimalAPI, Abstract, NotBlueprintable, meta = (Category = "Settings", DisableNativeTick))
 class UGameSettingListEntryBase : public UCommonUserWidget, public IUserObjectListEntry
 {
@@ -49,7 +46,7 @@ protected:
 	UE_API virtual void RefreshEditableState(const FGameSettingEditableState& InEditableState);
 
 protected:
-	// 为手柄将焦点过渡到子控件
+	/** 使用手柄时将焦点交给主要交互子控件。 */
 	UE_API virtual FReply NativeOnFocusReceived(const FGeometry& InGeometry, const FFocusEvent& InFocusEvent) override;
 
 	UFUNCTION(BlueprintImplementableEvent)
@@ -71,10 +68,7 @@ private:
 };
 
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingListEntry_Setting
-//////////////////////////////////////////////////////////////////////////
-
+/** 显示设置名称的通用列表条目。 */
 UCLASS(MinimalAPI, Abstract, Blueprintable, meta = (Category = "Settings", DisableNativeTick))
 class UGameSettingListEntry_Setting : public UGameSettingListEntryBase
 {
@@ -89,10 +83,7 @@ private: // 绑定的控件
 };
 
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingListEntrySetting_Discrete
-//////////////////////////////////////////////////////////////////////////
-
+/** 通过选项轮换控件编辑离散设置值。 */
 UCLASS(MinimalAPI, Abstract, Blueprintable, meta = (Category = "Settings", DisableNativeTick))
 class UGameSettingListEntrySetting_Discrete : public UGameSettingListEntry_Setting
 {
@@ -132,10 +123,7 @@ private: // 绑定的控件
 	TObjectPtr<UCommonButtonBase> Button_Increase;
 };
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingListEntrySetting_Scalar
-//////////////////////////////////////////////////////////////////////////
-
+/** 通过滑块编辑标量设置值，并显示格式化后的文本。 */
 UCLASS(MinimalAPI, Abstract, Blueprintable, meta = (Category = "Settings", DisableNativeTick))
 class UGameSettingListEntrySetting_Scalar : public UGameSettingListEntry_Setting
 {
@@ -179,10 +167,7 @@ private: // 绑定的控件
 };
 
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingListEntrySetting_Action
-//////////////////////////////////////////////////////////////////////////
-
+/** 通过按钮执行设置操作。 */
 UCLASS(MinimalAPI, Abstract, Blueprintable, meta = (Category = "Settings", DisableNativeTick))
 class UGameSettingListEntrySetting_Action : public UGameSettingListEntry_Setting
 {
@@ -211,10 +196,7 @@ private: // 绑定的控件
 	TObjectPtr<UCommonButtonBase> Button_Action;
 };
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingListEntrySetting_Navigation
-//////////////////////////////////////////////////////////////////////////
-
+/** 通过按钮导航到设置集合页面。 */
 UCLASS(MinimalAPI, Abstract, Blueprintable, meta = (Category = "Settings", DisableNativeTick))
 class UGameSettingListEntrySetting_Navigation : public UGameSettingListEntry_Setting
 {

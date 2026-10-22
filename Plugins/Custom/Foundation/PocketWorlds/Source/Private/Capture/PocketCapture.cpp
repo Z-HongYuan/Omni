@@ -242,9 +242,9 @@ bool UPocketCapture::CaptureScene(UTextureRenderTarget2D* InRenderTarget, const 
 	CaptureComponent->ShowFlags.SetGrain(false);
 	CaptureComponent->ShowFlags.SetSeparateTranslucency(false);
 	CaptureComponent->ShowFlags.SetTemporalAA(false);
-	// 如果很少向它渲染，可能会触发资源重新分配 —— 暂时关闭
+	// 低频拍摄可能引发环境光遮蔽资源反复分配，因此关闭该效果。
 	CaptureComponent->ShowFlags.SetAmbientOcclusion(false);
-	// 该特性需要 FScene 中的资源，一旦开启，每个临时场景都会重新分配这些资源
+	// 关闭间接光照缓存，避免为临时场景重复分配相关资源。
 	CaptureComponent->ShowFlags.SetIndirectLightingCache(false);
 	CaptureComponent->ShowFlags.SetLightShafts(false);
 	CaptureComponent->ShowFlags.SetPostProcessMaterial(false);
@@ -297,7 +297,7 @@ void UPocketCapture::CaptureEffects()
 {
 	if (UTextureRenderTarget2D* RenderTarget = GetOrCreateEffectsRenderTarget())
 	{
-		ensure(false); //TODO
+		ensure(false); // TODO：尚未实现特效层的拍摄对象收集。
 		TArray<AActor*> CaptureActors;
 		CaptureScene(RenderTarget, CaptureActors, ESceneCaptureSource::SCS_SceneColorHDR, EffectMaskMaterial);
 	}

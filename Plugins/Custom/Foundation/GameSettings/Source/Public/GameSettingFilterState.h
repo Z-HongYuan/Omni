@@ -13,7 +13,7 @@ class ULocalPlayer;
 class UGameSetting;
 class UGameSettingCollection;
 
-/** 设置为什么发生变化？ */
+/** 设置值或依赖状态发生变化的原因。 */
 enum class EGameSettingChangeReason : uint8
 {
 	Change,
@@ -22,9 +22,7 @@ enum class EGameSettingChangeReason : uint8
 	RestoreToInitial,
 };
 
-/**
- * 筛选状态用于表示我们所支持的所有筛选方式。
- */
+/** 组合设置的可见性、可编辑性、允许列表和文本搜索条件。 */
 USTRUCT()
 struct FGameSettingFilterState
 {
@@ -71,7 +69,7 @@ private:
 	UPROPERTY()
 	TArray<TObjectPtr<UGameSetting>> SettingRootList;
 
-	// 如果此列表非空，则只允许其中的设置通过
+	/** 非空时，仅允许列表中的设置及其后代通过筛选。 */
 	UPROPERTY()
 	TArray<TObjectPtr<UGameSetting>> SettingAllowList;
 };
@@ -109,7 +107,7 @@ public:
 	/** 禁用该设置，你需要提供禁用此设置的原因。 */
 	UE_API void Disable(const FText& Reason);
 
-	/** 应对用户隐藏的离散选项。目前仅由家长控制使用。 */
+	/** 禁用指定的离散选项，使其不出现在可选列表中。 */
 	UE_API void DisableOption(const FString& Option);
 
 	template <typename EnumType>
@@ -118,15 +116,10 @@ public:
 		DisableOption(StaticEnum<EnumType>()->GetNameStringByValue((int64)InEnumValue));
 	}
 
-	/**
-	 * 防止用户在界面上将设置重置为默认值时重置此设置。
-	 */
+	/** 阻止界面的批量重置操作修改此设置。 */
 	UE_API void UnableToReset();
 
-	/**
-	 * 从分析中隐藏。例如，当你只是想避免噪音时可能需要这样做，例如针对特定平台的编辑条件，
-	 * 在这些平台不存在时上报相关设置没有意义。
-	 */
+	/** 将此设置排除在分析上报之外。 */
 	void HideFromAnalytics() { bHideFromAnalytics = true; }
 
 	/** 以所有可能的方式隐藏它：在视觉上隐藏，将其标记为不可重置，并从分析中隐藏。 */
@@ -152,10 +145,7 @@ private:
 #endif
 };
 
-/**
- * 编辑条件可以监视游戏或其他设置的状态，
- * 并调整可见性。
- */
+/** 根据玩家、平台或依赖设置的状态调整设置的可见性和可编辑性。 */
 class FGameSettingEditCondition : public TSharedFromThis<FGameSettingEditCondition>
 {
 public:
@@ -171,13 +161,13 @@ public:
 
 	FOnEditConditionChanged OnEditConditionChangedEvent;
 
-	/** 广播事件*/
+	/** 通知订阅者重新计算编辑条件。 */
 	void BroadcastEditConditionChanged()
 	{
 		OnEditConditionChangedEvent.Broadcast(true);
 	}
 
-	/** 在设置初始化期间调用 */
+	/** 在所属设置初始化期间调用。 */
 	virtual void Initialize(const ULocalPlayer* InLocalPlayer)
 	{
 	}
@@ -200,7 +190,7 @@ public:
 	{
 	}
 
-	/** 为此编辑条件生成有用的调试文本。当事物不符合预期时很有帮助。 */
+	/** 返回用于诊断此编辑条件的文本。 */
 	virtual FString ToString() const { return TEXT(""); }
 };
 

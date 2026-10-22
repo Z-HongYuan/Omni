@@ -8,9 +8,7 @@
 
 #define UE_API LOADINGSCREEN_API
 
-/*
- * 提供蓝图可用的加载界面请求
- */
+/** 供蓝图创建和撤销的加载画面请求。 */
 UCLASS(MinimalAPI, BlueprintType)
 class ULoadingScreenTask : public UObject, public ILoadingScreenCheckInterface
 {
@@ -19,18 +17,15 @@ class ULoadingScreenTask : public UObject, public ILoadingScreenCheckInterface
 public:
 	ULoadingScreenTask() = default;
 
-	/*
-	 * 请求加载界面显示
-	 * 调用方需持有返回任务的强引用，并使用 Unregister 取消请求。
-	 */
+	/** 创建并注册加载请求；调用方必须持有返回任务的强引用，并通过 Unregister 撤销请求。 */
 	UFUNCTION(BlueprintCallable, Category=LoadingScreen, meta=(WorldContext = "WorldContextObject"))
 	static UE_API ULoadingScreenTask* CreateLoadingScreenTask(UObject* WorldContextObject, const FString& ShowLoadingScreenReason);
 
-	// 取消显示加载界面
+	/** 从加载管理器注销本任务，撤销其显示请求。 */
 	UFUNCTION(BlueprintCallable, Category=LoadingScreen)
 	UE_API void Unregister();
 
-	// 设置加载界面显示的原因
+	/** 更新本任务要求显示加载画面的诊断原因。 */
 	UFUNCTION(BlueprintCallable, Category=LoadingScreen)
 	UE_API void SetShowLoadingScreenReason(const FString& InReason);
 

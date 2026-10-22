@@ -18,7 +18,7 @@ void UGameUserSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	// 创建我们的 OSS 包装器
+	// 先建立在线上下文，再绑定依赖这些上下文的回调。
 	CreateOnlineContexts();
 
 	BindOnlineDelegates();
@@ -26,7 +26,7 @@ void UGameUserSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	IPlatformInputDeviceMapper& DeviceMapper = IPlatformInputDeviceMapper::Get();
 	DeviceMapper.GetOnInputDeviceConnectionChange().AddUObject(this, &ThisClass::HandleInputDeviceConnectionChanged);
 
-	// 与引擎默认值一致
+	// 初始化本地玩家上限为四人，后续可由项目调整。
 	SetMaxLocalPlayers(4);
 
 	ResetUserState();
@@ -66,7 +66,7 @@ void UGameUserSubsystem::SetMaxLocalPlayers(int32 InMaxLocalPlayers)
 {
 	if (ensure(InMaxLocalPlayers >= 1))
 	{
-		// 本地玩家数量可以超过 MAX_LOCAL_PLAYERS,其余玩家将被视为游客
+		// 本地玩家上限独立于 OSS 平台用户上限，附加玩家可使用访客登录。
 		MaxNumberOfLocalPlayers = InMaxLocalPlayers;
 
 		UGameInstance* GameInstance = GetGameInstance();
@@ -157,7 +157,7 @@ bool UGameUserSubsystem::TryToInitializeUser(FGameUserInitializeParams Params)
 		return false;
 	}
 
-	// 如有需要,填充平台用户和输入设备
+	// 兼容旧 ControllerId 参数，并补全平台用户与输入设备映射。
 	if (Params.ControllerId != INDEX_NONE && (!Params.PrimaryInputDevice.IsValid() || !Params.PlatformUser.IsValid()))
 	{
 		IPlatformInputDeviceMapper::Get().RemapControllerIdToPlatformUserAndDevice(Params.ControllerId, Params.PlatformUser, Params.PrimaryInputDevice);
@@ -194,7 +194,7 @@ bool UGameUserSubsystem::TryToInitializeUser(FGameUserInitializeParams Params)
 	}
 	else
 	{
-		// 从现有用户信息中复制
+		// 重试登录时沿用用户已记录但本次未显式提供的设备和身份。
 		if (!Params.PrimaryInputDevice.IsValid())
 		{
 			Params.PrimaryInputDevice = LocalUserInfo->PrimaryInputDevice;
@@ -208,7 +208,7 @@ bool UGameUserSubsystem::TryToInitializeUser(FGameUserInitializeParams Params)
 
 	if (LocalUserInfo->InitializationState != EGameUserInitializationState::Unknown && LocalUserInfo->InitializationState != EGameUserInitializationState::FailedtoLogin)
 	{
-		// 登录期间不允许更改参数
+		// 已开始或完成登录的用户不能改用另一组设备、身份或访客设置。
 		if (LocalUserInfo->PrimaryInputDevice != Params.PrimaryInputDevice || LocalUserInfo->PlatformUser != Params.PlatformUser || LocalUserInfo->bCanBeGuest != Params.bCanUseGuestLogin)
 		{
 			UE_LOG(LogGameUser, Error, TEXT("TryToInitializeUser failed because player %d has already started the login process with diffrent settings!"), Params.LocalPlayerIndex);
@@ -216,13 +216,13 @@ bool UGameUserSubsystem::TryToInitializeUser(FGameUserInitializeParams Params)
 		}
 	}
 
-	// 现在设置期望的索引,以便在创建玩家时知道要使用哪个手柄
+	// 在创建 LocalPlayer 前保存输入设备和平台身份。
 	LocalUserInfo->PrimaryInputDevice = Params.PrimaryInputDevice;
 	LocalUserInfo->PlatformUser = Params.PlatformUser;
 	LocalUserInfo->bCanBeGuest = Params.bCanUseGuestLogin;
 	RefreshLocalUserInfo(LocalUserInfo);
 
-	// 要么进行初始登录,要么进行网络登录
+	// 已能本地游玩的用户请求在线权限时进入网络登录，其余情况走初始登录。
 	if (LocalUserInfo->GetPrivilegeAvailability(EGameUserPrivilege::CanPlay) == EGameUserAvailability::NowAvailable && Params.RequestedPrivilege == EGameUserPrivilege::CanPlayOnline)
 	{
 		LocalUserInfo->InitializationState = EGameUserInitializationState::DoingNetworkLogin;
@@ -247,13 +247,13 @@ void UGameUserSubsystem::ListenForLoginKeyInput(TArray<FKey> AnyUserKeys, TArray
 
 		if (bIsMapped && !bShouldBeMapped)
 		{
-			// 恢复为被包装的处理器
+			// 停止监听时恢复原输入处理器，避免覆盖其他输入逻辑。
 			ViewportClient->OnOverrideInputKey() = WrappedInputKeyHandler;
 			WrappedInputKeyHandler.Unbind();
 		}
 		else if (!bIsMapped && bShouldBeMapped)
 		{
-			// 设置一个包装处理器
+			// 保存原处理器，未用于登录的输入仍可继续转发。
 			WrappedInputKeyHandler = ViewportClient->OnOverrideInputKey();
 			ViewportClient->OnOverrideInputKey().BindUObject(this, &UGameUserSubsystem::OverrideInputKeyForLogin);
 		}
@@ -286,7 +286,7 @@ bool UGameUserSubsystem::CancelUserInitialization(int32 LocalPlayerIndex)
 		return false;
 	}
 
-	// 从登录队列中移除
+	// 移除本地请求；底层平台操作可能继续，但不再推进这些请求的完成回调。
 	TArray<TSharedRef<FUserLoginRequest>> RequestsCopy = ActiveLoginRequests;
 	for (TSharedRef<FUserLoginRequest>& Request : RequestsCopy)
 	{
@@ -296,7 +296,7 @@ bool UGameUserSubsystem::CancelUserInitialization(int32 LocalPlayerIndex)
 		}
 	}
 
-	// 以最合理的猜测设置状态
+	// 取消在线升级保留本地登录；取消初始登录则标记失败。
 	if (LocalUserInfo->InitializationState == EGameUserInitializationState::DoingNetworkLogin)
 	{
 		LocalUserInfo->InitializationState = EGameUserInitializationState::LoggedInLocalOnly;
@@ -336,14 +336,14 @@ bool UGameUserSubsystem::TryToLogOutUser(int32 LocalPlayerIndex, bool bDestroyPl
 	FPlatformUserId UserId = LocalUserInfo->PlatformUser;
 	if (IsRealPlatformUser(UserId))
 	{
-		// 目前这里不执行平台登出,以防用户紧接着要重新登录
+		// 只结束本地登录状态，保留平台登录以支持随后重新初始化。
 		UE_LOG(LogGameUser, Log, TEXT("TryToLogOutUser succeeded for real platform user %d"), UserId.GetInternalId());
 
 		LogOutLocalUser(UserId);
 	}
 	else if (ensure(LocalUserInfo->bIsGuest))
 	{
-		// 对于游客用户,直接删除即可
+		// 访客没有独立平台登录，只移除本地用户记录。
 		UE_LOG(LogGameUser, Log, TEXT("TryToLogOutUser succeeded for guest player index %d"), LocalPlayerIndex);
 
 		LocalUserInfos.Remove(LocalPlayerIndex);
@@ -364,7 +364,7 @@ bool UGameUserSubsystem::TryToLogOutUser(int32 LocalPlayerIndex, bool bDestroyPl
 
 void UGameUserSubsystem::ResetUserState()
 {
-	// 手动清理现有的信息对象
+	// 旧信息对象不再复用，标记为垃圾后重建主玩家记录。
 	for (TPair<int32, UGameUserInfo*> Pair : LocalUserInfos)
 	{
 		if (Pair.Value)
@@ -375,10 +375,10 @@ void UGameUserSubsystem::ResetUserState()
 
 	LocalUserInfos.Reset();
 
-	// 取消进行中的登录
+	// 清空本地登录请求，底层回调仍可能稍后到达。
 	ActiveLoginRequests.Reset();
 
-	// 为 ID 0 创建玩家信息
+	// 重建本地索引 0 的用户信息。
 	UGameUserInfo* FirstUser = CreateLocalUserInfo(0);
 
 	FirstUser->PlatformUser = IPlatformInputDeviceMapper::Get().GetPrimaryPlatformUser();
@@ -532,12 +532,12 @@ void UGameUserSubsystem::CreateOnlineContexts()
 		check(PlatformContextInternal->IdentityInterface.IsValid());
 	}
 
-	// 如有需要,之后可以显式设置外部服务
+	// 当前没有单独创建 Service 上下文。
 }
 
 void UGameUserSubsystem::DestroyOnlineContexts()
 {
-	// 所有缓存的共享指针都必须在这里清除
+	// 释放拥有的上下文缓存，避免重复释放与 Default 共用的对象。
 	if (ServiceContextInternal && ServiceContextInternal != DefaultContextInternal)
 	{
 		delete ServiceContextInternal;
@@ -577,7 +577,7 @@ void UGameUserSubsystem::LogOutLocalUser(FPlatformUserId PlatformUser)
 
 bool UGameUserSubsystem::TransferPlatformAuth(FOnlineContextCache* System, TSharedRef<FUserLoginRequest> Request, FPlatformUserId PlatformUser)
 {
-	// V1 路径不支持
+	// OSS v1 不支持转移平台认证，状态机将继续尝试其他登录方式。
 	return false;
 }
 
@@ -613,7 +613,7 @@ void UGameUserSubsystem::BindOnlineDelegatesOSSv1()
 	FOnlineContextCache* ServiceContext = GetContextCache(ServiceType);
 	FOnlineContextCache* PlatformContext = GetContextCache(PlatformType);
 	check(ServiceContext && ServiceContext->OnlineSubsystem && PlatformContext && PlatformContext->OnlineSubsystem);
-	// 连接委托需要同时监听两个系统
+	// 独立的平台与服务上下文均需监听连接变化。
 
 	ServiceContext->OnlineSubsystem->AddOnConnectionStatusChangedDelegate_Handle(FOnConnectionStatusChangedDelegate::CreateUObject(this, &ThisClass::HandleNetworkConnectionStatusChanged, ServiceType));
 	ServiceContext->CurrentConnectionStatus = EOnlineServerConnectionStatus::Normal;
@@ -636,7 +636,7 @@ void UGameUserSubsystem::BindOnlineDelegatesOSSv1()
 		}
 	}
 
-	// 硬件变化委托只监听平台系统
+	// 控制器配对变化只由平台系统提供。
 	PlatformContext->IdentityInterface->AddOnControllerPairingChangedDelegate_Handle(FOnControllerPairingChangedDelegate::CreateUObject(this, &ThisClass::HandleControllerPairingChanged));
 }
 
@@ -658,7 +658,7 @@ bool UGameUserSubsystem::ShowLoginUIOSSv1(FOnlineContextCache* System, TSharedRe
 
 bool UGameUserSubsystem::QueryUserPrivilegeOSSv1(FOnlineContextCache* System, TSharedRef<FUserLoginRequest> Request, FPlatformUserId PlatformUser)
 {
-	// 在状态未知或失败时开始查询
+	// 缓存未确认权限可用时，向当前上下文发起查询。
 	EUserPrivileges::Type OSSPrivilege = ConvertOSSPrivilege(Request->DesiredPrivilege);
 
 	FUniqueNetIdRepl CurrentId = GetLocalUserNetId(PlatformUser, Request->CurrentContext);
@@ -667,7 +667,7 @@ bool UGameUserSubsystem::QueryUserPrivilegeOSSv1(FOnlineContextCache* System, TS
 	                                                                                                                                    Request->CurrentContext);
 	System->IdentityInterface->GetUserPrivilege(*CurrentId, OSSPrivilege, Delegate);
 
-	// 这可能会立即成功并重新进入此函数,因此我们必须返回
+	// OSS 可同步回调并重入状态机，发起查询后不再继续当前处理。
 	return true;
 }
 
@@ -686,7 +686,7 @@ bool UGameUserSubsystem::OverrideInputKeyForLogin(FInputKeyEventArgs& EventArgs)
 			}
 			else
 			{
-				// 查找下一个玩家
+				// 选择首个尚未开始初始化的本地玩家索引。
 				for (int32 i = 0; i < MaxNumberOfLocalPlayers; i++)
 				{
 					if (GetLocalPlayerInitializationState(i) == EGameUserInitializationState::Unknown)
@@ -701,7 +701,7 @@ bool UGameUserSubsystem::OverrideInputKeyForLogin(FInputKeyEventArgs& EventArgs)
 			{
 				if (LoginKeysForAnyUser.Contains(EventArgs.Key))
 				{
-					// 如果正在进行登录,直接返回 true 以忽略平台特定的输入
+					// 登录进行中时消费该按键，避免重复启动登录或继续触发平台输入。
 					if (MappedUser && MappedUser->IsDoingLogin())
 					{
 						return true;
@@ -715,20 +715,20 @@ bool UGameUserSubsystem::OverrideInputKeyForLogin(FInputKeyEventArgs& EventArgs)
 					return TryToInitializeUser(NewParams);
 				}
 
-				// 检查该手柄 ID 是否已被映射
+				// 再次检查输入设备是否已经对应本地用户。
 				MappedUser = GetUserInfoForInputDevice(EventArgs.InputDevice);
 
 				if (!MappedUser || MappedUser->LocalPlayerIndex == INDEX_NONE)
 				{
 					if (LoginKeysForNewUser.Contains(EventArgs.Key))
 					{
-						// 如果正在进行登录,直接返回 true 以忽略平台特定的输入
+						// 登录进行中时消费该按键，避免重复启动登录或继续触发平台输入。
 						if (MappedUser && MappedUser->IsDoingLogin())
 						{
 							return true;
 						}
 
-						// 本地多人游戏
+						// 为附加本地玩家构造本次按键触发的登录参数。
 						FGameUserInitializeParams NewParams = ParamsForLoginKey;
 						NewParams.LocalPlayerIndex = NextLocalPlayerIndex;
 						NewParams.PrimaryInputDevice = EventArgs.InputDevice;
@@ -778,7 +778,7 @@ const UGameUserInfo* UGameUserSubsystem::GetUserInfoForPlatformUser(FPlatformUse
 
 	for (TPair<int32, UGameUserInfo*> Pair : LocalUserInfos)
 	{
-		// 此检查中不包含游客用户
+		// 平台用户查询排除访客，避免访客复用主用户身份时发生混淆。
 		if (ensure(Pair.Value) && Pair.Value->PlatformUser == PlatformUser && !Pair.Value->bIsGuest)
 		{
 			return Pair.Value;
@@ -852,7 +852,7 @@ bool UGameUserSubsystem::IsRealPlatformUserIndex(int32 PlatformUserIndex) const
 
 bool UGameUserSubsystem::IsRealPlatformUser(FPlatformUserId PlatformUser) const
 {
-	// 验证已在转换/分配时完成,因此信任该类型
+	// 先检查平台用户 ID 本身有效，再应用单在线用户限制。
 	if (!PlatformUser.IsValid())
 	{
 		return false;
@@ -998,7 +998,7 @@ bool UGameUserSubsystem::LoginLocalUser(const UGameUserInfo* UserInfo, EGameUser
 	TSharedRef<FUserLoginRequest> NewRequest = MakeShared<FUserLoginRequest>(LocalUserInfo, RequestedPrivilege, Context, MoveTemp(OnComplete));
 	ActiveLoginRequests.Add(NewRequest);
 
-	// 这将执行回调或启动登录流程
+	// 状态机可能同步完成并执行回调，也可能等待后续平台操作。
 	ProcessLoginRequest(NewRequest);
 
 	return true;
@@ -1013,7 +1013,7 @@ void UGameUserSubsystem::SetLocalPlayerUserInfo(ULocalPlayer* LocalPlayer, const
 		FUniqueNetIdRepl NetId = UserInfo->GetNetId(EGameUserOnlineContext::Game);
 		LocalPlayer->SetCachedUniqueNetId(NetId);
 
-		// 如有可能,同时更新玩家状态(PlayerState)
+		// 已创建 PlayerState 时同步其网络 ID。
 		APlayerController* PlayerController = LocalPlayer->GetPlayerController(nullptr);
 		if (PlayerController && PlayerController->PlayerState)
 		{
@@ -1121,12 +1121,12 @@ UGameUserSubsystem::FOnlineContextCache* UGameUserSubsystem::GetContextCache(EGa
 
 void UGameUserSubsystem::ProcessLoginRequest(TSharedRef<FUserLoginRequest> Request)
 {
-	// 首先,检查我们是否已完全登录
+	// 请求只弱引用用户信息；用户消失后不能继续处理。
 	UGameUserInfo* UserInfo = Request->UserInfo.Get();
 
 	if (!UserInfo)
 	{
-		// 用户已消失,直接删除此请求
+		// 用户信息已失效，移除请求且不再回调。
 		ActiveLoginRequests.Remove(Request);
 
 		return;
@@ -1134,7 +1134,7 @@ void UGameUserSubsystem::ProcessLoginRequest(TSharedRef<FUserLoginRequest> Reque
 
 	const FPlatformUserId PlatformUser = UserInfo->GetPlatformUserId();
 
-	// 如果因游客身份导致平台用户 ID 无效,直接跳到失败处理
+	// 无真实平台身份时直接回传失败，由上层决定是否创建访客。
 	if (!IsRealPlatformUser(PlatformUser))
 	{
 		Request->Error = FOnlineError(NSLOCTEXT("GameUser", "InvalidPlatformUser", "Invalid Platform User"));
@@ -1147,10 +1147,10 @@ void UGameUserSubsystem::ProcessLoginRequest(TSharedRef<FUserLoginRequest> Reque
 		return;
 	}
 
-	// 确定首先处理哪个上下文
+	// 首次推进时解析具体在线上下文。
 	if (Request->CurrentContext == EGameUserOnlineContext::Invalid)
 	{
-		// 如果是游戏(Game)登录,首先从平台上下文开始
+		// Game 登录先处理平台上下文，再处理目标默认上下文。
 		if (Request->DesiredContext == EGameUserOnlineContext::Game)
 		{
 			Request->CurrentContext = ResolveOnlineContext(EGameUserOnlineContext::PlatformOrDefault);
@@ -1179,14 +1179,14 @@ void UGameUserSubsystem::ProcessLoginRequest(TSharedRef<FUserLoginRequest> Reque
 	bool bHasRequiredStatus = (CurrentStatus == ELoginStatusType::LoggedIn);
 	if (Request->DesiredPrivilege == EGameUserPrivilege::CanPlay)
 	{
-		// 如果这不是必须联网的登录,允许本地档案视为完全登录
+		// 仅请求 CanPlay 时，本地档案也满足登录状态要求。
 		bHasRequiredStatus |= (CurrentStatus == ELoginStatusType::UsingLocalProfile);
 	}
 
 	// 检查整体是否成功
 	if (bHasRequiredStatus && CurrentId.IsValid())
 	{
-		// 如果正在等待登录 UI 关闭,则暂停
+		// 即使身份已登录，也需等待登录 UI 关闭后再完成请求。
 		if (Request->LoginUIState == EGameUserAsyncTaskState::InProgress)
 		{
 			return;
@@ -1320,7 +1320,7 @@ void UGameUserSubsystem::ProcessLoginRequest(TSharedRef<FUserLoginRequest> Reque
 	// 如果已完成,移除并执行回调
 	if (Request->OverallLoginState == EGameUserAsyncTaskState::Done || Request->OverallLoginState == EGameUserAsyncTaskState::Failed)
 	{
-		// 如果这在嵌套函数中已处理过,则跳过
+		// 同步回调可能已完成或取消请求，仍在活动列表中才允许通知。
 		if (ActiveLoginRequests.Contains(Request))
 		{
 			// 如果未设置错误,则添加一个通用错误
@@ -1347,7 +1347,7 @@ EGameUserPrivilege UGameUserSubsystem::ConvertOSSPrivilege(EUserPrivileges::Type
 	case EUserPrivileges::CanPlayOnline:
 		return EGameUserPrivilege::CanPlayOnline;
 	case EUserPrivileges::CanCommunicateOnline:
-		return EGameUserPrivilege::CanCommunicateViaTextOnline; // 这里没有更好的处理方式,只能映射为文本(Text)权限。
+		return EGameUserPrivilege::CanCommunicateViaTextOnline; // OSS v1 的通信权限不区分文本与语音，此方向统一映射为文本。
 	case EUserPrivileges::CanUseUserGeneratedContent:
 		return EGameUserPrivilege::CanUseUserGeneratedContent;
 	case EUserPrivileges::CanUserCrossPlay:
@@ -1373,14 +1373,14 @@ EUserPrivileges::Type UGameUserSubsystem::ConvertOSSPrivilege(EGameUserPrivilege
 	case EGameUserPrivilege::CanUseCrossPlay:
 		return EUserPrivileges::CanUserCrossPlay;
 	default:
-		// 没有失败类型,返回 CanPlay
+		// OSS 权限枚举没有无效值，当前回退为 CanPlay。
 		return EUserPrivileges::CanPlay;
 	}
 }
 
 EGameUserPrivilegeResult UGameUserSubsystem::ConvertOSSPrivilegeResult(EUserPrivileges::Type Privilege, uint32 Results) const
 {
-	// V1 结果枚举是按位标志(bitfield),每个平台的表现略有不同
+	// OSS v1 可返回多个失败位，按下列优先级归并为一个结果。
 	if (Results == (uint32)IOnlineIdentity::EPrivilegeResults::NoFailures)
 	{
 		return EGameUserPrivilegeResult::Available;
@@ -1455,7 +1455,7 @@ void UGameUserSubsystem::HandleUserLoginCompleted(int32 PlatformUserIndex, bool 
 	       *NewId.ToString(),
 	       *ErrorString);
 
-	// 更新所有等待中的登录请求
+	// 遍历请求副本，允许状态机在回调期间移除活动请求。
 	TArray<TSharedRef<FUserLoginRequest>> RequestsCopy = ActiveLoginRequests;
 	for (TSharedRef<FUserLoginRequest>& Request : RequestsCopy)
 	{
@@ -1463,7 +1463,7 @@ void UGameUserSubsystem::HandleUserLoginCompleted(int32 PlatformUserIndex, bool 
 
 		if (!UserInfo)
 		{
-			// 用户已消失,直接删除此请求
+			// 用户信息已失效，移除请求且不再回调。
 			ActiveLoginRequests.Remove(Request);
 
 			continue;
@@ -1542,7 +1542,7 @@ void UGameUserSubsystem::HandleNetworkConnectionStatusChanged(const FString& Ser
 
 	for (TPair<UGameUserInfo*, EGameUserAvailability> Pair : AvailabilityMap)
 	{
-		// 当有人上线/下线时通知其他系统
+		// 连接变化可能影响在线权限，按前后可用性差异通知观察者。
 		HandleChangedAvailability(Pair.Key, EGameUserPrivilege::CanPlayOnline, Pair.Value);
 	}
 }
@@ -1551,7 +1551,7 @@ void UGameUserSubsystem::HandleOnLoginUIClosed(TSharedPtr<const FUniqueNetId> Lo
 {
 	FPlatformUserId PlatformUser = GetPlatformUserIdForIndex(PlatformUserIndex);
 
-	// 更新所有等待中的登录请求
+	// 遍历请求副本，允许状态机在回调期间移除活动请求。
 	TArray<TSharedRef<FUserLoginRequest>> RequestsCopy = ActiveLoginRequests;
 	for (TSharedRef<FUserLoginRequest>& Request : RequestsCopy)
 	{
@@ -1559,19 +1559,18 @@ void UGameUserSubsystem::HandleOnLoginUIClosed(TSharedPtr<const FUniqueNetId> Lo
 
 		if (!UserInfo)
 		{
-			// 用户已消失,直接删除此请求
+			// 用户信息已失效，移除请求且不再回调。
 			ActiveLoginRequests.Remove(Request);
 
 			continue;
 		}
 
-		// 查找第一个在此上下文上尝试登录的用户
+		// 推进此上下文中仍在等待登录 UI 的请求。
 		if (Request->CurrentContext == Context && Request->LoginUIState == EGameUserAsyncTaskState::InProgress)
 		{
 			if (LoggedInNetId.IsValid() && LoggedInNetId->IsValid() && Error.WasSuccessful())
 			{
-				// 实际登录的平台用户 ID 可能与请求 UI 的用户不同,
-				// 因此,如果返回的 ID 确实有效,则进行替换
+				// 用户可能在登录 UI 中切换账户，仅在返回有效身份时更新平台用户。
 				if (UserInfo->PlatformUser != PlatformUser && PlatformUser != PLATFORMUSERID_NONE)
 				{
 					UserInfo->PlatformUser = PlatformUser;
@@ -1671,7 +1670,7 @@ void UGameUserSubsystem::HandleLoginForUserInitialize(const UGameUserInfo* UserI
 		return;
 	}
 
-	// 检查硬性的平台/服务 ID
+	// 从底层在线上下文刷新实际身份缓存。
 	RefreshLocalUserInfo(LocalUserInfo);
 
 	FUniqueNetIdRepl FirstPlayerId = FirstUserInfo->GetNetId(EGameUserOnlineContext::PlatformOrDefault);
@@ -1718,10 +1717,10 @@ void UGameUserSubsystem::HandleLoginForUserInitialize(const UGameUserInfo* UserI
 		ensure(GameInstance->GetLocalPlayerByIndex(LocalUserInfo->LocalPlayerIndex) == CurrentPlayer);
 	}
 
-	// 如有需要,更新手柄和网络 ID
+	// 将平台身份和网络 ID 同步到 LocalPlayer 及已有 PlayerState。
 	SetLocalPlayerUserInfo(CurrentPlayer, LocalUserInfo);
 
-	// 设置延迟回调
+	// 下一帧再通知初始化成功，届时重新检查请求是否仍有效。
 	TimerManager.SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UGameUserSubsystem::HandleUserInitializeSucceeded, Params));
 }
 
@@ -1731,13 +1730,13 @@ void UGameUserSubsystem::HandleUserInitializeFailed(FGameUserInitializeParams Pa
 
 	if (!LocalUserInfo)
 	{
-		// 自调度以来,用户信息已被重置
+		// 延迟回调执行前用户信息已重置，忽略旧结果。
 		return;
 	}
 
 	UE_LOG(LogGameUser, Warning, TEXT("TryToInitializeUser %d failed with error %s"), LocalUserInfo->LocalPlayerIndex, *Error.ToString());
 
-	// 如果状态不正确,中止操作,因为我们可能已被取消
+	// 取消操作会改变初始化状态，旧的延迟结果此时不得继续通知。
 	if (!ensure(LocalUserInfo->IsDoingLogin()))
 	{
 		return;
@@ -1761,7 +1760,7 @@ void UGameUserSubsystem::HandleUserInitializeFailed(FGameUserInitializeParams Pa
 		SendSystemMessage(FGameUserTags::TAG_SystemMessage_Error_InitializeLocalPlayerFailed, TitleText, Error);
 	}
 
-	// 调用回调
+	// 状态更新后依次通知单次请求和全局观察者。
 	Params.OnUserInitializeComplete.ExecuteIfBound(LocalUserInfo, false, Error, Params.RequestedPrivilege, Params.OnlineContext);
 	OnUserInitializeComplete.Broadcast(LocalUserInfo, false, Error, Params.RequestedPrivilege, Params.OnlineContext);
 }
@@ -1772,17 +1771,17 @@ void UGameUserSubsystem::HandleUserInitializeSucceeded(FGameUserInitializeParams
 
 	if (!LocalUserInfo)
 	{
-		// 自调度以来,用户信息已被重置
+		// 延迟回调执行前用户信息已重置，忽略旧结果。
 		return;
 	}
 
-	// 如果状态不正确,中止操作,因为我们可能已被取消
+	// 取消操作会改变初始化状态，旧的延迟结果此时不得继续通知。
 	if (!ensure(LocalUserInfo->IsDoingLogin()))
 	{
 		return;
 	}
 
-	// 修正状态
+	// 根据本次请求的权限设置最终初始化状态。
 	if (Params.RequestedPrivilege == EGameUserPrivilege::CanPlayOnline)
 	{
 		LocalUserInfo->InitializationState = EGameUserInitializationState::LoggedInOnline;
@@ -1794,7 +1793,7 @@ void UGameUserSubsystem::HandleUserInitializeSucceeded(FGameUserInitializeParams
 
 	ensure(LocalUserInfo->GetPrivilegeAvailability(Params.RequestedPrivilege) == EGameUserAvailability::NowAvailable);
 
-	// 调用回调
+	// 状态更新后依次通知单次请求和全局观察者。
 	Params.OnUserInitializeComplete.ExecuteIfBound(LocalUserInfo, true, FText(), Params.RequestedPrivilege, Params.OnlineContext);
 	OnUserInitializeComplete.Broadcast(LocalUserInfo, true, FText(), Params.RequestedPrivilege, Params.OnlineContext);
 }

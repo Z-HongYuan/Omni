@@ -9,9 +9,7 @@
 
 #define LOCTEXT_NAMESPACE "GameSetting"
 
-//////////////////////////////////////////////////////////////////////////
-// SettingScalarFormats
-//////////////////////////////////////////////////////////////////////////
+// 标量值的显示格式。
 
 static FText PercentFormat = LOCTEXT("PercentFormat", "{0}%");
 
@@ -78,9 +76,6 @@ FSettingScalarFormatFunction UGameSettingValueScalarDynamic::SourceAsPercent100(
 	return FText::Format(PercentFormat, (int32)FMath::RoundHalfFromZero(SourceValue));
 });
 
-//////////////////////////////////////////////////////////////////////////
-// UGameSettingValueScalarDynamic
-//////////////////////////////////////////////////////////////////////////
 
 UGameSettingValueScalarDynamic::UGameSettingValueScalarDynamic()
 {
@@ -88,7 +83,7 @@ UGameSettingValueScalarDynamic::UGameSettingValueScalarDynamic()
 
 void UGameSettingValueScalarDynamic::Startup()
 {
-	// 我是否也应该对 Setter 做些什么？
+	// 待确认：Setter 是否也需要独立的异步初始化流程。
 	Getter->Startup(LocalPlayer, FSimpleDelegate::CreateUObject(this, &ThisClass::OnDataSourcesReady));
 }
 

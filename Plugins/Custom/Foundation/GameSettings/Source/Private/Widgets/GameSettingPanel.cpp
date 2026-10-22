@@ -144,7 +144,7 @@ TArray<UGameSetting*> UGameSettingPanel::GetSettingsWeCanResetToDefault() const
 
 	if (ensure(Registry->IsFinishedInitializing()))
 	{
-		// 我们希望获取此"屏幕"上的所有可用设置，因此使用相同的允许列表，但忽略 
+		// 沿用当前允许列表，纳入隐藏和禁用项，并排除不可重置项及嵌套页面。
 		FGameSettingFilterState AllAvailableFilter = FilterState;
 		AllAvailableFilter.bIncludeDisabled = true;
 		AllAvailableFilter.bIncludeHidden = true;
@@ -192,8 +192,7 @@ void UGameSettingPanel::RefreshSettingsList()
 				DesiredSelectionPostRefresh = NAME_None;
 			}
 
-			// 如果列表直接获得焦点（而不是子控件），则很可能是面板和条目
-			// 在我们获得焦点时尚未就绪，所以现在就直接聚焦第一个条目。
+			// 刷新后按请求选择目标条目；没有指定目标时使用第一个条目。
 			//if (HasUserFocus(GetOwningPlayer()))
 			if (bAdjustListViewPostRefresh)
 			{

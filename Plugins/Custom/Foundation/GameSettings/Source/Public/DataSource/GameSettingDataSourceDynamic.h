@@ -9,10 +9,7 @@
 
 class ULocalPlayer;
 
-//--------------------------------------
-// FGameSettingDataSourceDynamic
-//--------------------------------------
-
+/** 通过本地玩家对象上的动态属性路径读取和写入设置值。 */
 class FGameSettingDataSourceDynamic : public FGameSettingDataSource
 {
 public:
