@@ -67,6 +67,7 @@ public:
 	UE_API virtual FString ConstructTravelURL() const;
 
 	/** 如果此请求有效则返回 true，否则返回 false 并记录错误。 */
+	UFUNCTION(BlueprintCallable, Category=Session)
 	UE_API virtual bool ValidateAndLogErrors(FText& OutError) const;
 };
 

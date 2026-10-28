@@ -66,6 +66,10 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "UI")
 	TSoftClassPtr<UUserWidget> LoadingScreenWidget;
 
+	/** 地图与体验主资产均已注册且对应包存在时，允许前端提供进入入口。 */
+	UFUNCTION(BlueprintPure, Category = "Experience")
+	UE_API bool CanHostExperience() const;
+
 	/** 生成托管会话请求，由调用方持有并提交给 HostSession；通过上下文获取会话子系统，缺失时创建临时请求。 */
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Experience", meta = (WorldContext = "WorldContextObject"))
 	UE_API UGameUserSession_HostSessionRequest* CreateHostingRequest(const UObject* WorldContextObject) const;

@@ -9,9 +9,26 @@
 #include "Engine/StreamableManager.h"
 #include "Engine/World.h"
 #include "Misc/App.h"
+#include "Misc/PackageName.h"
 #include "System/GameUserSessionSubsystem.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(ExpUserFacingDefinition)
+
+bool UExpUserFacingDefinition::CanHostExperience() const
+{
+	const UAssetManager* AssetManager = UAssetManager::GetIfInitialized();
+	if (!AssetManager || !MapID.IsValid() || !ExperienceID.IsValid())
+	{
+		return false;
+	}
+
+	const FSoftObjectPath MapPath = AssetManager->GetPrimaryAssetPath(MapID);
+	const FSoftObjectPath ExperiencePath = AssetManager->GetPrimaryAssetPath(ExperienceID);
+	return MapPath.IsValid()
+		&& ExperiencePath.IsValid()
+		&& FPackageName::DoesPackageExist(MapPath.GetLongPackageName())
+		&& FPackageName::DoesPackageExist(ExperiencePath.GetLongPackageName());
+}
 
 UGameUserSession_HostSessionRequest* UExpUserFacingDefinition::CreateHostingRequest(const UObject* WorldContextObject) const
 {
