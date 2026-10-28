@@ -3,13 +3,13 @@
 #pragma once
 
 #include "Engine/DataAsset.h"
+#include "Styling/SlateBrush.h"
 #include "UObject/PrimaryAssetId.h"
 #include "ExpUserFacingDefinition.generated.h"
 
 #define UE_API EXPERIENCESYSTEM_API
 
 class UGameUserSession_HostSessionRequest;
-class UTexture2D;
 class UUserWidget;
 
 /**
@@ -54,9 +54,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "UI")
 	FText TileDescription;
 
-	/** 前端列表的图标。 */
+	/** 前端列表的预览画刷，可使用纹理图标或 UI 材质。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "UI")
-	TObjectPtr<UTexture2D> TileIcon;
+	FSlateBrush TileBrush;
 
 	/** 是否纳入只加载前端可见玩法的结果。 */
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "UI")

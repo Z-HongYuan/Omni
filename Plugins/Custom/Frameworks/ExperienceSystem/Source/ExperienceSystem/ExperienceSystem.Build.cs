@@ -18,6 +18,7 @@ public class ExperienceSystem : ModuleRules
 				"LoadingScreen", //加载屏模块
 				"GameplayCameras", //游戏摄像机
 				"GameUser", //玩法定义公开会话请求类型
+				"SlateCore", //玩法定义公开预览画刷类型
 			}
 		);
 
@@ -27,7 +28,6 @@ public class ExperienceSystem : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
-				"SlateCore",
 				"UMG", //玩法定义中的加载屏控件类型
 				"EnhancedInput", //自定义输入系统
 				"DeveloperSettings", //开发者设置模块
