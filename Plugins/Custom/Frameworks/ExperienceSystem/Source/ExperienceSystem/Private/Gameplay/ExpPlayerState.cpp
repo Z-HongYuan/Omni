@@ -40,6 +40,7 @@ void AExpPlayerState::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
+	// 这里其实只是提示,因为当前时序下,GetPawn()为Null,实际的将会在Pawn的组件中设置
 	check(AbilitySystemComponent);
 	AbilitySystemComponent->InitAbilityActorInfo(this, GetPawn());
 
