@@ -1,0 +1,85 @@
+* text=auto
+/.gitattributes text eol=lf
+/.gitignore text eol=lf
+/.editorconfig text eol=lf
+*.md text eol=lf
+*.cs text eol=lf
+*.cpp text eol=lf
+*.h text eol=lf
+*.ini text eol=lf
+*.uproject text eol=lf
+*.uplugin text eol=lf
+*.json text eol=lf
+
+*.uasset filter=lfs diff=lfs merge=lfs -text
+*.umap filter=lfs diff=lfs merge=lfs -text
+*.fbx filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text
+*.psd filter=lfs diff=lfs merge=lfs -text
+*.tga filter=lfs diff=lfs merge=lfs -text
+*.exr filter=lfs diff=lfs merge=lfs -text
+*.wav filter=lfs diff=lfs merge=lfs -text
+
+# Additional Unreal binary payloads
+*.[uU][bB][uU][lL][kK] filter=lfs diff=lfs merge=lfs -text
+*.[uU][eE][xX][pP] filter=lfs diff=lfs merge=lfs -text
+*.[uU][pP][tT][nN][lL] filter=lfs diff=lfs merge=lfs -text
+
+# Model, scene and animation source files
+*.[oO][bB][jJ] filter=lfs diff=lfs merge=lfs -text
+*.[mM][aA][xX] filter=lfs diff=lfs merge=lfs -text
+*.[mM][bB] filter=lfs diff=lfs merge=lfs -text
+*.[cC]4[dD] filter=lfs diff=lfs merge=lfs -text
+*.3[dD][sS] filter=lfs diff=lfs merge=lfs -text
+*.3[dD][mM] filter=lfs diff=lfs merge=lfs -text
+*.[gG][lL][bB] filter=lfs diff=lfs merge=lfs -text
+*.[aA][bB][cC] filter=lfs diff=lfs merge=lfs -text
+*.[uU][sS][dD] filter=lfs diff=lfs merge=lfs -text
+*.[uU][sS][dD][cC] filter=lfs diff=lfs merge=lfs -text
+*.[uU][sS][dD][zZ] filter=lfs diff=lfs merge=lfs -text
+*.[hH][dD][aA] filter=lfs diff=lfs merge=lfs -text
+*.[hH][iI][pP] filter=lfs diff=lfs merge=lfs -text
+*.[hH][iI][pP][nN][cC] filter=lfs diff=lfs merge=lfs -text
+*.[hH][iI][pP][lL][cC] filter=lfs diff=lfs merge=lfs -text
+*.[zZ][tT][lL] filter=lfs diff=lfs merge=lfs -text
+*.[zZ][pP][rR] filter=lfs diff=lfs merge=lfs -text
+
+# Additional audio and middleware data
+*.[fF][lL][aA][cC] filter=lfs diff=lfs merge=lfs -text
+*.[aA][iI][fF] filter=lfs diff=lfs merge=lfs -text
+*.[aA][iI][fF][fF] filter=lfs diff=lfs merge=lfs -text
+*.[mM][pP]3 filter=lfs diff=lfs merge=lfs -text
+*.[oO][gG][gG] filter=lfs diff=lfs merge=lfs -text
+*.[oO][pP][uU][sS] filter=lfs diff=lfs merge=lfs -text
+*.[mM]4[aA] filter=lfs diff=lfs merge=lfs -text
+*.[aA][aA][cC] filter=lfs diff=lfs merge=lfs -text
+*.[aA][pP][eE] filter=lfs diff=lfs merge=lfs -text
+*.[bB][nN][kK] filter=lfs diff=lfs merge=lfs -text
+*.[wW][eE][mM] filter=lfs diff=lfs merge=lfs -text
+
+# Video
+*.[mM][pP]4 filter=lfs diff=lfs merge=lfs -text
+*.[mM][oO][vV] filter=lfs diff=lfs merge=lfs -text
+*.[aA][vV][iI] filter=lfs diff=lfs merge=lfs -text
+*.[mM][kK][vV] filter=lfs diff=lfs merge=lfs -text
+*.[wW][eE][bB][mM] filter=lfs diff=lfs merge=lfs -text
+*.[wW][mM][vV] filter=lfs diff=lfs merge=lfs -text
+*.[mM]4[vV] filter=lfs diff=lfs merge=lfs -text
+*.[mM][pP][eE][gG] filter=lfs diff=lfs merge=lfs -text
+*.[mM][pP][gG] filter=lfs diff=lfs merge=lfs -text
+*.[oO][gG][vV] filter=lfs diff=lfs merge=lfs -text
+
+# Fonts
+*.[tT][tT][fF] filter=lfs diff=lfs merge=lfs -text
+*.[oO][tT][fF] filter=lfs diff=lfs merge=lfs -text
+*.[wW][oO][fF][fF] filter=lfs diff=lfs merge=lfs -text
+*.[wW][oO][fF][fF]2 filter=lfs diff=lfs merge=lfs -text
+
+# Third-party redistributable binaries outside ignored generated directories
+*.[dD][lL][lL] filter=lfs diff=lfs merge=lfs -text
+*.[lL][iI][bB] filter=lfs diff=lfs merge=lfs -text
+*.[aA] filter=lfs diff=lfs merge=lfs -text
+*.[sS][oO] filter=lfs diff=lfs merge=lfs -text
+*.[dD][yY][lL][iI][bB] filter=lfs diff=lfs merge=lfs -text
+*.[eE][xX][eE] filter=lfs diff=lfs merge=lfs -text
+*.[pP][yY][dD] filter=lfs diff=lfs merge=lfs -text
