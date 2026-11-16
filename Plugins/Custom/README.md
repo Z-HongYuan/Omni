@@ -11,7 +11,7 @@ Custom/
 ├── Foundation/       L1：独立公共机制与服务
 ├── Frameworks/       L2：系统框架、生命周期与扩展契约
 ├── GameplaySystems/  L3：可组合的玩法与表现功能
-├── Content/          共享与示例内容，不计入代码层级
+├── ContentPlugins/   共享与示例内容，不计入代码层级
 │   ├── SharedContent/   共享内容
 │   └── ExampleContent/  示例内容
 └── README.md
@@ -32,9 +32,7 @@ Custom/
 | Foundation | AsyncLoadMixin、GameSettings、GameSubtitles、GameUser、LoadingScreen、MessageRouters、ModularGameplayActors、PocketWorlds、StartupLoadingScreen |
 | Frameworks | GameUI、GameUIExtension、AbilityExtension、ExperienceSystem、CoreExtension、HelperFunctions |
 | GameplaySystems | CustomCosmetics、CustomEquipment、CustomIndicator、CustomInteraction、CustomInventory、CustomTeam |
-| Content | SharedContent（共享内容）：正式共享资源；ExampleContent（示例内容）：插件使用展示 |
-
-`Frameworks/CustomSaveGame` 当前仅为预留目录，没有插件描述或实现，不计入现有插件清单。
+| ContentPlugins | SharedContent（共享内容）：正式共享资源；ExampleContent（示例内容）：插件使用展示 |
 
 ## 2. 依赖规则
 
@@ -73,17 +71,16 @@ flowchart TD
 
 ### 正式共享内容
 
-`Content/SharedContent` 的显示名称为 **共享内容**，用于存放可供正式项目复用的共享资源。插件标识为 `SharedContent`，资产挂载路径为 `/SharedContent/`。
+`ContentPlugins/SharedContent` 存放可供正式项目复用的共享资源，资产挂载路径为 `/SharedContent/`。
 
 - 项目、具体玩法和需要这些资源的插件可以按需引用正式共享内容。
 - 共享内容应保持自身的复用边界，不反向引用具体项目或示例插件。
 - 若共享资产使用某个代码插件的类，需将这种关系纳入完整依赖图；不能通过内容插件间接形成循环或绕过三层依赖限制。
-- 后续若调整插件标识或迁移资产，应同时核对资源引用与插件挂载路径；显示名称变更不涉及资产内容修改。
-- 本次重命名前，共享资产使用 `/ExampleContent/` 路径。`SharedContent/Config/DefaultSharedContent.ini` 为这批既有资产逐项配置包路径重定向，兼容尚未重存的旧引用，资产文件保持原样。示例插件新增资产使用自己的 `/ExampleContent/` 路径，不配置整个前缀的重定向；应避免复用兼容映射中已占用的旧包路径。
+- 调整插件标识或迁移资产时，同时核对资源引用与插件挂载路径，按需补充包路径重定向。
 
 ### 示例内容
 
-`Content/ExampleContent` 的显示名称为 **示例内容**，用于展示各插件的接入方法、必要配置、运行流程和预期结果。插件标识为 `ExampleContent`，资产挂载路径为 `/ExampleContent/`。当前已创建纯内容插件骨架，演示资产后续逐步补充；插件默认不启用，在需要演示的项目中按需启用。
+`ContentPlugins/ExampleContent` 用于展示各插件的接入方法、必要配置、运行流程和预期结果，资产挂载路径为 `/ExampleContent/`。接入示例时按需启用。
 
 - 示例插件是三层插件的使用方，可以组合它们并引用正式共享内容。
 - 当前尚无演示资产，不预设功能插件依赖；加入示例时，在插件描述中明确声明实际使用的插件。
@@ -92,11 +89,11 @@ flowchart TD
 - 示例中的演示关卡、专用角色与教学配置留在示例插件；可供正式项目复用的资源按职责归入共享内容或所属功能插件。
 - 示例插件作为可选展示入口，正式项目无需启用它即可使用被展示的插件。
 
-Content 与示例是按用途划分的类别，不是第四、第五个代码层级。GameplaySystems 也不等同于 UE 的 GameFeature 插件类型：是否采用 GameFeature 的注册与激活机制，需要另外设计。
+`ContentPlugins` 按资产用途划分，不参与三层代码分类。`GameplaySystems` 负责可复用玩法系统，`Plugins/GameFeatures` 负责具体玩法及其注册与激活。
 
 ## 4. 维护与后续完善
 
-- **目录与元数据一致。** 调整归属后，对应 `.uplugin` 的 Category 应同步为 `ZHY|Foundation`、`ZHY|Frameworks`、`ZHY|GameplaySystems` 或 `ZHY|Content`。FriendlyName、Description 应准确描述插件本身。
+- **目录与元数据一致。** 调整归属后，对应 `.uplugin` 的 Category 应同步为 `ZHY|Foundation`、`ZHY|Frameworks`、`ZHY|GameplaySystems` 或内容插件使用的 `ZHY|Content`。FriendlyName、Description 应准确描述插件本身。
 - **按最终目录继续完善。** 当前已完成目录调整；部分 Category 仍使用 BasicExpand、Features 等旧值，留待后续统一，不能仅凭插件浏览器的旧分类判断实际层级。
 - **HelperFunctions 继续梳理职责。** 当前包含对象池和脸部 SDF 阴影组件；对象池 Actor 通过 ExtTaggedActor 依赖 AbilityExtension。在解除相应依赖前保持其 Frameworks 归属，后续再按职责整理，避免直接下移造成反向依赖。
 - **飞书云文档统一重建。** 待本轮插件完善全部完成后，基于最终代码、目录与本约定重新生成一份飞书云文档。
