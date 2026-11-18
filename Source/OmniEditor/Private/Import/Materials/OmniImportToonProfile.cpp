@@ -23,25 +23,75 @@ UToonProfile* FindOwnedProfile(UMaterialInstanceConstant* Material)
 	const FString OwnedPath = Material->GetOutermost()->GetMetaData().GetValue(Material, OwnedProfileKey);
 	return OwnedPath.IsEmpty() ? nullptr : Cast<UToonProfile>(FSoftObjectPath(OwnedPath).TryLoad());
 }
+
+TArray<FMaterialParameterInfo> GetToonProfileParameters(const UMaterialInterface* Material)
+{
+	TArray<FMaterialParameterInfo> Parameters;
+	TArray<FGuid> ParameterIds;
+	Material->GetAllToonProfileParameterInfo(Parameters, ParameterIds);
+	return Parameters;
+}
+
+UToonProfile* GetLegacyToonProfile(const UMaterialInstance* Material)
+{
+	return Material && Material->bOverrideToonProfile_DEPRECATED ? Material->ToonProfileOverride_DEPRECATED.Get() : nullptr;
+}
+
+void ClearLegacyToonProfile(UMaterialInstanceConstant* Material)
+{
+	Material->ToonProfileOverride_DEPRECATED = nullptr;
+	Material->bOverrideToonProfile_DEPRECATED = false;
+}
+
+bool MigrateLegacyToonProfile(UMaterialInstanceConstant* Material)
+{
+	UToonProfile* Profile = GetLegacyToonProfile(Material);
+	if (!Profile) return false;
+	const TArray<FMaterialParameterInfo> Parameters = GetToonProfileParameters(Material);
+	if (Parameters.IsEmpty()) return false;
+
+	// 5.8 的全局覆盖迁到母材质声明的参数。已存在的 5.9 参数覆盖优先。
+	Material->Modify();
+	for (const FMaterialParameterInfo& Parameter : Parameters)
+	{
+		const bool bHasLocalOverride = Material->ToonProfileParameterValues.ContainsByPredicate(
+			[&Parameter](const FToonProfileParameterValue& Value) { return Value.ParameterInfo == Parameter && Value.IsValid(); });
+		if (!bHasLocalOverride) Material->SetToonProfileParameterValueEditorOnly(Parameter, Profile);
+	}
+	ClearLegacyToonProfile(Material);
+	return true;
+}
 }
 
 UToonProfile* ResolveBodyToonProfileTemplate(UMaterialInterface* Parent, UToonProfile* ExplicitTemplate)
 {
 	if (ExplicitTemplate) return ExplicitTemplate;
 	if (!Parent) return nullptr;
-	if (UToonProfile* Override = Parent->GetToonProfileOverride_Internal()) return Override;
-	TSet<UToonProfile*> Profiles;
-	for (uint32 Index = 0; Index < Parent->NumToonProfile_Internal(); ++Index)
+	const TArray<FMaterialParameterInfo> Parameters = GetToonProfileParameters(Parent);
+	if (Parameters.IsEmpty()) return nullptr;
+	if (const UMaterialInstance* Instance = Cast<UMaterialInstance>(Parent); Instance && Instance->ToonProfileParameterValues.IsEmpty())
 	{
-		if (UToonProfile* Profile = Parent->GetToonProfile_Internal(Index)) Profiles.Add(Profile);
+		if (UToonProfile* Legacy = GetLegacyToonProfile(Instance)) return Legacy;
+	}
+	TSet<UToonProfile*> Profiles;
+	for (const FMaterialParameterInfo& Parameter : Parameters)
+	{
+		UToonProfile* Profile = nullptr;
+		if (Parent->GetToonProfileParameterValue(Parameter, Profile) && Profile) Profiles.Add(Profile);
 	}
 	return Profiles.Num() == 1 ? *Profiles.CreateConstIterator() : nullptr;
 }
 
-void SetOwnedToonProfile(UMaterialInstanceConstant* Material, UToonProfile* Profile, const FString& GroupKey)
+bool SetOwnedToonProfile(UMaterialInstanceConstant* Material, UToonProfile* Profile, const FString& GroupKey)
 {
-	if (!Material || !Profile) return;
+	if (!Material || !Profile) return false;
+	const TArray<FMaterialParameterInfo> Parameters = GetToonProfileParameters(Material);
+	if (Parameters.IsEmpty()) return false;
+
 	Material->Modify();
+	for (const FMaterialParameterInfo& Parameter : Parameters)
+		Material->SetToonProfileParameterValueEditorOnly(Parameter, Profile);
+	ClearLegacyToonProfile(Material);
 	UOmniImportMaterialUserData* Ownership = Cast<UOmniImportMaterialUserData>(Material->GetAssetUserDataOfClass(UOmniImportMaterialUserData::StaticClass()));
 	if (!Ownership)
 	{
@@ -51,34 +101,35 @@ void SetOwnedToonProfile(UMaterialInstanceConstant* Material, UToonProfile* Prof
 	Ownership->Modify();
 	Ownership->OwnedToonProfile = Profile;
 	Ownership->SharedProfileGroupKey = GroupKey;
-	Material->ToonProfileOverride = Profile;
-	Material->bOverrideToonProfile = true;
 	// 新绑定改用对象引用记录所有权，移除旧版字符串记录。
 	Material->GetOutermost()->GetMetaData().RemoveValue(Material, OwnedProfileKey);
 	UMaterialEditingLibrary::UpdateMaterialInstance(Material);
-	(void)Material->MarkPackageDirty();
+	return true;
 }
 
 void ClearOwnedToonProfile(UMaterialInstanceConstant* Material)
 {
 	if (!Material) return;
+	const bool bMigratedLegacy = MigrateLegacyToonProfile(Material);
 	FMetaData& Metadata = Material->GetOutermost()->GetMetaData();
 	const UOmniImportMaterialUserData* Ownership = Cast<UOmniImportMaterialUserData>(Material->GetAssetUserDataOfClass(UOmniImportMaterialUserData::StaticClass()));
 	const FString OwnedPath = Metadata.GetValue(Material, OwnedProfileKey);
-	if (!Ownership && OwnedPath.IsEmpty()) return; // 未标记的绑定由用户管理。
+	if (!Ownership && OwnedPath.IsEmpty())
+	{
+		if (bMigratedLegacy) UMaterialEditingLibrary::UpdateMaterialInstance(Material);
+		return;
+	}
 	UToonProfile* OwnedProfile = FindOwnedProfile(Material);
 	Material->Modify();
 	// 比较对象引用，既支持资产重命名，也保留用户手动替换的 Profile。
 	// 旧记录可通过重定向器解析；无法解析旧路径时保留现有覆盖。
-	if (Material->ToonProfileOverride && Material->ToonProfileOverride == OwnedProfile)
-	{
-		Material->ToonProfileOverride = nullptr;
-		Material->bOverrideToonProfile = false;
-		UMaterialEditingLibrary::UpdateMaterialInstance(Material);
-	}
+	if (OwnedProfile && GetLegacyToonProfile(Material) == OwnedProfile) ClearLegacyToonProfile(Material);
+	const int32 Removed = OwnedProfile ? Material->ToonProfileParameterValues.RemoveAll(
+		[OwnedProfile](const FToonProfileParameterValue& Value) { return Value.ParameterValue == OwnedProfile; }) : 0;
 	Material->RemoveUserDataOfClass(UOmniImportMaterialUserData::StaticClass());
 	Metadata.RemoveValue(Material, OwnedProfileKey);
-	(void)Material->MarkPackageDirty();
+	if (Removed > 0 || bMigratedLegacy) UMaterialEditingLibrary::UpdateMaterialInstance(Material);
+	else (void)Material->MarkPackageDirty();
 }
 
 UToonProfile* ResolveOrCreateSharedToonProfile(const FString& Package, const TArray<UMaterialInstanceConstant*>& ExistingMIs,
@@ -144,12 +195,19 @@ void ApplySharedToonProfile(UMaterialInstanceConstant* Material, UToonProfile* S
 		return;
 	}
 	UToonProfile* OwnedProfile = FindOwnedProfile(Material);
-	if (Material->bOverrideToonProfile && Material->ToonProfileOverride && Material->ToonProfileOverride != OwnedProfile)
+	const bool bMigratedLegacy = MigrateLegacyToonProfile(Material);
+	if (Material->ToonProfileParameterValues.ContainsByPredicate(
+		[OwnedProfile](const FToonProfileParameterValue& Value) { return Value.IsValid() && Value.ParameterValue != OwnedProfile; }))
 	{
+		if (bMigratedLegacy) UMaterialEditingLibrary::UpdateMaterialInstance(Material);
 		Report(TEXT("Preserved user-assigned Toon Profile: ") + Material->GetPathName());
 		return;
 	}
-	SetOwnedToonProfile(Material, SharedProfile, GroupKey);
+	if (!SetOwnedToonProfile(Material, SharedProfile, GroupKey))
+	{
+		ClearOwnedToonProfile(Material);
+		return;
+	}
 	Report(TEXT("Assigned group-shared Toon Profile: ") + Material->GetPathName() + TEXT(" -> ") + SharedProfile->GetPathName());
 }
 }

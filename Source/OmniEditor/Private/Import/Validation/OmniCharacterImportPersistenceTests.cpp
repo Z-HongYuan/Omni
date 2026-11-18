@@ -88,6 +88,7 @@ bool FOmniImportSavedMaterialProfileTest::RunTest(const FString& Parameters)
 		int32 MaterialCount = 0;
 		int32 ProfileCount = 0;
 		int32 MeshCount = 0;
+		TMap<UMaterialInstanceConstant*, UToonProfile*> SavedBindings;
 		UToonProfile* Shared = nullptr;
 		UToonProfile* ListedProfile = nullptr;
 		FString GroupKey;
@@ -102,10 +103,27 @@ bool FOmniImportSavedMaterialProfileTest::RunTest(const FString& Parameters)
 			++MaterialCount;
 			UMaterialInstanceConstant* Material = Cast<UMaterialInstanceConstant>(Asset.GetAsset());
 			if (!TestNotNull(*FString::Printf(TEXT("Saved MI loads: %s"), *Asset.GetObjectPathString()), Material)) continue;
-			// 即使 Body、Face、Outline 使用不同母材质，也应共用组 Profile。
 			TestNotNull(*FString::Printf(TEXT("Saved MI retains a valid parent: %s"), *Material->GetName()), Material->Parent.Get());
-			TestTrue(*FString::Printf(TEXT("Saved MI enables Toon override: %s"), *Material->GetName()), Material->bOverrideToonProfile != 0);
-			UToonProfile* Override = Material->ToonProfileOverride;
+			TArray<FMaterialParameterInfo> MaterialParameters;
+			TArray<FGuid> ParameterIds;
+			Material->GetAllToonProfileParameterInfo(MaterialParameters, ParameterIds);
+			if (MaterialParameters.IsEmpty())
+			{
+				TestTrue(TEXT("An MI without Toon parameters has no saved override"), Material->ToonProfileParameterValues.IsEmpty());
+				TestNull(TEXT("A parent without Toon parameters has no group ownership"), Material->GetAssetUserDataOfClass(UOmniImportMaterialUserData::StaticClass()));
+				SavedBindings.Add(Material, nullptr);
+				continue;
+			}
+			UToonProfile* Override = nullptr;
+			for (const FMaterialParameterInfo& Parameter : MaterialParameters)
+			{
+				const FToonProfileParameterValue* Value = Material->ToonProfileParameterValues.FindByPredicate(
+					[&Parameter](const FToonProfileParameterValue& Entry) { return Entry.ParameterInfo == Parameter && Entry.IsValid(); });
+				if (!TestNotNull(*FString::Printf(TEXT("Saved MI retains Toon override %s: %s"), *Parameter.Name.ToString(), *Material->GetName()), Value)) continue;
+				if (!Override) Override = Value->ParameterValue.Get();
+				TestEqual(TEXT("Declared Toon parameters share the group's Profile"), Value->ParameterValue.Get(), Override);
+			}
+			SavedBindings.Add(Material, Override);
 			if (TestNotNull(*FString::Printf(TEXT("Saved Toon override loads: %s"), *Material->GetName()), Override))
 			{
 				TestNotEqual(TEXT("The group override is a copy, not the source template"), Override, Template);
@@ -134,7 +152,11 @@ bool FOmniImportSavedMaterialProfileTest::RunTest(const FString& Parameters)
 			if (TestNotNull(TEXT("Imported mesh slots reference material instances"), Material))
 			{
 				TestTrue(TEXT("Mesh slot MI belongs to this fixture group"), Material->GetOutermost()->GetName().StartsWith(GroupRoot + TEXT("/")));
-				TestEqual(TEXT("Every mesh slot's MI uses the group shared Profile"), Material->ToonProfileOverride.Get(), Shared);
+				if (TestTrue(TEXT("The mesh slot points to a scanned MI"), SavedBindings.Contains(Material)))
+				{
+					if (UToonProfile* Override = SavedBindings.FindRef(Material))
+						TestEqual(TEXT("The Toon mesh slot uses the group shared Profile"), Override, Shared);
+				}
 			}
 		};
 		for (const FAssetData& Asset : Assets)

@@ -2,6 +2,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "OmniImportToonProfileTestFixture.h"
 #include "Import/OmniCharacterImportPipeline.h"
 #include "Import/OmniCharacterImportProfile.h"
 #include "Import/Materials/OmniImportMaterialApplier.h"
@@ -28,6 +29,10 @@
 
 namespace
 {
+using Omni::CharacterImport::Tests::DefaultProfileParameter;
+using Omni::CharacterImport::Tests::GetLocalProfile;
+using Omni::CharacterImport::Tests::MakeToonParent;
+
 constexpr EAutomationTestFlags TestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 
 template <typename T>
@@ -61,19 +66,27 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOmniImportProfileOwnershipTest, "Omni.Editor.C
 bool FOmniImportProfileOwnershipTest::RunTest(const FString& Parameters)
 {
 	UMaterialInstanceConstant* Material = NewObject<UMaterialInstanceConstant>();
+	Material->SetParentEditorOnly(MakeToonParent());
 	UToonProfile* Owned = NewObject<UToonProfile>();
 	UToonProfile* Manual = NewObject<UToonProfile>();
 	Omni::CharacterImport::SetOwnedToonProfile(Material, Owned);
 	Omni::CharacterImport::ClearOwnedToonProfile(Material);
-	TestFalse(TEXT("Leaving Body disables the owned override"), Material->bOverrideToonProfile != 0);
-	TestNull(TEXT("Leaving Body clears the owned profile"), Material->ToonProfileOverride.Get());
+	TestFalse(TEXT("Leaving Body disables the owned override"), !Material->ToonProfileParameterValues.IsEmpty());
+	TestNull(TEXT("Leaving Body clears the owned profile"), GetLocalProfile(Material));
 	Omni::CharacterImport::SetOwnedToonProfile(Material, Owned);
-	Material->ToonProfileOverride = Manual;
+	Material->SetToonProfileParameterValueEditorOnly(DefaultProfileParameter, Manual);
 	Omni::CharacterImport::ClearOwnedToonProfile(Material);
-	TestEqual(TEXT("A user replacement survives role changes"), Material->ToonProfileOverride.Get(), Manual);
-	TestTrue(TEXT("A user replacement remains enabled"), Material->bOverrideToonProfile != 0);
+	TestEqual(TEXT("A user replacement survives role changes"), GetLocalProfile(Material), Manual);
+	TestTrue(TEXT("A user replacement remains enabled"), !Material->ToonProfileParameterValues.IsEmpty());
 	Omni::CharacterImport::ClearOwnedToonProfile(Material);
-	TestEqual(TEXT("Unmarked assignments remain untouched"), Material->ToonProfileOverride.Get(), Manual);
+	TestEqual(TEXT("Unmarked assignments remain untouched"), GetLocalProfile(Material), Manual);
+	UMaterialInstanceConstant* Legacy = NewObject<UMaterialInstanceConstant>();
+	Legacy->SetParentEditorOnly(MakeToonParent());
+	Legacy->ToonProfileOverride_DEPRECATED = Manual;
+	Legacy->bOverrideToonProfile_DEPRECATED = true;
+	Omni::CharacterImport::ClearOwnedToonProfile(Legacy);
+	TestEqual(TEXT("A 5.8 user override migrates to the declared parameter"), GetLocalProfile(Legacy), Manual);
+	TestFalse(TEXT("The migrated legacy override is retired"), Legacy->bOverrideToonProfile_DEPRECATED != 0);
 	return true;
 }
 
@@ -81,8 +94,12 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOmniImportRetainedMaterialsTest, "Omni.Editor.
 bool FOmniImportRetainedMaterialsTest::RunTest(const FString& Parameters)
 {
 	UMaterialInterface* Parent = LoadObject<UMaterialInterface>(nullptr,
-		TEXT("/SharedContent/Material/ToonShader/Toon_BSDF/M_Toon_Face.M_Toon_Face"));
-	if (!TestNotNull(TEXT("Read-only Face parent fixture"), Parent)) return false;
+		TEXT("/SharedContent/Material/ToonShader/Toon_BSDF/M_Toon_Body.M_Toon_Body"));
+	if (!TestNotNull(TEXT("Read-only Toon parent fixture"), Parent)) return false;
+	TArray<FMaterialParameterInfo> ToonParameters;
+	TArray<FGuid> ToonParameterIds;
+	Parent->GetAllToonProfileParameterInfo(ToonParameters, ToonParameterIds);
+	if (!TestEqual(TEXT("The Toon fixture exposes its Profile parameter"), ToonParameters.Num(), 1)) return false;
 	UOmniCharacterImportPipeline* Pipeline = NewObject<UOmniCharacterImportPipeline>();
 	UOmniCharacterImportProfile* Profile = NewObject<UOmniCharacterImportProfile>();
 	Profile->bCreateIKRig = false;
@@ -92,7 +109,7 @@ bool FOmniImportRetainedMaterialsTest::RunTest(const FString& Parameters)
 	Pipeline->Profile = Profile;
 	Pipeline->CharacterName = TEXT("ReimportRegression");
 	Pipeline->FaceParentMaterial = Parent;
-	Pipeline->OutlineParentMaterial = Parent; // 本测试中两种材质类型都暴露 Tex_BaseColor。
+	Pipeline->OutlineParentMaterial = Parent; // 两种测试材质槽使用同一个带纹理和 Profile 参数的母材质。
 	UInterchangeBaseNodeContainer* Container = NewObject<UInterchangeBaseNodeContainer>();
 	USkeletalMesh* Mesh = NewObject<USkeletalMesh>();
 	AddNode<UInterchangeSkeletalMeshFactoryNode>(Container, TEXT("Mesh"), TEXT("ReimportRegression"), EInterchangeNodeContainerType::FactoryData);
@@ -126,7 +143,7 @@ bool FOmniImportRetainedMaterialsTest::RunTest(const FString& Parameters)
 		Binding.Mode = EOmniFaceTextureMode::ExistingTexture;
 		Binding.Texture = After;
 	}
-	Materials[1]->ToonProfileOverride = UserProfile;
+	Materials[1]->SetToonProfileParameterValueEditorOnly(ToonParameters[0], UserProfile);
 	FInterchangePipelineContextParams Context;
 	Context.ContextType = EInterchangePipelineContext::AssetReimport;
 	Context.ReimportAsset = Mesh;
@@ -141,7 +158,7 @@ bool FOmniImportRetainedMaterialsTest::RunTest(const FString& Parameters)
 		Pipeline->ScriptedExecutePostImportPipeline(Container, TEXT("Mesh"), Mesh, true);
 	};
 	RunMeshCallback();
-	TestEqual(TEXT("Ordinary reimport preserves the prior Body override"), Materials[0]->ToonProfileOverride.Get(), OwnedProfile);
+	TestEqual(TEXT("Ordinary reimport preserves the prior Body override"), GetLocalProfile(Materials[0]), OwnedProfile);
 	for (UMaterialInstanceConstant* Material : Materials)
 	{
 		UTexture* Actual = nullptr;
@@ -150,8 +167,8 @@ bool FOmniImportRetainedMaterialsTest::RunTest(const FString& Parameters)
 	}
 	Pipeline->bUpdateKeywordMaterialsOnReimport = true;
 	RunMeshCallback();
-	TestEqual(TEXT("Explicit mesh-only update migrates a pipeline-owned override to the FBX group"), Materials[0]->ToonProfileOverride.Get(), SharedProfile);
-	TestEqual(TEXT("Body to Outline preserves a user replacement"), Materials[1]->ToonProfileOverride.Get(), UserProfile);
+	TestEqual(TEXT("Explicit mesh-only update migrates a pipeline-owned override to the FBX group"), GetLocalProfile(Materials[0]), SharedProfile);
+	TestEqual(TEXT("Body to Outline preserves a user replacement"), GetLocalProfile(Materials[1]), UserProfile);
 	for (UMaterialInstanceConstant* Material : Materials)
 	{
 		UTexture* Actual = nullptr;

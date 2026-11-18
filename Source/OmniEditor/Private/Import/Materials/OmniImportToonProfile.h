@@ -10,8 +10,8 @@ class UToonProfile;
 namespace Omni::CharacterImport
 {
 UToonProfile* ResolveBodyToonProfileTemplate(UMaterialInterface* Parent, UToonProfile* ExplicitTemplate);
-/** 设置实例覆盖并记录导入器所有权，标记待保存；不保存资产。 */
-void SetOwnedToonProfile(UMaterialInstanceConstant* Material, UToonProfile* Profile, const FString& GroupKey = FString());
+/** 设置母材质声明的 Toon Profile 参数覆盖并记录导入器所有权。 */
+bool SetOwnedToonProfile(UMaterialInstanceConstant* Material, UToonProfile* Profile, const FString& GroupKey = FString());
 
 /** 移除归属记录；只有仍指向原记录对象的覆盖会被清空，保留用户替换。 */
 void ClearOwnedToonProfile(UMaterialInstanceConstant* Material);
