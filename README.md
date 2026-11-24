@@ -1,12 +1,12 @@
 # Omni
 
-Omni 是 UE 5.8 C++ 项目。运行时由 `OmniGame` 组装 Experience、角色和界面；编辑器扩展由 `OmniEditor` 提供。默认启动地图为 `/Game/L_GameStart`，具体玩法与演示由 `Plugins/GameFeatures` 管理。
+Omni 是 UE 5.9 C++ 项目。运行时由 `OmniGame` 组装 Experience、角色和界面；编辑器扩展由 `OmniEditor` 提供。默认启动地图为 `/Game/L_GameStart`，具体玩法与演示由 `Plugins/GameFeatures` 管理。
 
 ## 打开和构建
 
-本目录同时是 Git 根目录和 UE 工程根目录。克隆包含 LFS 资产的分支时，先安装 Git LFS；如果工作区只有指针文件，在本目录运行 `git lfs install --local` 和 `git lfs pull`。然后使用匹配的 UE 5.8 打开 [Omni.uproject](Omni.uproject)。
+本目录同时是 Git 根目录和 UE 工程根目录。克隆包含 LFS 资产的分支时，先安装 Git LFS；如果工作区只有指针文件，在本目录运行 `git lfs install --local` 和 `git lfs pull`。然后使用匹配的 UE 5.9 打开 [Omni.uproject](Omni.uproject)。
 
-引擎关联为 `5.8`，本地工程基线为 UE `5.8.4`（CL `58902052`）。需要编译时，使用该引擎的 `Engine/Build/BatchFiles/Build.bat`，传入 `OmniEditor Win64 Development` 和 `-Project=<Omni.uproject 的绝对路径>`。游戏、客户端、服务器目标分别为 `OmniGame`、`OmniClient`、`OmniServer`，构建配置以对应的 [Target 文件](Source/) 为准。
+引擎关联为 `5.9`，本地工程基线为 UE `5.9.0`（CL `60351404`）。需要编译时，使用该引擎的 `Engine/Build/BatchFiles/Build.bat`，传入 `OmniEditor Win64 Development` 和 `-Project=<Omni.uproject 的绝对路径>`。游戏、客户端、服务器目标分别为 `OmniGame`、`OmniClient`、`OmniServer`，构建配置以对应的 [Target 文件](Source/) 为准。
 
 ## 目录
 

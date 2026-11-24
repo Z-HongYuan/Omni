@@ -2,6 +2,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "OmniImportToonProfileTestFixture.h"
 #include "Import/OmniCharacterImportPipeline.h"
 #include "Import/OmniCharacterImportProfile.h"
 #include "Import/Materials/OmniImportMaterialUserData.h"
@@ -22,6 +23,10 @@
 
 namespace
 {
+using Omni::CharacterImport::Tests::DefaultProfileParameter;
+using Omni::CharacterImport::Tests::GetLocalProfile;
+using Omni::CharacterImport::Tests::MakeToonParent;
+
 constexpr EAutomationTestFlags MaterialTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 
 template <typename T>
@@ -54,10 +59,13 @@ struct FMemoryProfileGroup
 		Template->Settings.DiffuseRampOffsetStrength = 0.25f;
 		Shared = DuplicateObject<UToonProfile>(Template, MakePackage(GroupKey), TEXT("TP_Group"));
 		Shared->SetFlags(RF_Transient);
+		UMaterial* Parent = MakeToonParent(Template);
 		for (int32 Index = 0; Index < MaterialCount; ++Index)
 		{
 			const FString Name = FString::Printf(TEXT("MI_Part%d"), Index);
-			Materials.Add(NewObject<UMaterialInstanceConstant>(MakePackage(Folder / Name), FName(*Name), RF_Transient));
+			UMaterialInstanceConstant* Material = NewObject<UMaterialInstanceConstant>(MakePackage(Folder / Name), FName(*Name), RF_Transient);
+			Material->SetParentEditorOnly(Parent);
+			Materials.Add(Material);
 		}
 	}
 
@@ -128,7 +136,7 @@ bool FOmniImportCustomParentTest::RunTest(const FString& Parameters)
 	// 只触发材质回调，避免测试创建 Rig、网格体报告或已保存资产。
 	Pipeline->ScriptedExecutePostImportPipeline(Container, FactoryUid, Material, false);
 	TestEqual(TEXT("The created MI actually uses the selected custom parent"), Material->Parent.Get(), static_cast<UMaterialInterface*>(Parent));
-	TestFalse(TEXT("A non-Toon parent does not gain a Toon override"), Material->bOverrideToonProfile != 0);
+	TestFalse(TEXT("A non-Toon parent does not gain a Toon override"), !Material->ToonProfileParameterValues.IsEmpty());
 	return true;
 }
 
@@ -136,6 +144,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOmniImportRenamedProfileOwnershipTest, "Omni.E
 bool FOmniImportRenamedProfileOwnershipTest::RunTest(const FString& Parameters)
 {
 	UMaterialInstanceConstant* Material = NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transient);
+	Material->SetParentEditorOnly(MakeToonParent());
 	UToonProfile* Owned = NewObject<UToonProfile>(GetTransientPackage(), NAME_None, RF_Transient);
 	Omni::CharacterImport::SetOwnedToonProfile(Material, Owned);
 	const UOmniImportMaterialUserData* Ownership = Cast<UOmniImportMaterialUserData>(Material->GetAssetUserDataOfClass(UOmniImportMaterialUserData::StaticClass()));
@@ -148,8 +157,8 @@ bool FOmniImportRenamedProfileOwnershipTest::RunTest(const FString& Parameters)
 	TestNotEqual(TEXT("The profile path changed"), Owned->GetPathName(), PreviousPath);
 	TestEqual(TEXT("Ownership still identifies the renamed object"), Ownership->OwnedToonProfile.Get(), Owned);
 	Omni::CharacterImport::ClearOwnedToonProfile(Material);
-	TestNull(TEXT("Renaming does not prevent removal of an owned override"), Material->ToonProfileOverride.Get());
-	TestFalse(TEXT("The owned override is disabled"), Material->bOverrideToonProfile != 0);
+	TestNull(TEXT("Renaming does not prevent removal of an owned override"), GetLocalProfile(Material));
+	TestFalse(TEXT("The owned override is disabled"), !Material->ToonProfileParameterValues.IsEmpty());
 	TestNull(TEXT("Clearing also removes the ownership record"), Material->GetAssetUserDataOfClass(UOmniImportMaterialUserData::StaticClass()));
 	return true;
 }
@@ -158,19 +167,20 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FOmniImportUserProfileProtectionTest, "Omni.Edi
 bool FOmniImportUserProfileProtectionTest::RunTest(const FString& Parameters)
 {
 	UMaterialInstanceConstant* Material = NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transient);
+	Material->SetParentEditorOnly(MakeToonParent());
 	UToonProfile* Owned = NewObject<UToonProfile>(GetTransientPackage(), NAME_None, RF_Transient);
 	UToonProfile* Manual = NewObject<UToonProfile>(GetTransientPackage(), NAME_None, RF_Transient);
 	UToonProfile* Template = NewObject<UToonProfile>(GetTransientPackage(), NAME_None, RF_Transient);
 	Omni::CharacterImport::SetOwnedToonProfile(Material, Owned);
-	Material->ToonProfileOverride = Manual;
+	Material->SetToonProfileParameterValueEditorOnly(DefaultProfileParameter, Manual);
 	int32 Errors = 0;
 	const Omni::CharacterImport::FImportReporter Reporter{[&Errors](const FString&, bool bError) { Errors += bError ? 1 : 0; }};
 	const FString GroupKey = TEXT("/Temp/OmniImportMaterialTests/UserReplacement/TP_Group");
 	Omni::CharacterImport::ApplySharedToonProfile(Material, Template, GroupKey, Reporter);
-	TestEqual(TEXT("Reapplying a template preserves the user's replacement"), Material->ToonProfileOverride.Get(), Manual);
+	TestEqual(TEXT("Reapplying a template preserves the user's replacement"), GetLocalProfile(Material), Manual);
 	Omni::CharacterImport::ApplySharedToonProfile(Material, nullptr, GroupKey, Reporter);
-	TestEqual(TEXT("Switching to a parent without Toon preserves the user's replacement"), Material->ToonProfileOverride.Get(), Manual);
-	TestTrue(TEXT("The user override remains enabled"), Material->bOverrideToonProfile != 0);
+	TestEqual(TEXT("Clearing import ownership preserves the user's replacement"), GetLocalProfile(Material), Manual);
+	TestTrue(TEXT("The user override remains enabled"), !Material->ToonProfileParameterValues.IsEmpty());
 	TestNull(TEXT("The old ownership record is removed"), Material->GetAssetUserDataOfClass(UOmniImportMaterialUserData::StaticClass()));
 	TestEqual(TEXT("Preserving a user assignment is not an import error"), Errors, 0);
 	return true;
@@ -188,8 +198,8 @@ bool FOmniImportMaterialProfileReuseTest::RunTest(const FString& Parameters)
 	for (UMaterialInstanceConstant* Material : Group.Materials)
 	{
 		Omni::CharacterImport::ApplySharedToonProfile(Material, Shared, Group.GroupKey, Reporter);
-		TestEqual(TEXT("All three MIs reference the exact same Profile object"), Material->ToonProfileOverride.Get(), Shared);
-		TestTrue(TEXT("Every MI enables the shared override"), Material->bOverrideToonProfile != 0);
+		TestEqual(TEXT("All three MIs reference the exact same Profile object"), GetLocalProfile(Material), Shared);
+		TestTrue(TEXT("Every MI enables the shared override"), !Material->ToonProfileParameterValues.IsEmpty());
 		const UOmniImportMaterialUserData* Ownership = ProfileOwnership(Material);
 		if (TestNotNull(TEXT("Every MI has a persistent ownership record"), Ownership))
 		{
@@ -225,7 +235,7 @@ bool FOmniImportSharedProfileIsolationTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Tuning the second group does not affect the first"), First.Shared->Settings.DiffuseRampOffsetStrength, 0.25f);
 	TestEqual(TEXT("Tuning either group does not edit the source template"), First.Template->Settings.DiffuseRampOffsetStrength, 0.25f);
 	for (UMaterialInstanceConstant* Material : Second.Materials)
-		TestEqual(TEXT("Both second-group MIs reference its one Profile"), Material->ToonProfileOverride.Get(), Second.Shared);
+		TestEqual(TEXT("Both second-group MIs reference its one Profile"), GetLocalProfile(Material), Second.Shared);
 	TestEqual(TEXT("Independent groups report no errors"), Errors, 0);
 	return !HasAnyErrors();
 }
@@ -236,7 +246,12 @@ bool FOmniImportLegacyProfileMigrationTest::RunTest(const FString& Parameters)
 	FMemoryProfileGroup Group(2);
 	UToonProfile* Legacy = Group.MakeProfile(TEXT("TP_LegacyPerMI"));
 	Legacy->Settings.DiffuseRampOffsetStrength = 0.6f;
-	Omni::CharacterImport::SetOwnedToonProfile(Group.Materials[0], Legacy); // 不提供共用组标识。
+	UMaterialInstanceConstant* MaterialWithLegacyOverride = Group.Materials[0];
+	MaterialWithLegacyOverride->ToonProfileOverride_DEPRECATED = Legacy;
+	MaterialWithLegacyOverride->bOverrideToonProfile_DEPRECATED = true;
+	UOmniImportMaterialUserData* LegacyOwnership = NewObject<UOmniImportMaterialUserData>(MaterialWithLegacyOverride);
+	LegacyOwnership->OwnedToonProfile = Legacy;
+	MaterialWithLegacyOverride->AddAssetUserData(LegacyOwnership);
 	int32 Errors = 0;
 	const Omni::CharacterImport::FImportReporter Reporter{[&Errors](const FString&, bool bError) { Errors += bError ? 1 : 0; }};
 	UToonProfile* Shared = Omni::CharacterImport::ResolveOrCreateSharedToonProfile(Group.GroupKey, Group.Materials, Group.Template, Reporter);
@@ -244,7 +259,7 @@ bool FOmniImportLegacyProfileMigrationTest::RunTest(const FString& Parameters)
 	TestNotEqual(TEXT("The old per-MI object is not silently reused"), Shared, Legacy);
 	for (UMaterialInstanceConstant* Material : Group.Materials)
 		Omni::CharacterImport::ApplySharedToonProfile(Material, Shared, Group.GroupKey, Reporter);
-	TestEqual(TEXT("An owned legacy assignment can migrate to the shared object"), Group.Materials[0]->ToonProfileOverride.Get(), Shared);
+	TestEqual(TEXT("An owned legacy assignment can migrate to the shared object"), GetLocalProfile(Group.Materials[0]), Shared);
 	if (const UOmniImportMaterialUserData* Ownership = ProfileOwnership(Group.Materials[0]))
 		TestEqual(TEXT("Migration records the new shared group key"), Ownership->SharedProfileGroupKey, Group.GroupKey);
 	else AddError(TEXT("Migrated material has no group ownership."));
@@ -270,7 +285,7 @@ bool FOmniImportRenamedSharedProfileTest::RunTest(const FString& Parameters)
 	UToonProfile* Again = Omni::CharacterImport::ResolveOrCreateSharedToonProfile(Group.GroupKey, Group.Materials, Group.Template, Reporter);
 	if (!TestEqual(TEXT("Group ownership reuses the renamed shared object"), Again, Group.Shared)) return false;
 	Omni::CharacterImport::ApplySharedToonProfile(Group.Materials[2], Again, Group.GroupKey, Reporter);
-	TestEqual(TEXT("A later MI joins the renamed shared object"), Group.Materials[2]->ToonProfileOverride.Get(), Group.Shared);
+	TestEqual(TEXT("A later MI joins the renamed shared object"), GetLocalProfile(Group.Materials[2]), Group.Shared);
 	if (const UOmniImportMaterialUserData* Ownership = ProfileOwnership(Group.Materials[2]))
 		TestEqual(TEXT("The stable group key survives the Profile move"), Ownership->SharedProfileGroupKey, Group.GroupKey);
 	else AddError(TEXT("The later material has no group ownership."));
@@ -285,10 +300,9 @@ bool FOmniImportNullSharedTemplateTest::RunTest(const FString& Parameters)
 	FMemoryProfileGroup Group;
 	UToonProfile* Manual = Group.MakeProfile(TEXT("TP_Manual"));
 	Omni::CharacterImport::SetOwnedToonProfile(Group.Materials[0], Group.Shared, Group.GroupKey);
-	Group.Materials[1]->ToonProfileOverride = Manual;
-	Group.Materials[1]->bOverrideToonProfile = true;
+	Group.Materials[1]->SetToonProfileParameterValueEditorOnly(DefaultProfileParameter, Manual);
 	Omni::CharacterImport::SetOwnedToonProfile(Group.Materials[2], Group.Shared, Group.GroupKey);
-	Group.Materials[2]->ToonProfileOverride = Manual;
+	Group.Materials[2]->SetToonProfileParameterValueEditorOnly(DefaultProfileParameter, Manual);
 	int32 Errors = 0;
 	const Omni::CharacterImport::FImportReporter Reporter{[&Errors](const FString&, bool bError) { Errors += bError ? 1 : 0; }};
 	const FString MissingPackage = Group.Folder / TEXT("NeverCreated/TP_None");
@@ -296,15 +310,15 @@ bool FOmniImportNullSharedTemplateTest::RunTest(const FString& Parameters)
 	UToonProfile* None = Omni::CharacterImport::ResolveOrCreateSharedToonProfile(MissingPackage, Group.Materials, nullptr, Reporter);
 	TestNull(TEXT("A null template creates no Profile"), None);
 	TestNull(TEXT("A null template creates no package"), FindPackage(nullptr, *MissingPackage));
-	TestEqual(TEXT("Resolution alone does not mutate existing assignments"), Group.Materials[0]->ToonProfileOverride.Get(), Group.Shared);
+	TestEqual(TEXT("Resolution alone does not mutate existing assignments"), GetLocalProfile(Group.Materials[0]), Group.Shared);
 	for (UMaterialInstanceConstant* Material : Group.Materials)
 		Omni::CharacterImport::ApplySharedToonProfile(Material, None, Group.GroupKey, Reporter);
-	TestNull(TEXT("A former owned assignment is cleared"), Group.Materials[0]->ToonProfileOverride.Get());
-	TestFalse(TEXT("A cleared owned assignment is disabled"), Group.Materials[0]->bOverrideToonProfile != 0);
+	TestNull(TEXT("A former owned assignment is cleared"), GetLocalProfile(Group.Materials[0]));
+	TestFalse(TEXT("A cleared owned assignment is disabled"), !Group.Materials[0]->ToonProfileParameterValues.IsEmpty());
 	for (int32 Index = 1; Index < 3; ++Index)
 	{
-		TestEqual(TEXT("Manual and manually replaced overrides are preserved"), Group.Materials[Index]->ToonProfileOverride.Get(), Manual);
-		TestTrue(TEXT("Manual overrides remain enabled"), Group.Materials[Index]->bOverrideToonProfile != 0);
+		TestEqual(TEXT("Manual and manually replaced overrides are preserved"), GetLocalProfile(Group.Materials[Index]), Manual);
+		TestTrue(TEXT("Manual overrides remain enabled"), !Group.Materials[Index]->ToonProfileParameterValues.IsEmpty());
 	}
 	for (UMaterialInstanceConstant* Material : Group.Materials)
 		TestNull(TEXT("Clearing removes only obsolete ownership records"), ProfileOwnership(Material));
@@ -324,8 +338,8 @@ bool FOmniImportConflictingSharedProfilesTest::RunTest(const FString& Parameters
 	TestNull(TEXT("Disagreeing group ownership is not resolved by guessing"),
 		Omni::CharacterImport::ResolveOrCreateSharedToonProfile(Group.GroupKey, Group.Materials, Group.Template, Reporter));
 	TestTrue(TEXT("The conflict is reported as an import error"), Errors > 0);
-	TestEqual(TEXT("Rejecting a group leaves its first assignment intact"), Group.Materials[0]->ToonProfileOverride.Get(), Group.Shared);
-	TestEqual(TEXT("Rejecting a group leaves its other assignment intact"), Group.Materials[1]->ToonProfileOverride.Get(), Other);
+	TestEqual(TEXT("Rejecting a group leaves its first assignment intact"), GetLocalProfile(Group.Materials[0]), Group.Shared);
+	TestEqual(TEXT("Rejecting a group leaves its other assignment intact"), GetLocalProfile(Group.Materials[1]), Other);
 	const FString OccupiedPackage = Group.Folder / TEXT("TP_Occupied");
 	UMaterialInstanceConstant* Occupant = NewObject<UMaterialInstanceConstant>(Group.MakePackage(OccupiedPackage), TEXT("TP_Occupied"), RF_Transient);
 	Errors = 0;
@@ -342,8 +356,8 @@ bool FOmniImportSharedProfileCallbackTest::RunTest(const FString& Parameters)
 	for (bool bFaceFirst : {false, true})
 	{
 		FMemoryProfileGroup Group(2);
-		UMaterial* BodyParent = NewObject<UMaterial>(GetTransientPackage(), NAME_None, RF_Transient);
-		UMaterial* FaceParent = NewObject<UMaterial>(GetTransientPackage(), NAME_None, RF_Transient);
+		UMaterial* BodyParent = MakeToonParent(Group.Template);
+		UMaterial* FaceParent = MakeToonParent(Group.Template);
 		UOmniCharacterImportPipeline* Pipeline = NewObject<UOmniCharacterImportPipeline>();
 		UOmniCharacterImportProfile* Profile = NewObject<UOmniCharacterImportProfile>();
 		Profile->bCreateCharacterFolder = false;
@@ -387,16 +401,16 @@ bool FOmniImportSharedProfileCallbackTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("Face callback preserves its independently selected parent"), Group.Materials[1]->Parent.Get(), static_cast<UMaterialInterface*>(FaceParent));
 		for (UMaterialInstanceConstant* Material : Group.Materials)
 		{
-			TestEqual(TEXT("Both role callbacks share the same group Profile in either order"), Material->ToonProfileOverride.Get(), Group.Shared);
+			TestEqual(TEXT("Both role callbacks share the same group Profile in either order"), GetLocalProfile(Material), Group.Shared);
 			const UOmniImportMaterialUserData* Ownership = ProfileOwnership(Material);
 			if (TestNotNull(TEXT("Callbacks persist group ownership"), Ownership))
 				TestEqual(TEXT("Both roles store the same group key"), Ownership->SharedProfileGroupKey, Group.GroupKey);
 		}
 		Group.Shared->Settings.DiffuseRampOffsetStrength = 0.9f;
-		UMaterial* ManualParent = NewObject<UMaterial>(GetTransientPackage(), NAME_None, RF_Transient);
+		UMaterial* ManualParent = MakeToonParent();
 		UToonProfile* ManualProfile = Group.MakeProfile(TEXT("TP_ManualAfterImport"));
-		Group.Materials[0]->Parent = ManualParent;
-		Group.Materials[0]->ToonProfileOverride = ManualProfile;
+		Group.Materials[0]->SetParentEditorOnly(ManualParent);
+		Group.Materials[0]->SetToonProfileParameterValueEditorOnly(DefaultProfileParameter, ManualProfile);
 		USkeletalMesh* ReimportMesh = NewObject<USkeletalMesh>(GetTransientPackage(), NAME_None, RF_Transient);
 		for (UMaterialInstanceConstant* Material : Group.Materials) ReimportMesh->GetMaterials().Add(FSkeletalMaterial(Material));
 		Context.ContextType = EInterchangePipelineContext::AssetReimport;
@@ -406,8 +420,8 @@ bool FOmniImportSharedProfileCallbackTest::RunTest(const FString& Parameters)
 		for (int32 Index : {Second, First})
 			Pipeline->ScriptedExecutePostImportPipeline(Container, FactoryUids[Index], Group.Materials[Index], true);
 		TestEqual(TEXT("Ordinary reimport preserves a hand-edited parent"), Group.Materials[0]->Parent.Get(), static_cast<UMaterialInterface*>(ManualParent));
-		TestEqual(TEXT("Ordinary reimport preserves a manual Profile replacement"), Group.Materials[0]->ToonProfileOverride.Get(), ManualProfile);
-		TestEqual(TEXT("Ordinary reimport retains the other MI's shared object"), Group.Materials[1]->ToonProfileOverride.Get(), Group.Shared);
+		TestEqual(TEXT("Ordinary reimport preserves a manual Profile replacement"), GetLocalProfile(Group.Materials[0]), ManualProfile);
+		TestEqual(TEXT("Ordinary reimport retains the other MI's shared object"), GetLocalProfile(Group.Materials[1]), Group.Shared);
 		TestEqual(TEXT("Ordinary reimport preserves group tuning"), Group.Shared->Settings.DiffuseRampOffsetStrength, 0.9f);
 	}
 	return !HasAnyErrors();
@@ -418,9 +432,8 @@ bool FOmniImportLegacySharedProfileCallbackTest::RunTest(const FString& Paramete
 {
 	FMemoryProfileGroup Group(2);
 	UMaterialInstanceConstant* RuleParent = NewObject<UMaterialInstanceConstant>(GetTransientPackage(), NAME_None, RF_Transient);
-	RuleParent->Parent = NewObject<UMaterial>(GetTransientPackage(), NAME_None, RF_Transient);
-	RuleParent->ToonProfileOverride = Group.Template;
-	RuleParent->bOverrideToonProfile = true;
+	RuleParent->SetParentEditorOnly(MakeToonParent());
+	RuleParent->SetToonProfileParameterValueEditorOnly(DefaultProfileParameter, Group.Template);
 	UOmniCharacterImportPipeline* Pipeline = NewObject<UOmniCharacterImportPipeline>();
 	UOmniCharacterImportProfile* Profile = NewObject<UOmniCharacterImportProfile>();
 	Profile->bCreateCharacterFolder = false;
@@ -462,7 +475,7 @@ bool FOmniImportLegacySharedProfileCallbackTest::RunTest(const FString& Paramete
 	{
 		Pipeline->ScriptedExecutePostImportPipeline(Container, FactoryUids[Index], Group.Materials[Index], false);
 		TestEqual(TEXT("The generic material rule assigns its selected parent"), Group.Materials[Index]->Parent.Get(), static_cast<UMaterialInterface*>(RuleParent));
-		TestEqual(TEXT("Generic-rule MIs share the group's one local Toon Profile"), Group.Materials[Index]->ToonProfileOverride.Get(), Group.Shared);
+		TestEqual(TEXT("Generic-rule MIs share the group's one local Toon Profile"), GetLocalProfile(Group.Materials[Index]), Group.Shared);
 		const UOmniImportMaterialUserData* Ownership = ProfileOwnership(Group.Materials[Index]);
 		if (TestNotNull(TEXT("Generic-rule callbacks record shared ownership"), Ownership))
 		{
